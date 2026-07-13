@@ -1,0 +1,206 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-geist-sans);
+  --radius: var(--radius-md);
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.625rem;
+  --radius-xl: 0.75rem;
+}
+
+:root {
+  color-scheme: light;
+  --surface-base: #f8f8f7;
+  --surface-card: #ffffff;
+  --surface-elevated: #fcfcfb;
+  --surface-overlay: #ffffff;
+  --background: var(--surface-base);
+  --foreground: #18181b;
+  --card: var(--surface-card);
+  --card-foreground: #18181b;
+  --popover: var(--surface-overlay);
+  --popover-foreground: #18181b;
+  --primary: #18181b;
+  --primary-foreground: #ffffff;
+  --secondary: #f0f0ef;
+  --secondary-foreground: #27272a;
+  --muted: #f1f1f0;
+  --muted-foreground: #71717a;
+  --accent: #ececeb;
+  --accent-foreground: #27272a;
+  --success: #15803d;
+  --success-foreground: #f0fdf4;
+  --warning: #b45309;
+  --warning-foreground: #78350f;
+  --destructive: #b91c1c;
+  --border: #e4e4e2;
+  --input: #dededc;
+  --ring: #71717a;
+  --sidebar: #fafafa;
+  --sidebar-foreground: #27272a;
+  --sidebar-primary: #18181b;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eeeeed;
+  --sidebar-accent-foreground: #27272a;
+  --sidebar-border: #e5e5e3;
+  --sidebar-ring: #71717a;
+  --ct-blue: #52525b;
+  --ct-blue-strong: #27272a;
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --duration-stagger: 40ms;
+  --duration-micro: 80ms;
+  --duration-quick: 150ms;
+  --duration-fast: 250ms;
+  --duration-medium: 350ms;
+  --duration-slow: 400ms;
+  --duration-very-slow: 500ms;
+  --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: ease-in-out;
+  --ease-out: ease-out;
+  --ease-linear: linear;
+  --shimmer-dur: 2000ms;
+  --tabs-dur: var(--duration-fast);
+  --tabs-ease: var(--ease-smooth-out);
+  --tabs-text-muted: #71717a;
+  --tabs-text-active: #18181b;
+  --tabs-bar-bg: #eeeeed;
+  --tabs-pill-bg: #ffffff;
+  --sync-local: var(--warning);
+  --sync-confirmed: var(--primary);
+  --sync-error: var(--destructive);
+  --sync-surface: var(--muted);
+  --chart-1: #5347ce;
+  --chart-2: #887cfd;
+  --chart-3: #4896fe;
+  --chart-4: #16c8c7;
+  --chart-5: #65ddd7;
+  --dashboard-canvas: #f4f6f8;
+  --radius: 0.5rem;
+}
+
+.dark {
+  color-scheme: dark;
+  --surface-base: #111111;
+  --surface-card: #171717;
+  --surface-elevated: #1d1d1d;
+  --surface-overlay: #1a1a1a;
+  --background: var(--surface-base);
+  --foreground: #f5f5f5;
+  --card: var(--surface-card);
+  --card-foreground: #f5f5f5;
+  --popover: var(--surface-overlay);
+  --popover-foreground: #f5f5f5;
+  --primary: #f5f5f5;
+  --primary-foreground: #111111;
+  --secondary: #222222;
+  --secondary-foreground: #f5f5f5;
+  --muted: #202020;
+  --muted-foreground: #a1a1aa;
+  --accent: #242424;
+  --accent-foreground: #f5f5f5;
+  --success: #34d399;
+  --success-foreground: #052e16;
+  --warning: #fbbf24;
+  --warning-foreground: #fffbeb;
+  --destructive: #f87171;
+  --border: #2b2b2b;
+  --input: #202020;
+  --ring: #d4d4d8;
+  --sidebar: #121212;
+  --sidebar-foreground: #e4e4e7;
+  --sidebar-primary: #f5f5f5;
+  --sidebar-primary-foreground: #111111;
+  --sidebar-accent: #222222;
+  --sidebar-accent-foreground: #f5f5f5;
+  --sidebar-border: #282828;
+  --sidebar-ring: #d4d4d8;
+  --ct-blue: #a1a1aa;
+  --ct-blue-strong: #d4d4d8;
+  --tabs-text-muted: #8b8b92;
+  --tabs-text-active: #f5f5f5;
+  --tabs-bar-bg: #1d1d1d;
+  --tabs-pill-bg: #333333;
+  --sync-local: var(--warning);
+  --sync-confirmed: var(--primary);
+  --sync-error: var(--destructive);
+  --sync-surface: var(--muted);
+  --chart-1: #887cfd;
+  --chart-2: #a49bff;
+  --chart-3: #6da9ff;
+  --chart-4: #38d8d4;
+  --chart-5: #83e8e1;
+  --dashboard-canvas: #111111;
+}
+
+/* Contrast guardrails for legacy status utilities. The light theme must keep
+   status and privacy messaging readable even when older screens still use
+   saturated Tailwind color utilities. */
+:root:not(.dark) .text-amber-100,
+:root:not(.dark) .text-amber-200 { color: var(--warning-foreground) !important; }
+:root:not(.dark) .text-emerald-200,
+:root:not(.dark) .text-emerald-300 { color: var(--success) !important; }
+
+* { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body { margin: 0; background: var(--background); color: var(--foreground); font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif; }
+
+@layer base {
+  * { @apply border-border outline-ring/50; }
+  body { @apply bg-background text-foreground; }
+  html { @apply font-sans; }
+}
+
+.t-tabs { position: relative; display: inline-flex; align-items: center; gap: 3px; padding: 3px; border: 1px solid var(--border); border-radius: 8px; background: var(--tabs-bar-bg); }
+.t-tab { position: relative; z-index: 1; height: 30px; border: 0; border-radius: 6px; background: transparent; padding: 4px 12px; color: var(--tabs-text-muted); font-size: 0.8125rem; cursor: pointer; transition: color var(--tabs-dur) var(--tabs-ease); }
+.t-tab:hover, .t-tab[aria-selected="true"] { color: var(--tabs-text-active); }
+.t-tabs-pill { position: absolute; top: 3px; left: 0; z-index: 0; height: 30px; width: 0; border-radius: 6px; background: var(--tabs-pill-bg); pointer-events: none; transition: transform var(--tabs-dur) var(--tabs-ease), width var(--tabs-dur) var(--tabs-ease); will-change: transform, width; }
+
+.t-timeline-item { animation: t-timeline-enter var(--duration-quick) var(--ease-smooth-out) both; }
+@keyframes t-timeline-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.t-sync-enter { animation: t-sync-enter 120ms var(--ease-smooth-out) both; }
+.t-sync-confirmed { color: var(--sync-confirmed); opacity: 1; transition: color 180ms var(--ease-smooth-out), opacity 180ms var(--ease-smooth-out); }
+.t-sync-local { color: var(--sync-local); opacity: 0.6; }
+.t-sync-error { animation: t-sync-shake 240ms var(--ease-smooth-out) both; border-left-color: var(--sync-error) !important; }
+@keyframes t-sync-enter { from { opacity: 0; transform: translateY(4px); } to { opacity: 0.6; transform: translateY(0); } }
+@keyframes t-sync-shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-4px); } 40% { transform: translateX(4px); } 60% { transform: translateX(-2px); } 80% { transform: translateX(2px); } }
+
+@media (prefers-reduced-motion: reduce) { .t-tabs-pill, .t-tab { transition: none !important; } }
+@media (prefers-reduced-motion: reduce) { .t-timeline-item { animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { .t-sync-enter, .t-sync-error { animation: none !important; transform: none !important; } .t-sync-confirmed { transition: opacity 1ms linear, color 1ms linear; } }

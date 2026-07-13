@@ -1,0 +1,45 @@
+import "server-only";
+
+import { randomUUID } from "node:crypto";
+import { and, asc, eq } from "drizzle-orm";
+import { z } from "zod";
+
+import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
+import { hasPermission } from "@/shared/auth/permissions";
+import { AuthorizationError } from "@/shared/auth/errors";
+import { getDatabase, schema } from "@/shared/db";
+import { chooseAvailableBroker } from "./assignment";
+
+const leadInput = z.object({
+  nome: z.string().trim().min(2, "Informe o nome do lead.").max(120),
+  telefone: z.string().trim().transform((value) => value.replace(/\D/g, "")).refine((value) => /^(?:55)?(?:[1-9]{2})9\d{8}$/.test(value), "Informe um celular brasileiro válido."),
+  email: z.string().trim().email("Informe um e-mail válido.").max(254).optional().or(z.literal("")),
+  planoInteresseId: z.string().uuid().optional().or(z.literal("")),
+  consentimentoLgpd: z.literal("true", { message: "O consentimento LGPD é obrigatório." }),
+  duplicateConfirmed: z.literal("true").optional(),
+});
+
+export type DuplicateLeadNotice = { id: string; nome: string; createdAt: Date; corretorNome: string | null };
+
+function normalizePhone(phone: string) {
+  const digits = phone.replace(/\D/g, "");
+  return digits.startsWith("55") ? digits : `55${digits}`;
+}
+
+export async function createManualLead(rawInput: unknown) {
+  const input = leadInput.parse(rawInput);
+  const context = await getRequiredTenantContext();
+  if (!hasPermission(context.role, "criar_lead_manual")) throw new AuthorizationError("O papel atual não pode criar leads.");
+  if (!context.branchId) throw new Error("O usuário precisa estar vinculado a uma filial ativa.");
+  const db = getDatabase();
+  const telefone = normalizePhone(input.telefone);
+  const [duplicate] = await db.select({ id: schema.leads.id, nome: schema.leads.nome, createdAt: schema.leads.createdAt, corretorNome: schema.user.name }).from(schema.leads).leftJoin(schema.user, eq(schema.leads.corretorId, schema.user.id)).where(and(eq(schema.leads.tenantId, context.tenantId), eq(schema.leads.telefone, telefone))).orderBy(asc(schema.leads.createdAt)).limit(1);
+  if (duplicate && input.duplicateConfirmed !== "true") return { duplicate: duplicate as DuplicateLeadNotice };
+  const corretorId = context.role === "broker" ? context.userId : await chooseAvailableBroker(context.tenantId, context.branchId);
+  const leadId = randomUUID();
+  const assigned = Boolean(corretorId);
+  await db.insert(schema.leads).values({ id: leadId, tenantId: context.tenantId, branchId: context.branchId, corretorId, planId: input.planoInteresseId || null, nome: input.nome, telefone, email: input.email || null, origem: "manual", status: assigned ? "distributed" : "new", assignedAt: assigned ? new Date() : null, consentimentoLgpd: true });
+  await db.insert(schema.leadInteractions).values({ id: randomUUID(), leadId, userId: context.userId, tipo: assigned ? "system_alert" : "note", conteudo: assigned ? "Lead criado e distribuído automaticamente para um corretor disponível." : "Lead criado manualmente; aguardando corretor disponível." });
+  await db.insert(schema.auditLogs).values({ id: randomUUID(), userId: context.userId, entidade: "lead", entidadeId: leadId, acao: "criou" });
+  return { leadId };
+}

@@ -1,0 +1,521 @@
+import { relations, sql } from "drizzle-orm";
+import {
+  boolean,
+  foreignKey,
+  index,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  unique,
+  uniqueIndex,
+  jsonb,
+} from "drizzle-orm/pg-core";
+
+export const tenantStatusValues = ["active", "inactive", "delinquent"] as const;
+export const branchStatusValues = ["active", "inactive"] as const;
+export const membershipStatusValues = ["active", "inactive"] as const;
+export const availabilityStatusValues = ["available", "paused"] as const;
+export const tenantRoleValues = ["director", "manager", "broker"] as const;
+export const userStatusValues = ["pending", "active", "disabled"] as const;
+export const leadStatusValues = ["new", "distributed", "in_contact", "quote_sent", "negotiation", "documentation_pending", "under_analysis", "converted", "lost"] as const;
+export const leadOriginValues = ["manual", "webhook"] as const;
+export const leadInteractionTypeValues = [
+  "status_change",
+  "note",
+  "system_alert",
+  "document_upload",
+  "document_review",
+  "quote_generated",
+  "whatsapp_msg",
+] as const;
+export const webhookCredentialStatusValues = ["active", "revoked"] as const;
+export const webhookDeliveryStatusValues = ["received", "processed", "rejected", "failed"] as const;
+
+export const tenantStatus = pgEnum("tenant_status", tenantStatusValues);
+export const branchStatus = pgEnum("branch_status", branchStatusValues);
+export const membershipStatus = pgEnum(
+  "membership_status",
+  membershipStatusValues,
+);
+export const availabilityStatus = pgEnum("availability_status", availabilityStatusValues);
+export const tenantRole = pgEnum("tenant_role", tenantRoleValues);
+export const userStatus = pgEnum("user_status", userStatusValues);
+export const leadStatus = pgEnum("lead_status", leadStatusValues);
+export const leadOrigin = pgEnum("lead_origin", leadOriginValues);
+export const leadInteractionType = pgEnum("lead_interaction_type", leadInteractionTypeValues);
+export const webhookCredentialStatus = pgEnum("webhook_credential_status", webhookCredentialStatusValues);
+export const webhookDeliveryStatus = pgEnum("webhook_delivery_status", webhookDeliveryStatusValues);
+
+const createdAt = timestamp("created_at", { withTimezone: true })
+  .notNull()
+  .defaultNow();
+const updatedAt = timestamp("updated_at", { withTimezone: true })
+  .notNull()
+  .defaultNow()
+  .$onUpdate(() => new Date());
+
+// BetterAuth canonical identity tables. Tenant authorization intentionally lives
+// in tenantMemberships rather than in this global identity record.
+export const user = pgTable("user", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  emailVerified: boolean("email_verified").notNull().default(false),
+  image: text("image"),
+  active: boolean("active").notNull().default(true),
+  isPlatformAdmin: boolean("is_platform_admin").notNull().default(false),
+  status: userStatus("status").notNull().default("active"),
+  createdAt,
+  updatedAt,
+});
+
+export const session = pgTable(
+  "session",
+  {
+    id: text("id").primaryKey(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    token: text("token").notNull().unique(),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [index("session_user_id_idx").on(table.userId)],
+);
+
+export const account = pgTable(
+  "account",
+  {
+    id: text("id").primaryKey(),
+    accountId: text("account_id").notNull(),
+    providerId: text("provider_id").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    accessToken: text("access_token"),
+    refreshToken: text("refresh_token"),
+    idToken: text("id_token"),
+    accessTokenExpiresAt: timestamp("access_token_expires_at", {
+      withTimezone: true,
+    }),
+    refreshTokenExpiresAt: timestamp("refresh_token_expires_at", {
+      withTimezone: true,
+    }),
+    scope: text("scope"),
+    password: text("password"),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("account_user_id_idx").on(table.userId),
+    uniqueIndex("account_provider_account_unique").on(
+      table.providerId,
+      table.accountId,
+    ),
+  ],
+);
+
+export const verification = pgTable(
+  "verification",
+  {
+    id: text("id").primaryKey(),
+    identifier: text("identifier").notNull(),
+    value: text("value").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [index("verification_identifier_idx").on(table.identifier)],
+);
+
+export const tenants = pgTable("tenants", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  legalName: text("legal_name"),
+  cnpj: text("cnpj").unique(),
+  logoUrl: text("logo_url"),
+  brandColor: text("brand_color"),
+  subscriptionPlan: text("subscription_plan").notNull().default("Essencial"),
+  slaFirstContactMinutes: text("sla_first_contact_minutes").notNull().default("15"),
+  slaStagnantDays: text("sla_stagnant_days").notNull().default("3"),
+  status: tenantStatus("status").notNull().default("active"),
+  createdAt,
+  updatedAt,
+});
+
+export const branches = pgTable(
+  "branches",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id")
+      .notNull()
+      .references(() => tenants.id),
+    name: text("name").notNull(),
+    externalId: text("external_id"),
+    status: branchStatus("status").notNull().default("active"),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("branches_tenant_id_idx").on(table.tenantId),
+    unique("branches_id_tenant_id_unique").on(table.id, table.tenantId),
+    uniqueIndex("branches_tenant_external_id_unique").on(table.tenantId, table.externalId).where(sql`${table.externalId} IS NOT NULL`),
+  ],
+);
+
+export const plans = pgTable("plans", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenant_id").references(() => tenants.id),
+  name: text("name").notNull(),
+  active: boolean("active").notNull().default(true),
+  createdAt,
+});
+
+export const leadWebhookCredentials = pgTable(
+  "lead_webhook_credentials",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id")
+      .notNull()
+      .references(() => tenants.id),
+    branchId: text("branch_id").references(() => branches.id),
+    name: text("name").notNull(),
+    source: text("source").notNull().default("webhook"),
+    tokenPrefix: text("token_prefix").notNull(),
+    tokenHash: text("token_hash").notNull().unique(),
+    status: webhookCredentialStatus("status").notNull().default("active"),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => user.id),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("lead_webhook_credentials_tenant_id_idx").on(table.tenantId),
+    index("lead_webhook_credentials_branch_id_idx").on(table.branchId),
+    index("lead_webhook_credentials_created_by_idx").on(table.createdBy),
+  ],
+);
+
+export const leads = pgTable(
+  "leads",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id),
+    branchId: text("branch_id").references(() => branches.id),
+    corretorId: text("corretor_id").references(() => user.id),
+    planId: text("plan_id").references(() => plans.id),
+    nome: text("nome").notNull(),
+    telefone: text("telefone").notNull(),
+    email: text("email"),
+    origem: leadOrigin("origem").notNull().default("manual"),
+    status: leadStatus("status").notNull().default("new"),
+    assignedAt: timestamp("assigned_at", { withTimezone: true }),
+    firstContactAt: timestamp("first_contact_at", { withTimezone: true }),
+    serviceStartedAt: timestamp("service_started_at", { withTimezone: true }),
+    serviceStartedBy: text("service_started_by").references(() => user.id),
+    stageEnteredAt: timestamp("stage_entered_at", { withTimezone: true }).notNull().defaultNow(),
+    consentimentoLgpd: boolean("consentimento_lgpd").notNull().default(false),
+    motivoPerda: text("motivo_perda"),
+    externalId: text("external_id"),
+    webhookCredentialId: text("webhook_credential_id").references(() => leadWebhookCredentials.id),
+    createdAt,
+  },
+  (table) => [
+    index("leads_tenant_branch_status_idx").on(table.tenantId, table.branchId, table.status),
+    index("leads_corretor_status_idx").on(table.corretorId, table.status),
+    index("leads_webhook_credential_idx").on(table.webhookCredentialId),
+    uniqueIndex("leads_credential_external_id_unique").on(table.webhookCredentialId, table.externalId).where(sql`${table.externalId} IS NOT NULL`),
+  ],
+);
+
+export const clients = pgTable(
+  "clients",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    leadId: text("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+    branchId: text("branch_id").references(() => branches.id),
+    corretorId: text("corretor_id").references(() => user.id),
+    nome: text("nome").notNull(),
+    telefone: text("telefone").notNull(),
+    email: text("email"),
+    convertedAt: timestamp("converted_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt,
+  },
+  (table) => [
+    uniqueIndex("clients_lead_unique").on(table.leadId),
+    index("clients_tenant_idx").on(table.tenantId),
+    index("clients_corretor_idx").on(table.corretorId),
+  ],
+);
+
+export const leadInteractions = pgTable(
+  "lead_interactions",
+  {
+    id: text("id").primaryKey(),
+    leadId: text("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+    userId: text("user_id").notNull().references(() => user.id),
+    tipo: leadInteractionType("tipo").notNull(),
+    conteudo: text("conteudo").notNull(),
+    metadata: jsonb("metadata"),
+    createdAt,
+  },
+  (table) => [index("lead_interactions_lead_created_idx").on(table.leadId, table.createdAt)],
+);
+
+export const auditLogs = pgTable(
+  "audit_logs",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull().references(() => user.id),
+    entidade: text("entidade").notNull(),
+    entidadeId: text("entidade_id").notNull(),
+    acao: text("acao").notNull(),
+    createdAt,
+  },
+  (table) => [index("audit_logs_user_created_idx").on(table.userId, table.createdAt)],
+);
+
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    recipientUserId: text("recipient_user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+    leadId: text("lead_id").references(() => leads.id, { onDelete: "cascade" }),
+    type: text("type").notNull(),
+    title: text("title").notNull(),
+    message: text("message").notNull(),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    createdAt,
+  },
+  (table) => [index("notifications_recipient_created_idx").on(table.recipientUserId, table.createdAt), index("notifications_tenant_idx").on(table.tenantId)],
+);
+
+export const whatsappConnections = pgTable(
+  "whatsapp_connections",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
+    sessionId: text("session_id"),
+    sessionName: text("session_name"),
+    status: text("status").notNull().default("disconnected"),
+    qrCode: text("qr_code"),
+    webhookSecret: text("webhook_secret"),
+    chatInternoAtivo: boolean("chat_interno_ativo").notNull().default(true),
+    connectedAt: timestamp("connected_at", { withTimezone: true }),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("whatsapp_connections_user_idx").on(table.tenantId, table.userId), index("whatsapp_connections_session_idx").on(table.sessionId), uniqueIndex("whatsapp_connections_tenant_user_unique").on(table.tenantId, table.userId).where(sql`${table.userId} IS NOT NULL`)],
+);
+
+export const whatsappMessages = pgTable(
+  "whatsapp_messages",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    leadId: text("lead_id").references(() => leads.id, { onDelete: "cascade" }),
+    clientId: text("client_id").references(() => clients.id, { onDelete: "cascade" }),
+    messageId: text("message_id"),
+    phone: text("phone").notNull(),
+    direction: text("direction").notNull(),
+    body: text("body").notNull(),
+    sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt,
+  },
+  (table) => [index("whatsapp_messages_tenant_lead_idx").on(table.tenantId, table.leadId, table.createdAt), uniqueIndex("whatsapp_messages_message_unique").on(table.tenantId, table.messageId)],
+);
+
+export const webhookDeliveries = pgTable(
+  "webhook_deliveries",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id")
+      .notNull()
+      .references(() => tenants.id),
+    credentialId: text("credential_id")
+      .notNull()
+      .references(() => leadWebhookCredentials.id),
+    requestId: text("request_id").notNull(),
+    idempotencyKey: text("idempotency_key"),
+    externalId: text("external_id"),
+    payloadHash: text("payload_hash").notNull(),
+    status: webhookDeliveryStatus("status").notNull().default("received"),
+    leadId: text("lead_id").references(() => leads.id),
+    errorCode: text("error_code"),
+    receivedAt: timestamp("received_at", { withTimezone: true }).notNull(),
+    processedAt: timestamp("processed_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("webhook_deliveries_tenant_id_idx").on(table.tenantId),
+    index("webhook_deliveries_credential_id_idx").on(table.credentialId),
+    uniqueIndex("webhook_deliveries_credential_idempotency_unique").on(table.credentialId, table.idempotencyKey).where(sql`${table.idempotencyKey} IS NOT NULL`),
+  ],
+);
+
+export const platformAuditLogs = pgTable(
+  "platform_audit_logs",
+  {
+    id: text("id").primaryKey(),
+    actorUserId: text("actor_user_id")
+      .notNull()
+      .references(() => user.id),
+    action: text("action").notNull(),
+    targetType: text("target_type").notNull(),
+    targetId: text("target_id").notNull(),
+    metadata: jsonb("metadata"),
+    createdAt,
+  },
+  (table) => [index("platform_audit_logs_actor_idx").on(table.actorUserId)],
+);
+
+export const tenantMemberships = pgTable(
+  "tenant_memberships",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id")
+      .notNull()
+      .references(() => tenants.id),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id),
+    branchId: text("branch_id"),
+    role: tenantRole("role").notNull(),
+    status: membershipStatus("status").notNull().default("active"),
+    availabilityStatus: availabilityStatus("availability_status").notNull().default("available"),
+    onboardingDismissedAt: timestamp("onboarding_dismissed_at", { withTimezone: true }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("tenant_memberships_tenant_id_idx").on(table.tenantId),
+    index("tenant_memberships_user_id_idx").on(table.userId),
+    index("tenant_memberships_branch_id_idx").on(table.branchId),
+    unique("tenant_memberships_tenant_user_unique").on(
+      table.tenantId,
+      table.userId,
+    ),
+    foreignKey({
+      columns: [table.branchId, table.tenantId],
+      foreignColumns: [branches.id, branches.tenantId],
+      name: "tenant_memberships_branch_tenant_fk",
+    }),
+  ],
+);
+
+export const invites = pgTable(
+  "invites",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull().unique(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    invitedBy: text("invited_by").notNull().references(() => user.id),
+    createdAt,
+  },
+  (table) => [
+    index("invites_user_id_idx").on(table.userId),
+    index("invites_token_hash_idx").on(table.tokenHash),
+  ],
+);
+
+export const leadWebhookCredentialRelations = relations(leadWebhookCredentials, ({ one, many }) => ({
+  tenant: one(tenants, {
+    fields: [leadWebhookCredentials.tenantId],
+    references: [tenants.id],
+  }),
+  createdByUser: one(user, {
+    fields: [leadWebhookCredentials.createdBy],
+    references: [user.id],
+  }),
+  deliveries: many(webhookDeliveries),
+}));
+
+export const webhookDeliveryRelations = relations(webhookDeliveries, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [webhookDeliveries.tenantId],
+    references: [tenants.id],
+  }),
+  credential: one(leadWebhookCredentials, {
+    fields: [webhookDeliveries.credentialId],
+    references: [leadWebhookCredentials.id],
+  }),
+  lead: one(leads, {
+    fields: [webhookDeliveries.leadId],
+    references: [leads.id],
+  }),
+}));
+
+export const userRelations = relations(user, ({ many }) => ({
+  sessions: many(session),
+  accounts: many(account),
+  tenantMemberships: many(tenantMemberships),
+  platformAuditLogs: many(platformAuditLogs),
+  sentInvites: many(invites, { relationName: "invitedBy" }),
+  receivedInvites: many(invites, { relationName: "invitee" }),
+}));
+
+export const platformAuditLogRelations = relations(platformAuditLogs, ({ one }) => ({
+  actor: one(user, {
+    fields: [platformAuditLogs.actorUserId],
+    references: [user.id],
+  }),
+}));
+
+export const inviteRelations = relations(invites, ({ one }) => ({
+  invitee: one(user, { fields: [invites.userId], references: [user.id], relationName: "invitee" }),
+  invitedBy: one(user, { fields: [invites.invitedBy], references: [user.id], relationName: "invitedBy" }),
+}));
+
+export const sessionRelations = relations(session, ({ one }) => ({
+  user: one(user, { fields: [session.userId], references: [user.id] }),
+}));
+
+export const accountRelations = relations(account, ({ one }) => ({
+  user: one(user, { fields: [account.userId], references: [user.id] }),
+}));
+
+export const tenantRelations = relations(tenants, ({ many }) => ({
+  branches: many(branches),
+  memberships: many(tenantMemberships),
+}));
+
+export const branchRelations = relations(branches, ({ one, many }) => ({
+  tenant: one(tenants, {
+    fields: [branches.tenantId],
+    references: [tenants.id],
+  }),
+  memberships: many(tenantMemberships),
+}));
+
+export const tenantMembershipRelations = relations(
+  tenantMemberships,
+  ({ one }) => ({
+    tenant: one(tenants, {
+      fields: [tenantMemberships.tenantId],
+      references: [tenants.id],
+    }),
+    user: one(user, {
+      fields: [tenantMemberships.userId],
+      references: [user.id],
+    }),
+    branch: one(branches, {
+      fields: [tenantMemberships.branchId],
+      references: [branches.id],
+    }),
+  }),
+);
+
+export type TenantRole = (typeof tenantRoleValues)[number];
+export type TenantStatus = (typeof tenantStatusValues)[number];

@@ -1,0 +1,72 @@
+"use client"
+
+import { ArrowRight, Compass } from "@phosphor-icons/react"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import type { TenantOnboardingStep } from "../types/onboarding.types"
+import { getFirstPendingStep } from "../services/get-first-pending-step"
+
+type OnboardingHeroProps = {
+  steps: TenantOnboardingStep[]
+  onDismiss: () => void
+  onNavigate: (href: string) => void
+}
+
+export function OnboardingHero({ steps, onDismiss, onNavigate }: OnboardingHeroProps) {
+  const firstPending = getFirstPendingStep(steps)
+
+  function handlePrimaryAction() {
+    if (firstPending?.href) {
+      onNavigate(firstPending.href)
+    }
+  }
+
+  const hasPendingSteps = steps.some(
+    (s) => s.status === "pending" && s.href !== null,
+  )
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center gap-2">
+        <span className="flex size-6 items-center justify-center rounded-md bg-primary text-[11px] font-bold text-primary-foreground">
+          C
+        </span>
+        <span className="text-sm font-semibold tracking-tight">CorreTop</span>
+        <Badge variant="outline" className="ml-auto text-[10px]">
+          Configuração inicial
+        </Badge>
+      </div>
+
+      <h1 className="mt-2 text-2xl font-semibold leading-tight tracking-tight">
+        Prepare sua corretora para começar
+      </h1>
+
+      <p className="text-sm leading-relaxed text-muted-foreground">
+        Configure a estrutura inicial do tenant, organize sua equipe e deixe o
+        ambiente pronto para operar.
+      </p>
+
+      <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+        {hasPendingSteps && firstPending && (
+          <Button
+            size="lg"
+            className="w-full sm:w-auto"
+            onClick={handlePrimaryAction}
+          >
+            <span>Continuar configuração</span>
+            <ArrowRight weight="bold" className="size-4" />
+          </Button>
+        )}
+        <Button
+          variant="outline"
+          size="lg"
+          className="w-full sm:w-auto"
+          onClick={onDismiss}
+        >
+          <Compass className="size-4" />
+          <span>Explorar o sistema</span>
+        </Button>
+      </div>
+    </div>
+  )
+}
