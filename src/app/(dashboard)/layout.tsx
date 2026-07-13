@@ -18,6 +18,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
 
   const [tenant] = await getDatabase()
     .select({
+      name: schema.tenants.name,
       brandColor: schema.tenants.brandColor,
       logoUrl: schema.tenants.logoUrl,
     })
@@ -28,6 +29,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
   return (
     <AppShell
       branding={{
+        tenantName: tenant?.name ?? null,
         brandColor: tenant?.brandColor ?? null,
         logoUrl: tenant?.logoUrl ?? null,
       }}

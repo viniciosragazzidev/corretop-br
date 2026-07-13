@@ -153,6 +153,7 @@ function Sidebar({
   side = "left",
   variant = "sidebar",
   collapsible = "offcanvas",
+  rail = false,
   className,
   children,
   dir,
@@ -161,6 +162,7 @@ function Sidebar({
   side?: "left" | "right"
   variant?: "sidebar" | "floating" | "inset"
   collapsible?: "offcanvas" | "icon" | "none"
+  rail?: boolean
 }) {
   const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
 
@@ -223,7 +225,8 @@ function Sidebar({
           "group-data-[side=right]:rotate-180",
           variant === "floating" || variant === "inset"
             ? "group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4)))]"
-            : "group-data-[collapsible=icon]:w-(--sidebar-width-icon)"
+            : "group-data-[collapsible=icon]:w-(--sidebar-width-icon)",
+          rail && "group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+var(--workspace-rail-width))]"
         )}
       />
       <div
@@ -235,6 +238,7 @@ function Sidebar({
           variant === "floating" || variant === "inset"
             ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
             : "group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-r group-data-[side=right]:border-l",
+          rail && "md:left-(--workspace-rail-width) md:w-[calc(var(--sidebar-width)-var(--workspace-rail-width))] group-data-[collapsible=icon]:md:w-(--sidebar-width-icon)",
           className
         )}
         {...props}

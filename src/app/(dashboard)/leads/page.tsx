@@ -1,4 +1,4 @@
-import { and, eq, ilike, isNull, lt, or } from "drizzle-orm";
+import { and, eq, ilike, lt, or } from "drizzle-orm";
 import { ArrowUpRight, Phone } from "@phosphor-icons/react/dist/ssr";
 
 import { ManualLeadSheet } from "./_components/manual-lead-sheet";
@@ -35,9 +35,21 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
       .leftJoin(schema.user, eq(schema.leads.corretorId, schema.user.id))
       .where(where),
     getDatabase()
-      .select({ id: schema.plans.id, name: schema.plans.name })
-      .from(schema.plans)
-      .where(or(isNull(schema.plans.tenantId), eq(schema.plans.tenantId, context.tenantId))),
+      .select({
+        id: schema.carrierPlans.id,
+        name: schema.carrierPlans.name,
+        carrierName: schema.carriers.name,
+      })
+      .from(schema.carrierPlans)
+      .innerJoin(schema.carriers, eq(schema.carrierPlans.carrierId, schema.carriers.id))
+      .where(
+        and(
+          eq(schema.carrierPlans.tenantId, context.tenantId),
+          eq(schema.carrierPlans.active, true),
+          eq(schema.carriers.status, "active"),
+        ),
+      )
+      .orderBy(schema.carriers.name, schema.carrierPlans.name),
     getDatabase().select({ id: schema.branches.id, name: schema.branches.name }).from(schema.branches).where(eq(schema.branches.tenantId, context.tenantId)),
   ]);
 

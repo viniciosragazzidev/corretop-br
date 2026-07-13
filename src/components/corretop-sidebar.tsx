@@ -109,7 +109,7 @@ function NavigationGroup({
   );
 }
 
-export function CorreTopSidebar({ logoUrl }: { logoUrl?: string | null }) {
+export function CorreTopSidebar({ logoUrl, tenantName }: { logoUrl?: string | null; tenantName?: string | null }) {
   const router = useRouter();
   const [user, setUser] = useState<UserDisplayInfo | null>(null);
 
@@ -134,7 +134,7 @@ export function CorreTopSidebar({ logoUrl }: { logoUrl?: string | null }) {
   }
 
   return (
-    <Sidebar collapsible="icon" variant="sidebar">
+    <Sidebar collapsible="icon" variant="sidebar" rail>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -145,13 +145,13 @@ export function CorreTopSidebar({ logoUrl }: { logoUrl?: string | null }) {
               ) : (
                 <span className="grid size-7 place-items-center rounded-md bg-primary text-xs font-bold text-primary-foreground">C</span>
               )}
-              <span className="font-semibold tracking-tight">CorreTop</span>
+              <span className="truncate font-semibold tracking-tight">{tenantName || "CorreTop"}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
         <div className="mx-2 rounded-md border border-sidebar-border bg-sidebar-accent/45 px-3 py-2.5 group-data-[collapsible=icon]:hidden">
           <p className="text-[11px] text-sidebar-foreground/55">Ambiente ativo</p>
-          <p className="mt-0.5 text-sm font-medium">Vida Mais Corretora</p>
+          <p className="mt-0.5 truncate text-sm font-medium">{tenantName || "Sua corretora"}</p>
         </div>
       </SidebarHeader>
       <SidebarContent>

@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ManualLeadForm } from "./manual-lead-form";
 
-export function ManualLeadSheet({ plans }: { plans: { id: string; name: string }[] }) {
+type PlanOption = { id: string; name: string; carrierName: string };
+
+export function ManualLeadSheet({ plans }: { plans: PlanOption[] }) {
   const [open, setOpen] = useState(false);
   return <Sheet onOpenChange={setOpen} open={open}><SheetTrigger render={<Button><Plus weight="bold" /> Novo lead</Button>} /><SheetContent className="w-full sm:max-w-lg"><SheetHeader><SheetTitle>Novo lead</SheetTitle><SheetDescription>Cadastre uma indicação ou contato recebido fora de uma campanha.</SheetDescription></SheetHeader><div className="overflow-y-auto px-4 pb-6"><ManualLeadForm plans={plans} /></div></SheetContent></Sheet>;
 }

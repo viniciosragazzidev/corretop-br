@@ -38,4 +38,10 @@ para ADR se aplicável.
 | DEC-020 | Provedor de banco, storage e autenticação. | Avaliar e instalar somente quando a fundação técnica for iniciada. |
 | DEC-021 | Integração de Meta Lead Ads. | Pode começar pelo webhook genérico. |
 | DEC-022 | Estratégia de PWA e push. | Requer escopo de browser e políticas de permissão. |
-| DEC-023 | White-label por tenant. | Definir limites de marca e contraste antes da UI. |
+
+## DecisÃµes registradas durante a implementaÃ§Ã£o
+
+| ID | DecisÃ£o | Estado | EvidÃªncia |
+|---|---|---|---|
+| DEC-023A | White-label usa nome, logo e uma cor primÃ¡ria por tenant; o servidor valida hex e assets, o shell calcula foreground legÃ­vel e a alteraÃ§Ã£o Ã© auditada. | Aprovada â€” 2026-07-13 | Settings, AppShell e sidebar |
+| DEC-024 | TOTP Ã© opcional por usuÃ¡rio; ativaÃ§Ã£o e desativaÃ§Ã£o exigem senha, login aceita aplicativo autenticador ou cÃ³digo de recuperaÃ§Ã£o e a geraÃ§Ã£o de novos cÃ³digos invalida os anteriores. | Aprovada â€” 2026-07-13 | Better Auth two-factor, /settings e /2fa |

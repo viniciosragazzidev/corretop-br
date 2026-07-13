@@ -3,6 +3,7 @@ import {
   boolean,
   foreignKey,
   index,
+  integer,
   pgEnum,
   pgTable,
   text,
@@ -65,6 +66,7 @@ export const user = pgTable("user", {
   image: text("image"),
   active: boolean("active").notNull().default(true),
   isPlatformAdmin: boolean("is_platform_admin").notNull().default(false),
+  twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
   status: userStatus("status").notNull().default("active"),
   createdAt,
   updatedAt,
@@ -85,6 +87,22 @@ export const session = pgTable(
     updatedAt,
   },
   (table) => [index("session_user_id_idx").on(table.userId)],
+);
+
+export const twoFactor = pgTable(
+  "twoFactor",
+  {
+    id: text("id").primaryKey(),
+    secret: text("secret").notNull(),
+    backupCodes: text("backup_codes").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    verified: boolean("verified").notNull().default(true),
+    failedVerificationCount: integer("failed_verification_count").notNull().default(0),
+    lockedUntil: timestamp("locked_until", { withTimezone: true }),
+  },
+  (table) => [index("two_factor_user_id_idx").on(table.userId)],
 );
 
 export const account = pgTable(
@@ -168,6 +186,58 @@ export const branches = pgTable(
   ],
 );
 
+export const planType = pgEnum("plan_type", ["individual", "empresarial", "familiar", "pme"]);
+
+export const carriers = pgTable(
+  "carriers",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id")
+      .notNull()
+      .references(() => tenants.id),
+    name: text("name").notNull(),
+    ansCode: text("ans_code"),
+    contact: text("contact"),
+    phone: text("phone"),
+    email: text("email"),
+    status: text("status", { enum: ["active", "inactive"] }).notNull().default("active"),
+    notes: text("notes"),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("carriers_tenant_id_idx").on(table.tenantId),
+    uniqueIndex("carriers_tenant_name_unique").on(table.tenantId, table.name),
+  ],
+);
+
+export const carrierPlans = pgTable(
+  "carrier_plans",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id")
+      .notNull()
+      .references(() => tenants.id),
+    carrierId: text("carrier_id")
+      .notNull()
+      .references(() => carriers.id),
+    name: text("name").notNull(),
+    type: planType("type").notNull().default("individual"),
+    description: text("description"),
+    coverage: text("coverage"),
+    ansRegistration: text("ans_registration"),
+    maxEntryAge: integer("max_entry_age"),
+    details: jsonb("details"),
+    active: boolean("active").notNull().default(true),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("carrier_plans_tenant_id_idx").on(table.tenantId),
+    index("carrier_plans_carrier_id_idx").on(table.carrierId),
+  ],
+);
+
 export const plans = pgTable("plans", {
   id: text("id").primaryKey(),
   tenantId: text("tenant_id").references(() => tenants.id),
@@ -212,7 +282,7 @@ export const leads = pgTable(
     tenantId: text("tenant_id").notNull().references(() => tenants.id),
     branchId: text("branch_id").references(() => branches.id),
     corretorId: text("corretor_id").references(() => user.id),
-    planId: text("plan_id").references(() => plans.id),
+    planId: text("plan_id").references(() => carrierPlans.id),
     nome: text("nome").notNull(),
     telefone: text("telefone").notNull(),
     email: text("email"),

@@ -3,6 +3,7 @@ import "server-only";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
+import { twoFactor } from "better-auth/plugins";
 import { getDatabase, schema } from "@/shared/db";
 
 let authInstance: ReturnType<typeof createAuth> | undefined;
@@ -20,6 +21,7 @@ function createAuth() {
         session: schema.session,
         account: schema.account,
         verification: schema.verification,
+        twoFactor: schema.twoFactor,
       },
     }),
     emailAndPassword: {
@@ -27,7 +29,13 @@ function createAuth() {
       disableSignUp: true,
       requireEmailVerification: false,
     },
-    plugins: [nextCookies()],
+    plugins: [
+      nextCookies(),
+      twoFactor({
+        issuer: "CorreTop",
+        backupCodeOptions: { amount: 10, storeBackupCodes: "encrypted" },
+      }),
+    ],
     session: {
       expiresIn: 60 * 60 * 24 * 7,
       updateAge: 60 * 60 * 24,

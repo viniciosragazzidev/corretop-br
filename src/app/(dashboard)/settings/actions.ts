@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
 
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
@@ -23,10 +24,22 @@ export async function updateTenantBrandingAction(
       return { success: false, error: "Cor inválida. Use o formato #RRGGBB." };
     }
 
-    await getDatabase()
-      .update(schema.tenants)
-      .set({ brandColor, logoUrl, updatedAt: new Date() })
-      .where(eq(schema.tenants.id, context.tenantId));
+    if (logoUrl && (!/^data:image\/(png|jpeg|webp|svg\+xml);base64,[A-Za-z0-9+/=]+$/.test(logoUrl) && !/^https:\/\//.test(logoUrl))) {
+      return { success: false, error: "Logo invÃ¡lido. Use PNG, JPG, WebP ou uma URL HTTPS." };
+    }
+    if (logoUrl?.startsWith("data:") && logoUrl.length > 700_000) {
+      return { success: false, error: "O logo deve ter no mÃ¡ximo 512 KB." };
+    }
+
+    const db = getDatabase();
+    await db.transaction(async (tx) => {
+      await tx.update(schema.tenants)
+        .set({ brandColor, logoUrl, updatedAt: new Date() })
+        .where(eq(schema.tenants.id, context.tenantId));
+      await tx.insert(schema.auditLogs).values({
+        id: randomUUID(), userId: context.userId, entidade: "tenant", entidadeId: context.tenantId, acao: "atualizou_identidade_visual",
+      });
+    });
 
     revalidatePath("/settings");
     revalidatePath("/dashboard");

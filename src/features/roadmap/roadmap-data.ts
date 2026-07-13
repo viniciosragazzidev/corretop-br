@@ -36,8 +36,8 @@ export const roadmapDays: RoadmapDay[] = [
     item("2.3", "Convite de Gestor/Corretor por e-mail", "P0", "done", "Diretor/Gestor criam convites com aceite e primeiro acesso."),
     item("2.4", "Menu diferenciado por papel", "P0", "done", "Sidebars e permissoes sao declarativos por role."),
     item("2.5", "Checklist de primeiros passos do Diretor", "P1", "done", "Onboarding nao-forcado implementado com progresso e dismiss."),
-    item("2.6", "White-label basico", "P2", "partial", "Logo e cor por tenant existem, mas o refinamento visual final segue neutralizado pelo design system."),
-    item("2.7", "2FA opcional (TOTP)", "P2", "planned", "A rota de preparacao existe; ativacao TOTP ainda nao foi concluida."),
+    item("2.6", "White-label basico", "P2", "done", "Logo, nome e cor por tenant agora sao aplicados ao shell, sidebar, foco e componentes que usam os tokens sem alterar o isolamento do tenant.", "Branding carregado no layout autenticado e aplicado por CSS variables; a configuracao continua restrita ao Diretor."),
+    item("2.7", "2FA opcional (TOTP)", "P2", "done", "Ativacao, confirmacao, desativacao, redirecionamento no login e codigos de recuperacao implementados com o plugin two-factor do Better Auth.", "A tela /settings permite configurar e revogar TOTP; /2fa confirma o codigo durante o login e a migration 0021 cria o armazenamento necessario."),
   ] },
   { day: 3, title: "Nucleo do CRM", objective: "Leads entrando, sendo distribuidos e monitorados.", items: [
     item("3.1", "Cadastro manual de lead", "P0", "done", "Formulario validado e persistido com deduplicacao basica.", "Cadastro manual validado em produção após a recuperação das colunas external_id e webhook_credential_id da tabela leads; migration 0010 aplicada."),

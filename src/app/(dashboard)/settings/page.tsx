@@ -9,6 +9,7 @@ import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
 import { Button } from "@/components/ui/button";
 import { WhatsappLogo } from "@phosphor-icons/react/dist/ssr";
+import { SecurityTab } from "./_components/security-tab";
 
 export default async function SettingsPage() {
   const context = await getRequiredTenantContext();
@@ -22,6 +23,11 @@ export default async function SettingsPage() {
     })
     .from(schema.tenants)
     .where(eq(schema.tenants.id, context.tenantId))
+    .limit(1);
+  const [user] = await getDatabase()
+    .select({ email: schema.user.email, twoFactorEnabled: schema.user.twoFactorEnabled })
+    .from(schema.user)
+    .where(eq(schema.user.id, context.userId))
     .limit(1);
 
   const integrations = context.role === "director" ? await getIntegrationsData() : null;
@@ -41,7 +47,7 @@ export default async function SettingsPage() {
           <Button className="mt-4" render={<a href="/settings/whatsapp" />} size="sm" variant="outline"><WhatsappLogo /> Configurar WhatsApp</Button>
         </div>
 
-        <SettingsTabs integrations={integrations ? <IntegrationsTab branches={integrations.branches} integrations={integrations.integrations} /> : undefined} integrationsLocked={context.role !== "director"}>
+        <SettingsTabs integrations={integrations ? <IntegrationsTab branches={integrations.branches} integrations={integrations.integrations} /> : undefined} security={<SecurityTab enabled={user?.twoFactorEnabled ?? false} email={user?.email ?? "sua conta"} />} integrationsLocked={context.role !== "director"}>
           <EmpresaTab canEdit={context.role === "director"}
             tenant={{
               name: tenant?.name ?? "",

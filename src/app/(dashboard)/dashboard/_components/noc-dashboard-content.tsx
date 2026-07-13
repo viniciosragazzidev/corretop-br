@@ -1258,20 +1258,21 @@ function BrokerNocContent({ data }: { data: BrokerDashboardData }) {
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export default function NocDashboardContent(props: RoleProps) {
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState<Date | null>(null);
 
   useEffect(() => {
+    setCurrentTime(new Date());
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  const formattedTime = currentTime.toLocaleTimeString("pt-BR", {
+  const formattedTime = currentTime?.toLocaleTimeString("pt-BR", {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
   });
 
-  const formattedDate = currentTime.toLocaleDateString("pt-BR", {
+  const formattedDate = currentTime?.toLocaleDateString("pt-BR", {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -1295,10 +1296,10 @@ export default function NocDashboardContent(props: RoleProps) {
             <div className="hidden items-center gap-2 rounded-lg border border-border/60 bg-muted/40 px-3 py-1.5 text-xs tabular-nums sm:flex">
               <WifiHigh className="size-3.5 text-success" weight="fill" />
               <span className="text-muted-foreground">
-                {formattedDate}
+                {formattedDate ?? "Carregando..."}
               </span>
               <span className="font-medium text-foreground">
-                {formattedTime}
+                {formattedTime ?? "--:--:--"}
               </span>
             </div>
             <Badge className="gap-1.5 rounded-md text-xs" variant="success">

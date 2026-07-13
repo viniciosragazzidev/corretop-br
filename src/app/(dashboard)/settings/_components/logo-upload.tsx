@@ -12,12 +12,22 @@ type Props = {
 
 export function LogoUpload({ defaultValue, name, disabled = false }: Props) {
   const [preview, setPreview] = useState(defaultValue);
+  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hiddenInputRef = useRef<HTMLInputElement>(null);
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!["image/png", "image/jpeg", "image/webp", "image/svg+xml"].includes(file.type)) {
+      setError("Escolha um arquivo PNG, JPG, WebP ou SVG.");
+      return;
+    }
+    if (file.size > 512 * 1024) {
+      setError("O logo deve ter no mÃ¡ximo 512 KB.");
+      return;
+    }
+    setError(null);
     const reader = new FileReader();
     reader.onload = () => {
       const dataUrl = reader.result as string;
@@ -72,6 +82,8 @@ export function LogoUpload({ defaultValue, name, disabled = false }: Props) {
           <span className="text-xs text-muted-foreground">Carregar logo</span>
         </button>
       )}
+      <p className="text-xs text-muted-foreground">PNG, JPG, WebP ou SVG · mÃ¡ximo 512 KB</p>
+      {error ? <p className="text-xs text-destructive" role="alert">{error}</p> : null}
     </div>
   );
 }
