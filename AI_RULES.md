@@ -115,3 +115,36 @@ As referências Nexus são apenas direção de composição. Preserve a identida
   `prefers-reduced-motion` e evite layout shift. Consulte `docs/local-first-spec.md`.
 - Acessibilidade mínima: HTML semântico, navegação por teclado, foco visível, rótulos
   de formulário e contraste adequado.
+## 7. UX, clareza e reducao de carga cognitiva
+
+- Antes de iniciar qualquer fluxo, tela ou alteracao de navegacao, consulte
+  `docs/ux-audit-2026-07-13.md` e registre o papel do usuario, seu objetivo, a acao
+  principal e o estado de prontidao do modulo. Toda tela deve deixar claro onde estou,
+  o que importa agora, qual e o proximo passo e o que acontecera depois.
+- A navegacao deve ser orientada por papel, permissao e prontidao real do modulo.
+  Nao apresente como acionavel uma rota planejada, placeholder ou capacidade ainda
+  nao funcional; indisponibilidade deve informar motivo, alternativa e proxima acao.
+- Nunca use badges, contadores, status ou metricas operacionais fixos no codigo.
+  Eles devem vir de consulta autorizada e escopada por tenant/usuario; sem dado
+  confiavel, omita o indicador ou apresente carregamento.
+- Todo controle interativo precisa ter consequencia implementada, rotulo claro,
+  feedback de sucesso/erro e recuperacao possivel. Botoes sem acao e links que nao
+  navegam sao proibidos; controles desabilitados explicam o motivo e a alternativa.
+- Toda tela relevante deve cobrir carregamento, vazio, erro, sucesso, permissao
+  negada e indisponibilidade/sincronizacao. O usuario nao pode ficar sem explicacao,
+  sem proximo passo ou perder trabalho ao recuperar um erro.
+- Limite a hierarquia visual a uma acao principal e no maximo tres acoes prioritarias
+  por contexto. Remova dashboards duplicados, cards decorativos e alertas sem decisao.
+- A promessa da busca deve corresponder ao escopo real de indexacao e aos resultados.
+  Preserve query, filtros e contexto na URL quando isso ajudar retorno e suporte.
+- Abas, filtros, paginacao e selecoes que definem contexto devem ser recuperaveis por
+  URL quando apropriado. Use vocabulario e taxonomia de status consistentes.
+- Para dados sensiveis, exportacoes, permissoes e exclusoes, explique o impacto no
+  ponto da decisao, confirme quando houver risco real, registre auditoria e ofereca
+  desfazer quando possivel. Reduza PII por padrao.
+- Toda revisao deve verificar semantica, teclado, foco, leitores de tela, rotulos,
+  contraste, zoom, viewport estreito, comunicacao sem depender de cor e
+  `prefers-reduced-motion`.
+- Em mudancas relevantes, valide fluxos com cenarios sinteticos antes de concluir.
+  Nao invente evidencia de usuario real; diferencie inspecao heuristica, teste
+  observado e hipotese a validar.

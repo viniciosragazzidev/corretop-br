@@ -1,6 +1,7 @@
 "use client";
 
 import { Bell } from "@phosphor-icons/react";
+import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -29,8 +30,8 @@ export function DashboardHeader({
       {rightSlot}
       <GlobalSearch />
       <ThemeToggle />
-      <Button aria-label="Notificacoes" size="icon" variant="ghost">
-        <Bell />
+      <Button aria-label="Abrir notificacoes" render={<Link href="/notificacoes" />} size="icon" variant="ghost">
+        <Bell aria-hidden="true" />
       </Button>
     </header>
   );

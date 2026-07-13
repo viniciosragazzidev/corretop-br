@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Building06Icon, Settings01Icon, LinkSquare01Icon, SecurityCheckIcon } from "@hugeicons/core-free-icons";
 
@@ -12,8 +13,18 @@ const tabs = [
 ] as const;
 
 export function SettingsTabs({ children, integrations, security, integrationsLocked = false }: { children: ReactNode; integrations?: ReactNode; security?: ReactNode; integrationsLocked?: boolean }) {
-  const [active, setActive] = useState("empresa");
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const requestedTab = searchParams.get("tab");
   const visibleTabs = integrations || integrationsLocked ? tabs : tabs.filter((tab) => tab.id !== "integracoes");
+  const active = visibleTabs.some((tab) => tab.id === requestedTab) ? requestedTab ?? "empresa" : "empresa";
+
+  function selectTab(tabId: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", tabId);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }
 
   return (
     <div className="grid gap-4 lg:grid-cols-[12rem_1fr]">
@@ -22,7 +33,7 @@ export function SettingsTabs({ children, integrations, security, integrationsLoc
           <button
             key={tab.id}
             type="button"
-            onClick={() => setActive(tab.id)}
+            onClick={() => selectTab(tab.id)}
             className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
               active === tab.id
                 ? "bg-primary/10 text-primary"

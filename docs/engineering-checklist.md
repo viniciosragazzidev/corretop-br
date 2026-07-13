@@ -31,3 +31,25 @@
   após a resposta do servidor.
 - [ ] Cache local usa chaves com `tenantId` e `userId`; estados local/confirmado/erro
   usam tokens semânticos compatíveis com claro e escuro.
+## Pre-flight de UX e carga cognitiva
+
+### Antes de iniciar
+
+- [ ] Papel, objetivo, tarefa principal e proximo passo do usuario estao definidos.
+- [ ] Rota, permissao e prontidao real do modulo foram verificadas.
+- [ ] `docs/ux-audit-2026-07-13.md` e os padroes existentes foram consultados.
+- [ ] A hierarquia foi reduzida a uma acao principal e no maximo tres prioridades.
+
+### Antes de considerar pronta
+
+- [ ] Nao existem badges, contadores ou status estaticos/ficticios.
+- [ ] Nao existem botoes sem acao, links quebrados ou promessas sem suporte.
+- [ ] Navegacao e comandos aparecem somente para o papel/permissao correto.
+- [ ] A busca anuncia exatamente o escopo que pesquisa e retorna.
+- [ ] Carregamento, vazio, erro, sucesso, permissao negada e indisponibilidade foram tratados.
+- [ ] O proximo passo e o resultado da acao estao claros sem depender de hover ou memoria.
+- [ ] Abas, filtros e contexto recuperam URL quando necessario para retorno e suporte.
+- [ ] Terminologia e status seguem o glossario/taxonomia vigente.
+- [ ] Dados sensiveis usam minimizacao, confirmacao contextual, auditoria e desfazer quando possivel.
+- [ ] Foi verificado teclado, foco, semantica, contraste, zoom, viewport estreito e reduced motion.
+- [ ] Fluxos principais foram validados por cenarios sinteticos ou a limitacao foi registrada.

@@ -32,7 +32,6 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
@@ -44,9 +43,9 @@ import { hasPermission, type PermissionKey } from "@/shared/auth/permissions";
 
 const primaryItems = [
   { label: "Resumo", icon: House, url: "/dashboard" },
-  { label: "Leads", icon: Users, url: "/leads", badge: "12" },
+  { label: "Leads", icon: Users, url: "/leads" },
   { label: "Cotações", icon: FileText, url: "/cotacoes" },
-  { label: "Documentos", icon: ClipboardText, url: "/documentos", badge: "7" },
+  { label: "Documentos", icon: ClipboardText, url: "/documentos" },
   { label: "Clientes", icon: Handshake, url: "/clientes" },
 ];
 
@@ -56,7 +55,7 @@ const managementItems = [
   { label: "Metas", icon: Target, url: "/metas", permission: "ver_dashboard_equipe" as const },
   { label: "NOC", icon: Monitor, url: "/noc", permission: "ver_dashboard_equipe" as const },
   { label: "Relatórios", icon: ChartBar, url: "/relatorios" },
-  { label: "Integridade", icon: ShieldCheck, url: "/integridade", badge: "3", permission: "ver_painel_integridade" as const },
+  { label: "Integridade", icon: ShieldCheck, url: "/integridade", permission: "ver_painel_integridade" as const },
   { label: "Roadmap", icon: RoadHorizon, url: "/roadmap" },
 ];
 
@@ -99,7 +98,6 @@ function NavigationGroup({
                     <Icon weight={isActive ? "fill" : "regular"} />
                     <span>{item.label}</span>
                   </SidebarMenuButton>
-                  {item.badge ? <SidebarMenuBadge>{item.badge}</SidebarMenuBadge> : null}
                 </SidebarMenuItem>
               );
             })}
