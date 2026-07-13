@@ -32,3 +32,5 @@ substitui: ele torna o que é implementável, testável e auditável mais fácil
 Consulte `ux-audit-2026-07-13.md` para a auditoria heuristica, hipoteses de pesquisa
 e backlog prioritario de clareza e reducao de carga cognitiva. As regras obrigatorias
 correspondentes estao em `../AI_RULES.md` e no pre-flight de `engineering-checklist.md`.
+Referencia adicional: `../features/system_design.md` documenta a implementacao,
+beneficios e operacao da infraestrutura de escala.

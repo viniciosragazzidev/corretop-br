@@ -3,6 +3,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 
 import { getDatabase, schema } from "@/shared/db";
+import { logger } from "@/shared/infra/logger";
 import { leadWebhookPayloadSchema } from "../schemas/lead-webhook-payload.schema";
 import {
   hashNormalizedWebhookPayload,
@@ -188,7 +189,10 @@ export async function receiveLeadWebhook(
     }
 
     // Unexpected error — return generic 500
-    console.error("[receiveLeadWebhook] Unexpected error:", error);
+    logger.error("lead_webhook_unexpected_error", {
+      requestId,
+      error: error instanceof Error ? error.message : String(error),
+    });
     return {
       success: false,
       code: "INTERNAL_ERROR",

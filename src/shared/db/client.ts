@@ -7,7 +7,7 @@ type Database = ReturnType<typeof drizzle<typeof schema>>;
 let database: Database | undefined;
 
 function getDatabaseUrl(): string {
-  const databaseUrl = process.env.DATABASE_URL;
+  const databaseUrl = process.env.SUPABASE_DB_URL ?? process.env.DATABASE_URL;
   if (!databaseUrl) {
     throw new Error(
       "DATABASE_URL is required for database-backed operations. Add it to .env.local or the server environment.",
