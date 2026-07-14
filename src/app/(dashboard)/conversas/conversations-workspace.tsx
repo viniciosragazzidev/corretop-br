@@ -68,7 +68,7 @@ export function ConversationsWorkspace({
   canSend: boolean;
 }) {
   const [conversations, setConversations] = useState(initialConversations);
-  const [selectedId, setSelectedId] = useState(initialLeadId && initialConversations.some((item) => item.id === initialLeadId)
+  const [selectedId, setSelectedId] = useState<string | null>(initialLeadId && initialConversations.some((item) => item.id === initialLeadId)
     ? initialLeadId
     : initialConversations.find((item) => item.messages.length > 0)?.id ?? initialConversations[0]?.id ?? null);
   const [query, setQuery] = useState("");

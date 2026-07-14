@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { signIn } from "@/shared/auth/client";
+import { checkOnboardingRedirect } from "@/features/onboarding/actions/check-onboarding-redirect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,7 +31,8 @@ export default function LoginPage() {
       ]);
       if (result.error) { const message = result.error.message || "Credenciais inválidas"; setError(message); toast.error(message); return; }
       toast.success("Login realizado. Abrindo seu painel...");
-      router.replace("/dashboard");
+      const { redirectTo } = await checkOnboardingRedirect();
+      router.replace(redirectTo);
       router.refresh();
     } catch (authError) { const message = authError instanceof Error ? authError.message : "Não foi possível concluir o login."; setError(message); toast.error(message); }
     finally { setLoading(false); }
