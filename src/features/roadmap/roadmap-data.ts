@@ -101,14 +101,14 @@ const dayFiveItems: RoadmapItem[] = [
 ];
 
 const daySix: RoadmapDay = { day: 6, title: "Comissao, pos-venda, metas e WhatsApp", objective: "Concluir o motor financeiro e os fluxos de pos-venda.", items: [
-  item("6.1", "Regras de comissao", "P0", "planned", "Configuracao de comissao ainda pendente."),
-  item("6.2", "Cronograma de repasse", "P0", "planned", "Geracao de repasses ainda pendente."),
-  item("6.3", "Marcacao manual de comissao paga", "P1", "planned", "Baixa de comissoes ainda pendente."),
+  item("6.1", "Regras de comissao", "P0", "done", "Diretor configura regras de comissao por operadora, plano ou regra global, com percentuais por parcela e ativacao/desativacao.", "Implementado em /configuracoes/comissoes com consultas e Server Actions escopadas por tenant, validacao Zod, autorizacao de Diretor e auditoria das alteracoes."),
+  item("6.2", "Cronograma de repasse", "P0", "done", "Conversao de venda gera o cronograma de parcelas de comissao conforme a regra aplicavel.", "O servico de comissoes calcula percentuais, vencimentos, referencia mensal e valores; /vendas/[id] e /financeiro/comissoes exibem o cronograma e os totais por status."),
+  item("6.3", "Marcacao manual de comissao paga", "P1", "done", "Diretor pode marcar parcelas como pagas e reverter o pagamento quando necessario.", "Server Actions em src/features/sales/actions.ts validam o escopo da venda, restringem a operacao ao Diretor, registram paidAt/paidBy e atualizam o cronograma com feedback na tela."),
   item("6.4", "Exportacao de relatorio de comissao", "P0", "planned", "Relatorio financeiro ainda pendente."),
   item("6.5", "Cliente ativo ao converter venda", "P1", "done", "Conversao cria cliente isolado por tenant e o disponibiliza em /clientes."),
   item("6.6", "Alertas de renovacao/aniversario", "P2", "done", "Job diario cria notificacoes in-app para aniversarios de contrato nos proximos 30 dias, deduplicadas por cliente e destinatario.", "Usa clients.convertedAt como aniversario de contrato ate existir uma data contratual especifica; push permanece dependencia externa."),
   item("6.7", "Reengajamento automatico de perdidos", "P2", "planned", "Automacao de mensagens ainda pendente."),
-  item("6.8", "Metas comerciais", "P1", "planned", "Persistencia e calculo de metas ainda pendentes."),
+  item("6.8", "Metas comerciais", "P1", "done", "Diretor configura metas por corretor, equipe ou filial, e o corretor acompanha o progresso da propria meta.", "Implementado em /metas e /minha-meta com persistencia, edicao, ativacao, exclusao, recalculo manual e calculo por vendas, receita, leads contatados e taxa de conversao, sempre no escopo do tenant."),
   item("6.9", "WhatsApp via Meta Cloud API", "P1", "external", "Depende da verificacao Meta e configuracao de webhook/template."),
   item("6.10", "Fallback WhatsApp Web", "Risco externo", "done", "Abertura controlada do WhatsApp Web/app pelo telefone do lead."),
 ] };

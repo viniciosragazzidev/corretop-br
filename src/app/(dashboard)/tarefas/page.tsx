@@ -65,7 +65,24 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
             <CardDescription>Tarefas urgentes podem envolver vários corretores. As demais preservam um responsável claro.</CardDescription>
           </CardHeader>
           <CardContent className="p-0">
-            <Table>
+            <div className="hidden divide-y divide-border max-[559px]:block">
+              {tasks.map((task) => (
+                <Link key={task.id} href={`/leads/${task.leadId}`} className="block px-4 py-3.5 transition-colors duration-[var(--duration-quick)] ease-out active:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className={task.completedAt ? "truncate font-medium line-through text-muted-foreground" : "truncate font-medium"}>{task.title}</p>
+                      <p className="mt-1 truncate text-xs text-muted-foreground">{task.leadName}</p>
+                    </div>
+                    <Badge className={task.priority === "urgent" ? "shrink-0 border-destructive/30 bg-destructive/10 text-destructive" : "shrink-0 border-border"} variant="outline">{task.priority === "urgent" ? "Urgente" : task.priority === "low" ? "Baixa" : "Normal"}</Badge>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                    <span>{task.dueAt ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(task.dueAt) : "Sem prazo"}</span>
+                    <span className="truncate">{task.assigneeName ?? "Equipe"}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+            <Table className="max-[559px]:hidden">
               <TableHeader>
                 <TableRow>
                   <TableHead className="pl-5">Tarefa</TableHead>

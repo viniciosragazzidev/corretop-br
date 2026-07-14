@@ -19,6 +19,7 @@ import {
   CalendarBlank,
   Calculator,
   ChatCircleText,
+  ChevronRightIcon,
   FileText,
   ListChecks,
   MagnifyingGlass,
@@ -186,7 +187,7 @@ export function ConversationsWorkspace({
         </div>
       </aside>
 
-      <section className="flex min-h-0 flex-col border-r border-border bg-card" aria-label="Lista de conversas">
+      <section className={cn("flex min-h-0 flex-col border-r border-border bg-card", selected && "max-[559px]:hidden")} aria-label="Lista de conversas">
         <div className="space-y-3 border-b border-border px-3 py-4">
           <div className="flex items-baseline justify-between gap-2"><h2 className="text-sm font-semibold tracking-tight">Mensagens</h2><span className="text-xs tabular-nums text-muted-foreground">{filtered.length} contato{filtered.length === 1 ? "" : "s"}</span></div>
           <div className="relative"><MagnifyingGlass aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input aria-label="Buscar conversa por nome, telefone ou e-mail" className="pl-8" onChange={(event) => setQuery(event.target.value)} placeholder="Buscar conversa" value={query} /></div>
@@ -199,10 +200,10 @@ export function ConversationsWorkspace({
         </ScrollArea>
       </section>
 
-      <section className="flex min-h-0 flex-col" aria-live="polite">
+      <section className={cn("flex min-h-0 flex-col", !selected && "max-[559px]:hidden")} aria-live="polite">
         {selected ? <>
           <header className="flex items-center justify-between gap-3 border-b border-border bg-card px-5 py-3.5">
-            <div className="flex min-w-0 items-center gap-3"><ContactAvatar name={selected.nome} /><div className="min-w-0"><h2 className="truncate text-sm font-semibold tracking-tight">{selected.nome}</h2><div className="mt-0.5 flex items-center gap-2"><p className="truncate text-xs text-muted-foreground">{selected.telefone}</p><Badge variant="outline">{LEAD_STATUS_LABELS[selected.status] ?? selected.status}</Badge></div></div></div>
+            <div className="flex min-w-0 items-center gap-2"><Button aria-label="Voltar para conversas" className="max-[559px]:inline-flex lg:hidden" onClick={() => setSelectedId(null)} size="icon-sm" type="button" variant="ghost"><ChevronRightIcon className="rotate-180" /></Button><ContactAvatar name={selected.nome} /><div className="min-w-0"><h2 className="truncate text-sm font-semibold tracking-tight">{selected.nome}</h2><div className="mt-0.5 flex items-center gap-2"><p className="truncate text-xs text-muted-foreground">{selected.telefone}</p><Badge variant="outline">{LEAD_STATUS_LABELS[selected.status] ?? selected.status}</Badge></div></div></div>
             <div className="flex items-center gap-1"><Button aria-label="Ligar para cliente" render={<a href={`tel:${selected.telefone.replace(/\D/g, "")}`} />} size="icon-sm" variant="ghost"><Phone /></Button><Button aria-label="Abrir WhatsApp Web" render={<a href={`https://wa.me/${selected.telefone.replace(/\D/g, "")}`} rel="noreferrer" target="_blank" />} size="icon-sm" variant="ghost"><WhatsappLogo /></Button><Button aria-label="Ver lead completo" render={<Link href={`/leads/${selected.id}`} />} size="icon-sm" variant="ghost"><ArrowSquareOut /></Button></div>
             <div className="ml-auto hidden items-center gap-1 border-l border-border pl-2 2xl:flex">
               {profileOpen ? <Button aria-label="Recolher painel do cliente" onClick={() => setProfileOpen(false)} size="icon-sm" type="button" variant="ghost"><PanelLeftIcon className="rotate-180" /></Button> : <Button aria-label="Mostrar painel do cliente" onClick={() => setProfileOpen(true)} size="icon-sm" type="button" variant="ghost"><PanelLeftIcon /></Button>}

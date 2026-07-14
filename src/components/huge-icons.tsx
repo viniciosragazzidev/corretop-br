@@ -98,6 +98,7 @@ const aliases: Record<string, string> = {
   XIcon: "Cancel01Icon",
   CircleCheckIcon: "CheckmarkCircle02Icon",
   ArrowsClockwise: "RefreshIcon",
+  HelpCircle: "HelpCircleIcon",
 };
 
 function resolveIcon(name: string): HugeIconProps["icon"] {
@@ -159,6 +160,7 @@ export const Globe = createCompatIcon("Globe");
 export const Handshake = createCompatIcon("Handshake");
 export const House = createCompatIcon("House");
 export const InfoIcon = createCompatIcon("InfoIcon");
+export const HelpCircle = createCompatIcon("HelpCircle");
 export const Key = createCompatIcon("Key");
 export const Lightning = createCompatIcon("Lightning");
 export const LinkSimple = createCompatIcon("LinkSimple");

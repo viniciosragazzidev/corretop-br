@@ -98,7 +98,29 @@ export function LeadsWorkspace({
         <TabsContent value="list" className="mt-4">
           <Card className="border-border bg-card shadow-none">
             <CardContent className="p-0">
-              <Table>
+              <div className="hidden divide-y divide-border max-[559px]:block">
+                {leads.map((lead) => (
+                  <button
+                    key={lead.id}
+                    type="button"
+                    onClick={() => setSelectedLead(lead)}
+                    className="flex min-h-20 w-full items-center gap-3 px-4 py-3 text-left transition-colors duration-[var(--duration-quick)] ease-out active:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-medium">{lead.nome}</span>
+                      <span className="mt-1 block truncate text-xs text-muted-foreground">
+                        {contextRole === "broker" && lead.status === "distributed" ? maskPhone(lead.telefone) : lead.telefone}
+                      </span>
+                      <span className="mt-2 flex items-center gap-2">
+                        <StatusBadge status={lead.status} />
+                        <span className="truncate text-xs text-muted-foreground">{lead.corretorNome ?? "Sem responsável"}</span>
+                      </span>
+                    </span>
+                    <ArrowUpRight aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+                  </button>
+                ))}
+              </div>
+              <Table className="max-[559px]:hidden">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="pl-5">Lead</TableHead>

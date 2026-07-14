@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Copy, LinkSimple, Plus, ShieldCheck, Trash, WifiHigh, X } from "@/components/huge-icons";
+import { Check, Copy, HelpCircle, LinkSimple, Plus, ShieldCheck, Trash, WifiHigh, X } from "@/components/huge-icons";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +25,7 @@ export function IntegrationsTab({ integrations, branches }: Props) {
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(integrations[0]?.id ?? null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [revealedToken, setRevealedToken] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const query = useQuery<QueryData>({ queryKey: ["settings-integrations"], queryFn: async () => ({ integrations, branches }), initialData: { integrations, branches }, staleTime: 30_000 });
@@ -87,13 +88,91 @@ export function IntegrationsTab({ integrations, branches }: Props) {
           {!data.integrations.length ? <div className="p-10 text-center"><ShieldCheck className="mx-auto size-7 text-muted-foreground" /><p className="mt-3 text-sm font-medium">Nenhuma fonte configurada</p><p className="mt-1 text-xs text-muted-foreground">Crie um token para começar a receber leads automaticamente.</p></div> : null}
         </div></CardContent>
       </Card>
-      {selected ? <Card className="h-fit border-border bg-card shadow-none"><CardHeader><CardTitle className="text-base">Configuração da fonte</CardTitle><CardDescription>{selected.name}</CardDescription></CardHeader><CardContent className="grid gap-4"><div className="grid gap-1"><span className="text-xs text-muted-foreground">Token</span><code className="rounded-md bg-muted px-2.5 py-2 text-xs">{selected.tokenPrefix}⬢⬢⬢⬢⬢⬢⬢⬢</code><span className="text-[11px] text-muted-foreground">O token completo só é exibido uma vez após a criação.</span></div><div className="flex items-center justify-between rounded-lg border border-border p-3"><div><p className="text-sm font-medium">Recebimento</p><p className="text-xs text-muted-foreground">{selected.status === "active" ? "Aceitando novos leads" : "Bloqueado"}</p></div><Button aria-label="Alternar status" onClick={() => toggleMutation.mutate(selected.id)} size="sm" variant="outline">{selected.status === "active" ? "Desativar" : "Ativar"}</Button></div><div className="grid gap-2"><div className="flex items-center justify-between"><span className="text-xs font-medium">Snippet do hub</span><Button onClick={copySnippet} size="sm" variant="ghost">{copied ? <Check /> : <Copy />} {copied ? "Copiado" : "Copiar"}</Button></div><pre className="max-h-44 overflow-auto rounded-lg border border-border bg-muted/40 p-3 text-[11px] leading-5 text-muted-foreground">{snippet}</pre></div><Button className="w-full" onClick={() => revokeMutation.mutate(selected.id)} variant="destructive"><Trash /> Revogar integração</Button></CardContent></Card> : null}
+      {selected ? <Card className="h-fit border-border bg-card shadow-none"><CardHeader><CardTitle className="text-base">Configuração da fonte</CardTitle><CardDescription>{selected.name}</CardDescription></CardHeader><CardContent className="grid gap-4"><div className="grid gap-1"><span className="text-xs text-muted-foreground">Token</span><code className="rounded-md bg-muted px-2.5 py-2 text-xs">{selected.tokenPrefix}⬢⬢⬢⬢⬢⬢⬢⬢</code><span className="text-[11px] text-muted-foreground">O token completo só é exibido uma vez após a criação.</span></div><div className="flex items-center justify-between rounded-lg border border-border p-3"><div><p className="text-sm font-medium">Recebimento</p><p className="text-xs text-muted-foreground">{selected.status === "active" ? "Aceitando novos leads" : "Bloqueado"}</p></div><Button aria-label="Alternar status" onClick={() => toggleMutation.mutate(selected.id)} size="sm" variant="outline">{selected.status === "active" ? "Desativar" : "Ativar"}</Button></div><div className="grid gap-2"><div className="flex items-center justify-between"><span className="flex items-center gap-1 text-xs font-medium">Snippet do hub <button type="button" onClick={() => setHelpOpen(true)} className="text-muted-foreground hover:text-foreground transition-colors" title="Como integrar em um site externo?"><HelpCircle className="size-3.5" /></button></span><Button onClick={copySnippet} size="sm" variant="ghost">{copied ? <Check /> : <Copy />} {copied ? "Copiado" : "Copiar"}</Button></div><pre className="max-h-44 overflow-auto rounded-lg border border-border bg-muted/40 p-3 text-[11px] leading-5 text-muted-foreground">{snippet}</pre></div><Button className="w-full" onClick={() => revokeMutation.mutate(selected.id)} variant="destructive"><Trash /> Revogar integração</Button></CardContent></Card> : null}
     </TabsContent>
     <TabsContent value="meta"><Card className="border-border bg-card shadow-none"><CardHeader><CardTitle>Meta Lead Ads</CardTitle><CardDescription>Conecte a conta administrativa para receber leads de campanhas.</CardDescription></CardHeader><CardContent><div className="flex items-center gap-3 rounded-lg border border-amber-300/20 bg-amber-300/5 p-4"><X className="text-amber-300" /><div><p className="text-sm font-medium">Não conectado</p><p className="mt-1 text-xs text-muted-foreground">A verificação da Meta Business ainda é uma dependência externa.</p></div><Button className="ml-auto" disabled variant="outline">Conectar em breve</Button></div></CardContent></Card></TabsContent>
     <CreateIntegrationDialog branches={branches} open={createOpen} onOpenChange={setCreateOpen} onSubmit={(formData) => createMutation.mutate(formData)} pending={createMutation.isPending} />
+    <HelpIntegrationDialog open={helpOpen} onOpenChange={setHelpOpen} />
   </Tabs>;
 }
 
 function CreateIntegrationDialog({ branches, open, onOpenChange, onSubmit, pending }: { branches: Branch[]; open: boolean; onOpenChange: (open: boolean) => void; onSubmit: (formData: FormData) => void; pending: boolean }) {
   return <Dialog open={open} onOpenChange={onOpenChange}><DialogPopup className="sm:max-w-md"><DialogTitle>Nova fonte de captura</DialogTitle><DialogDescription>Gere um token seguro vinculado à corretora e, opcionalmente, a uma filial.</DialogDescription><form action={onSubmit} className="grid gap-4"><Field><FieldLabel htmlFor="integration-name">Nome da fonte</FieldLabel><Input id="integration-name" name="name" placeholder="Meta Ads - Filial Centro" required /></Field><Field><FieldLabel>Origem padrão</FieldLabel><Select defaultValue="site_pixel" name="source"><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="site_pixel">Pixel / Site</SelectItem><SelectItem value="meta_ads">Meta Lead Ads</SelectItem><SelectItem value="landing_page">Landing page</SelectItem></SelectContent></Select></Field><Field><FieldLabel>Filial de destino</FieldLabel><Select name="branchId"><SelectTrigger className="w-full"><SelectValue placeholder="Primeira filial ativa" /></SelectTrigger><SelectContent>{branches.map((branch) => <SelectItem key={branch.id} value={branch.id}>{branch.name}</SelectItem>)}</SelectContent></Select></Field><div className="flex gap-2"><Button className="flex-1" disabled={pending} type="submit">{pending ? "Gerando token..." : "Gerar token"}</Button><DialogClose render={<Button disabled={pending} type="button" variant="ghost">Cancelar</Button>} /></div></form></DialogPopup></Dialog>;
+}
+
+function HelpIntegrationDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogPopup className="sm:max-w-xl max-h-[85vh] overflow-y-auto">
+        <DialogTitle>Tutorial de Integração (Formulário Externo)</DialogTitle>
+        <DialogDescription>
+          Veja como integrar formulários do seu site externo para enviar leads diretamente ao CorreTop.
+        </DialogDescription>
+
+        <div className="mt-4 space-y-4 text-xs leading-relaxed text-muted-foreground">
+          <div className="space-y-1.5">
+            <h4 className="font-bold text-foreground">Passo 1: Definir as variáveis de configuração</h4>
+            <p>Insira o snippet gerado antes do script que realiza o envio do formulário no seu site HTML:</p>
+            <pre className="rounded bg-muted p-2.5 text-[10px] overflow-x-auto text-foreground">
+{`<!-- Snippet de Inicialização -->
+<script>
+  window.CORRETOP_HUB_URL = "https://app.corretop.com/api/webhooks/leads";
+  window.CORRETOP_HUB_TOKEN = "seu_token_aqui";
+</script>`}
+            </pre>
+          </div>
+
+          <div className="space-y-1.5">
+            <h4 className="font-bold text-foreground">Passo 2: Configurar o envio no submit do formulário</h4>
+            <p>Use o exemplo abaixo (JavaScript moderno com Fetch API) para estruturar o payload e enviar o lead:</p>
+            <pre className="rounded bg-muted p-2.5 text-[10px] overflow-x-auto text-foreground">
+{`<script>
+  document.getElementById("meuForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+
+    // Estrutura obrigatória do payload de lead
+    const payload = {
+      nome: formData.get("name"),       // Obrigatório
+      telefone: formData.get("phone"),   // Obrigatório
+      email: formData.get("email"),     // Opcional
+      origem: "site_pixel",             // Opcional
+      canal: "web"                      // Opcional
+    };
+
+    try {
+      const response = await fetch(window.CORRETOP_HUB_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": \`Bearer \${window.CORRETOP_HUB_TOKEN}\`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        alert("Lead enviado com sucesso!");
+      } else {
+        console.error("Falha ao enviar lead");
+      }
+    } catch (err) {
+      console.error("Erro na requisição:", err);
+    }
+  });
+</script>`}
+            </pre>
+          </div>
+
+          <div className="rounded-lg border border-border bg-muted/40 p-3">
+            <p className="font-semibold text-foreground">💡 Dica de Suporte</p>
+            <p className="mt-1">Garanta que o payload JSON enviado possua as chaves <code className="text-foreground">nome</code> e <code className="text-foreground">telefone</code>. Estes campos são validados no servidor do CorreTop para garantir a integridade dos cadastros.</p>
+          </div>
+        </div>
+
+        <div className="mt-5 flex justify-end">
+          <DialogClose render={<Button type="button">Fechar tutorial</Button>} />
+        </div>
+      </DialogPopup>
+    </Dialog>
+  );
 }

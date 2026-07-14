@@ -8,6 +8,7 @@ import { CorreTopSidebar } from "@/components/corretop-sidebar";
 import { CorreTopFinanceiroSidebar } from "@/components/corretop-financeiro-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { WorkspaceRail } from "@/components/workspace-rail";
+import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { pageTransitionVariants } from "@/shared/animations";
 
 type Branding = {
@@ -92,7 +93,7 @@ export function AppShell({
       ) : (
         <CorreTopSidebar logoUrl={branding?.logoUrl ?? null} />
       )}
-      <SidebarInset className="bg-background overflow-hidden">
+      <SidebarInset className="bg-background overflow-hidden max-[559px]:pb-[calc(4.5rem+env(safe-area-inset-bottom))]">
         <AnimatePresence mode="wait">
           <motion.div
             key={pathname}
@@ -106,6 +107,7 @@ export function AppShell({
           </motion.div>
         </AnimatePresence>
       </SidebarInset>
+      <MobileBottomNav />
     </SidebarProvider>
   );
 }

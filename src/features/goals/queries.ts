@@ -65,33 +65,31 @@ export async function getGoals(): Promise<GoalRecord[]> {
   const context = await getRequiredTenantContext();
   const db = getDatabase();
 
-  const conditions: (SQL<unknown> | undefined)[] = [eq(schema.goals.tenantId, context.tenantId)];
+  const conditions: SQL<unknown>[] = [eq(schema.goals.tenantId, context.tenantId)];
 
   // Role-based scope filtering
   if (context.role === "broker") {
-    conditions.push(
-      and(
-        eq(schema.goals.scope, "broker"),
-        eq(schema.goals.scopeId, context.userId),
-      ),
+    const brokerCondition = and(
+      eq(schema.goals.scope, "broker"),
+      eq(schema.goals.scopeId, context.userId),
     );
+    if (brokerCondition) conditions.push(brokerCondition);
   } else if (context.role === "manager" && context.branchId) {
     const branchId: string = context.branchId;
-    conditions.push(
-      or(
-        and(eq(schema.goals.scope, "branch"), eq(schema.goals.scopeId, branchId)),
-        eq(schema.goals.scope, "tenant"),
-        sql`(
-          ${schema.goals.scope} = 'broker' AND ${schema.goals.scopeId} IN (
-            SELECT ${schema.tenantMemberships.userId}
-            FROM ${schema.tenantMemberships}
-            WHERE ${schema.tenantMemberships.tenantId} = ${context.tenantId}
-              AND ${schema.tenantMemberships.branchId} = ${branchId}
-          )
-        )`,
-        eq(schema.goals.scope, "team"),
-      ),
+    const managerCondition = or(
+      and(eq(schema.goals.scope, "branch"), eq(schema.goals.scopeId, branchId)),
+      eq(schema.goals.scope, "tenant"),
+      sql`(
+        ${schema.goals.scope} = 'broker' AND ${schema.goals.scopeId} IN (
+          SELECT ${schema.tenantMemberships.userId}
+          FROM ${schema.tenantMemberships}
+          WHERE ${schema.tenantMemberships.tenantId} = ${context.tenantId}
+            AND ${schema.tenantMemberships.branchId} = ${branchId}
+        )
+      )`,
+      eq(schema.goals.scope, "team"),
     );
+    if (managerCondition) conditions.push(managerCondition);
   }
 
   return db
