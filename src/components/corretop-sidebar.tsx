@@ -39,6 +39,15 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import { signOut } from "@/shared/auth/client";
 import { toast } from "sonner";
 import { getUserDisplayInfo, type UserDisplayInfo } from "@/shared/auth/actions";
@@ -57,7 +66,7 @@ const primaryItems = [
 const managementItems = [
   { label: "Resumo", icon: House, url: "/dashboard" },
   { label: "Equipe", icon: Users, url: "/equipe", permission: "convidar_corretor" as const },
-  { label: "Metas", icon: Target, url: "/metas", permission: "ver_dashboard_equipe" as const },
+  { label: "Metas", icon: Target, url: "/metas", permission: "gerenciar_metas" as const },
   { label: "Relatórios", icon: ChartBar, url: "/relatorios" },
   { label: "Filiais", icon: Buildings, url: "/filiais", permission: "gerenciar_filiais" as const },
 ];
@@ -169,7 +178,7 @@ export function CorreTopSidebar({ logoUrl }: { logoUrl?: string | null }) {
         <Link href="/dashboard" prefetch className="block px-2 pt-2">
           {logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={logoUrl} alt="Logo" className="w-full rounded-md object-contain object-left" />
+            <img src={logoUrl} alt="Logo" className="w-[64%] rounded-md object-contain object-left" />
           ) : (
             <span className="grid size-7 place-items-center rounded-md bg-primary text-xs font-bold text-primary-foreground">C</span>
           )}
@@ -184,14 +193,41 @@ export function CorreTopSidebar({ logoUrl }: { logoUrl?: string | null }) {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" render={<button type="button" onClick={handleLogout} />} tooltip={userName}>
-              <span className="grid size-7 place-items-center rounded-full bg-sidebar-accent text-xs font-semibold">{initials}</span>
-              <span className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{userName}</span>
-                <span className="truncate text-xs text-sidebar-foreground/55">{userRole}</span>
-              </span>
-              <SignOut className="ml-auto size-4 shrink-0 text-sidebar-foreground/55 group-data-[collapsible=icon]:hidden" />
-            </SidebarMenuButton>
+            <DropdownMenu>
+              <DropdownMenuTrigger render={
+                <SidebarMenuButton size="lg" tooltip={userName}>
+                  <span className="grid size-7 place-items-center rounded-full bg-sidebar-accent text-xs font-semibold">{initials}</span>
+                  <span className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-medium">{userName}</span>
+                    <span className="truncate text-xs text-sidebar-foreground/55">{userRole}</span>
+                  </span>
+                  <SignOut className="ml-auto size-4 shrink-0 text-sidebar-foreground/55 group-data-[collapsible=icon]:hidden" />
+                </SidebarMenuButton>
+              } />
+              <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-[var(--sidebar-width)]">
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel>
+                    <div className="flex items-center gap-2">
+                      <span className="grid size-8 place-items-center rounded-full bg-sidebar-accent text-xs font-semibold">{initials}</span>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium leading-none">{userName}</span>
+                        <span className="text-xs text-muted-foreground">{userRole}</span>
+                      </div>
+                    </div>
+                  </DropdownMenuLabel>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem render={<a href="/settings" />}>
+                  <SlidersHorizontal className="size-4" />
+                  Configurações
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem variant="destructive" onClick={handleLogout}>
+                  <SignOut className="size-4" />
+                  Sair
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

@@ -17,6 +17,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -81,8 +82,8 @@ export function LeadsWorkspace({
     selectedLead && !(contextRole === "broker" && selectedLead.status === "distributed");
 
   return (
-    <>
-      <Tabs defaultValue="list">
+    <div className="flex min-h-0 flex-1 flex-col">
+      <Tabs defaultValue="list" className="flex min-h-0 flex-1 flex-col">
         <TabsList aria-label="Visualização de leads">
           <TabsTrigger value="list">
             <UserList />
@@ -151,9 +152,9 @@ export function LeadsWorkspace({
           </Card>
         </TabsContent>
 
-        <TabsContent value="kanban" className="mt-4 min-w-0">
-          <div className="overflow-x-auto pb-3" aria-label="Funil de leads em Kanban">
-            <div className="flex min-w-max items-start gap-4">
+        <TabsContent value="kanban" className="mt-4 min-h-0 min-w-0 flex-1 overflow-hidden">
+          <ScrollArea className="h-full w-full" aria-label="Funil de leads em Kanban">
+            <div className="flex min-w-max items-start gap-4 pr-4">
               {kanbanStatuses.map((status) => (
                 <KanbanColumn
                   key={status}
@@ -163,8 +164,9 @@ export function LeadsWorkspace({
                 />
               ))}
             </div>
-          </div>
-          <p className="mt-1 text-xs text-muted-foreground">
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
+          <p className="mt-3 text-xs text-muted-foreground">
             Deslize horizontalmente para acompanhar todas as etapas do funil.
           </p>
         </TabsContent>
@@ -236,7 +238,7 @@ export function LeadsWorkspace({
           ) : null}
         </SheetContent>
       </Sheet>
-    </>
+    </div>
   );
 }
 

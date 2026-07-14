@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { ContextNote } from "@/components/ui/context-note";
 import { Textarea } from "@/components/ui/textarea";
 import { getLeadMessagesAction, sendLeadMessageAction } from "@/features/leads/actions/send-lead-message";
 import { LEAD_STATUS_LABELS } from "@/features/leads/lead-status-constants";
@@ -168,7 +169,16 @@ export function ConversationsWorkspace({
             <span className={cn("size-2 rounded-full", whatsappReady ? "bg-success" : "bg-muted-foreground")} aria-hidden="true" />
             <span>{whatsappReady ? "WhatsApp pronto" : "WhatsApp indisponível"}</span>
           </div>
-          {!whatsappReady ? <p className="mt-2 text-xs leading-relaxed text-muted-foreground">Conecte o WhatsApp em Configurações para responder por aqui.</p> : null}
+          {!whatsappReady ? (
+            <>
+              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">Conecte o WhatsApp em Configurações para responder por aqui.</p>
+              <div className="mt-3">
+                <Button className="w-full text-xs font-semibold h-8 justify-center" render={<Link href="/settings/whatsapp" />} size="sm" variant="outline">
+                  <WhatsappLogo className="mr-1.5 size-3.5" /> Conectar canal
+                </Button>
+              </div>
+            </>
+          ) : null}
         </div>
         </ScrollArea>
         <div className="border-t border-border p-3">
@@ -209,8 +219,8 @@ export function ConversationsWorkspace({
           <footer className="relative border-t border-border bg-card p-3">
             <div className="mb-2 flex flex-wrap gap-1.5"><Button disabled={!canSend} onClick={() => insertTemplate("Olá! Preparei uma cotação para você. Posso enviar os detalhes?")} size="xs" variant="outline"><Calculator /> Enviar cotação</Button><Button disabled={!canSend} onClick={() => insertTemplate("Olá! Posso encaminhar o contrato para sua análise. Qual é o melhor horário para conversarmos?")} size="xs" variant="outline"><FileText /> Enviar contrato</Button><Button aria-expanded={plansOpen} onClick={togglePlans} size="xs" variant="outline"><ListChecks /> Lista de planos</Button></div>
             {plansOpen ? <div className="t-panel-slide absolute inset-x-3 bottom-full z-10 mb-2 rounded-lg border border-border bg-popover p-2 shadow-lg" data-open="true"><div className="mb-2 flex items-center justify-between"><p className="text-xs font-medium">Planos ativos do catálogo</p><Button render={<Link href={`/cotacoes?leadId=${selected.id}`} />} size="xs" variant="link">Criar cotação <ArrowSquareOut /></Button></div><div className="grid gap-1 sm:grid-cols-2">{plans.slice(0, 6).map((plan) => <Button className="h-auto justify-start whitespace-normal py-2 text-left" key={plan.id} onClick={() => insertTemplate(`Tenho uma opção da ${plan.carrierName}: ${plan.name}. Posso explicar a cobertura?`)} size="xs" variant="ghost"><span className="min-w-0"><span className="block truncate font-medium">{plan.name}</span><span className="block truncate text-muted-foreground">{plan.carrierName}</span></span></Button>)}{!plans.length ? <p className="px-2 py-3 text-xs text-muted-foreground">Nenhum plano ativo está disponível no catálogo.</p> : null}</div></div> : null}
-            {!canSend ? <p className="mb-2 text-xs text-muted-foreground">Somente o corretor responsável pode enviar mensagens neste atendimento.</p> : null}
-            {!whatsappReady ? <p className="mb-2 text-xs text-muted-foreground">O envio ficará disponível quando o WhatsApp deste corretor estiver conectado.</p> : null}
+            {!canSend ? <ContextNote className="mb-2" title="Envio restrito ao responsável" variant="warning">Somente o corretor responsável pode enviar mensagens neste atendimento.</ContextNote> : null}
+            {!whatsappReady ? <ContextNote className="mb-2" title="WhatsApp desconectado" variant="info">O envio ficará disponível quando o WhatsApp deste corretor estiver conectado.</ContextNote> : null}
             <div className="flex items-end gap-2"><Button aria-label="Adicionar modelo de mensagem" disabled={!canSend} onClick={() => insertTemplate("Olá! Como posso ajudar hoje?")} size="icon-sm" type="button" variant="outline"><Plus /></Button><Textarea aria-label="Escrever mensagem" className="min-h-10 max-h-28 resize-none" disabled={!canSend || !whatsappReady || pending} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); sendMessage(); } }} placeholder={canSend ? "Escreva uma mensagem..." : "Aguardando responsável"} value={draft} /><Button aria-label="Enviar mensagem" disabled={!draft.trim() || !canSend || !whatsappReady || pending} onClick={sendMessage} size="icon" type="button"><PaperPlaneTilt /></Button></div>
           </footer>
         </> : <EmptyConversation />}

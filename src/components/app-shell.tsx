@@ -92,7 +92,7 @@ export function AppShell({
       ) : (
         <CorreTopSidebar logoUrl={branding?.logoUrl ?? null} />
       )}
-      <SidebarInset className="bg-background">
+      <SidebarInset className="bg-background overflow-hidden">
         <AnimatePresence mode="wait">
           <motion.div
             key={pathname}
@@ -100,7 +100,7 @@ export function AppShell({
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="flex min-h-full flex-col"
+            className="flex min-h-0 flex-1 flex-col"
           >
             {children}
           </motion.div>
