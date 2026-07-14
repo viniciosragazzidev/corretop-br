@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 
 import { DashboardHeader } from "@/components/dashboard-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,7 +12,7 @@ export default async function TeamPage() {
   const context = await getRequiredTenantContext();
   if (context.role === "broker") redirect("/access-denied");
 
-  const [tenant, branches, members] = await Promise.all([
+  const [tenant, branches, members, unassignedLeads, salesTotal] = await Promise.all([
     getDatabase()
       .select({ name: schema.tenants.name })
       .from(schema.tenants)
@@ -39,9 +39,19 @@ export default async function TeamPage() {
       .leftJoin(schema.branches, eq(schema.tenantMemberships.branchId, schema.branches.id))
       .where(eq(schema.tenantMemberships.tenantId, context.tenantId))
       .orderBy(asc(schema.user.name)),
+    getDatabase()
+      .select({ count: sql<number>`count(*)::int` })
+      .from(schema.leads)
+      .where(and(eq(schema.leads.tenantId, context.tenantId), eq(schema.leads.status, "new"))),
+    getDatabase()
+      .select({ sum: sql<number>`coalesce(sum(${schema.sales.saleValue}), 0)::int` })
+      .from(schema.sales)
+      .where(eq(schema.sales.tenantId, context.tenantId)),
   ]);
 
   const activeMembers = members.filter((member) => member.status === "active").length;
+  const unassignedCount = unassignedLeads[0]?.count ?? 0;
+  const totalVolume = salesTotal[0]?.sum ?? 0;
 
   return (
     <>
@@ -60,7 +70,7 @@ export default async function TeamPage() {
               : "Acompanhe os acessos da sua filial, edite corretores e gerencie seus estados operacionais."}
           </p>
         </section>
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-4">
           <Card size="sm" className="border-border bg-card shadow-none">
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground">Total de membros</p>
@@ -75,8 +85,16 @@ export default async function TeamPage() {
           </Card>
           <Card size="sm" className="border-border bg-card shadow-none">
             <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">Filiais disponiveis</p>
-              <p className="mt-2 font-mono text-2xl font-semibold">{branches.length}</p>
+              <p className="text-xs text-muted-foreground">Leads sem atendimento</p>
+              <p className="mt-2 font-mono text-2xl font-semibold text-amber-500">{unassignedCount}</p>
+            </CardContent>
+          </Card>
+          <Card size="sm" className="border-border bg-card shadow-none">
+            <CardContent className="p-4">
+              <p className="text-xs text-muted-foreground">Vendas acumuladas</p>
+              <p className="mt-2 font-mono text-2xl font-semibold text-emerald-500">
+                {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(totalVolume)}
+              </p>
             </CardContent>
           </Card>
         </div>

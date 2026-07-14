@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { ArrowRight, MagnifyingGlass } from "@/components/huge-icons";
+import { ArrowRight, FileArrowDown, MagnifyingGlass } from "@/components/huge-icons";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -150,6 +150,17 @@ export function SalesWorkspace({
             <option value="cancelled">Canceladas</option>
           </select>
         </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            const now = new Date();
+            const m = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+            window.open(`/api/internal/export/commissions?startMonth=${m}&endMonth=${m}&format=csv`, "_blank");
+          }}
+        >
+          <FileArrowDown /> Exportar CSV
+        </Button>
       </div>
 
       {/* Empty state */}

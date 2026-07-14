@@ -106,6 +106,7 @@ export function TeamMembersTable({ members, branches, currentRole, currentBranch
                       currentRole={currentRole}
                       currentUserId={currentUserId}
                       member={member}
+                      allMembers={members}
                     />
                   </TableCell>
                 </motion.tr>

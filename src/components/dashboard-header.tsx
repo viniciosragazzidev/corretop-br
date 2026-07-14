@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell } from "@/components/huge-icons";
+import { Bell, BookOpen } from "@/components/huge-icons";
 import Link from "next/link";
 import { motion } from "motion/react";
 
@@ -43,6 +43,9 @@ export function DashboardHeader({
       {rightSlot}
       <div className="max-[559px]:hidden"><GlobalSearch /></div>
       <div className="max-[559px]:hidden"><ThemeToggle /></div>
+      <Button aria-label="Abrir guia do sistema" title="Guia do sistema" render={<Link href="/guia" />} size="icon" variant="ghost">
+        <BookOpen aria-hidden="true" />
+      </Button>
       <Button aria-label="Abrir notificacoes" render={<Link href="/notificacoes" />} size="icon" variant="ghost">
         <Bell aria-hidden="true" />
       </Button>

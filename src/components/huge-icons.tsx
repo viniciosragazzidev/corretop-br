@@ -13,6 +13,7 @@ const aliases: Record<string, string> = {
   ArrowUpRight: "ArrowUpRight01Icon",
   Bell: "Notification01Icon",
   BellRinging: "Notification02Icon",
+  BookOpen: "Book02Icon",
   Buildings: "Building06Icon",
   Calculator: "CalculatorIcon",
   CalendarBlank: "Calendar01Icon",
@@ -125,6 +126,7 @@ export const ArrowsDownUp = createCompatIcon("ArrowsDownUp");
 export const ArrowUpRight = createCompatIcon("ArrowUpRight");
 export const Bell = createCompatIcon("Bell");
 export const BellRinging = createCompatIcon("BellRinging");
+export const BookOpen = createCompatIcon("BookOpen");
 export const Buildings = createCompatIcon("Buildings");
 export const Calculator = createCompatIcon("Calculator");
 export const CalendarBlank = createCompatIcon("CalendarBlank");

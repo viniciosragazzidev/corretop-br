@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
-import { DotsThreeVertical, PencilSimple, Power, Trash } from "@/components/huge-icons";
+import { DotsThreeVertical, PencilSimple, Power, Trash, UserSwitch } from "@/components/huge-icons";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -12,7 +12,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { deleteTeamMemberAction, toggleTeamMemberStatusAction, updateTeamMemberAction, type TeamActionState } from "./actions";
+import { deleteTeamMemberAction, toggleTeamMemberStatusAction, updateTeamMemberAction, transferLeadsAction, type TeamActionState } from "./actions";
 
 type BranchOption = { id: string; name: string };
 type TeamMember = {
@@ -32,6 +32,7 @@ type Props = {
   currentRole: "director" | "manager" | "broker";
   currentBranchId: string | null;
   currentUserId: string;
+  allMembers?: TeamMember[];
 };
 
 const roleLabel: Record<TeamMember["role"], string> = {
@@ -271,9 +272,11 @@ export function TeamMemberActions({
   currentRole,
   currentBranchId,
   currentUserId,
+  allMembers = [],
 }: Props) {
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
   const [toggleState, toggleAction, togglePending] = useActionState<
     TeamActionState,
     FormData
@@ -338,6 +341,14 @@ export function TeamMemberActions({
             }
           />
           <DropdownMenuContent align="end" className="w-48">
+            {member.role === "broker" ? (
+              <DropdownMenuItem
+                onClick={() => setTransferOpen(true)}
+              >
+                <UserSwitch size={15} />
+                Transferir leads
+              </DropdownMenuItem>
+            ) : null}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               disabled={!canDelete}
@@ -366,6 +377,97 @@ export function TeamMemberActions({
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
       />
+      <TransferLeadsDialog
+        key={`${member.id}-transfer`}
+        member={member}
+        allMembers={allMembers}
+        currentUserId={currentUserId}
+        open={transferOpen}
+        onOpenChange={setTransferOpen}
+      />
     </>
+  );
+}
+
+function TransferLeadsDialog({
+  member,
+  open,
+  onOpenChange,
+  allMembers,
+  currentUserId,
+}: {
+  member: TeamMember;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  allMembers: TeamMember[];
+  currentUserId: string;
+}) {
+  const [state, action, pending] = useActionState<TeamActionState, FormData>(
+    transferLeadsAction,
+    {},
+  );
+  const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
+
+  const brokers = allMembers.filter(
+    (item) => item.role === "broker" && item.status === "active" && item.userId !== member.userId
+  );
+
+  useEffect(() => {
+    if (state.success) {
+      toast.success("Leads transferidos com sucesso.");
+      onOpenChange(false);
+      formRef.current?.reset();
+      router.refresh();
+    }
+    if (state.error) toast.error(state.error);
+  }, [onOpenChange, router, state.error, state.success]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogPopup className="sm:max-w-md">
+        <DialogTitle>Transferir Leads em Lote</DialogTitle>
+        <DialogDescription>
+          Mova todos os leads sob responsabilidade de <strong>{member.name ?? member.email}</strong> para outro corretor ativo.
+        </DialogDescription>
+        <form ref={formRef} action={action} className="grid gap-4 mt-2">
+          <input name="fromUserId" type="hidden" value={member.userId} />
+          
+          <Field>
+            <FieldLabel>Corretor de Destino</FieldLabel>
+            <Select name="toUserId">
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Selecione um corretor ativo" />
+              </SelectTrigger>
+              <SelectContent>
+                {brokers.map((broker) => (
+                  <SelectItem key={broker.userId} value={broker.userId}>
+                    {broker.name ?? broker.email} ({broker.branchName ?? "Sem filial"})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+
+          <div className="flex gap-2 mt-2">
+            <Button className="flex-1" disabled={pending || brokers.length === 0} type="submit">
+              {pending ? "Transferindo..." : "Confirmar Transferência"}
+            </Button>
+            <DialogClose
+              render={
+                <Button disabled={pending} type="button" variant="ghost">
+                  Cancelar
+                </Button>
+              }
+            />
+          </div>
+          {brokers.length === 0 && (
+            <p className="text-[10px] text-destructive text-center mt-1">
+              Nenhum outro corretor ativo disponível para receber os leads.
+            </p>
+          )}
+        </form>
+      </DialogPopup>
+    </Dialog>
   );
 }

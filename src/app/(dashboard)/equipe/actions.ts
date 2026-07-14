@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, inArray, ne } from "drizzle-orm";
 import { z } from "zod";
 
 import { createTeamUser } from "@/features/team/create-user";
@@ -236,6 +236,53 @@ export async function deleteTeamMemberAction(
     return { success: true };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Erro desconhecido ao excluir o membro.";
+    return { success: false, error: message };
+  }
+}
+
+const transferLeadsInput = z.object({
+  fromUserId: z.string().uuid(),
+  toUserId: z.string().uuid(),
+});
+
+export async function transferLeadsAction(
+  _prev: TeamActionState,
+  formData: FormData,
+): Promise<TeamActionState> {
+  try {
+    const input = transferLeadsInput.parse(Object.fromEntries(formData));
+    const context = await getRequiredTenantContext();
+    const db = getDatabase();
+
+    const members = await db
+      .select({ userId: schema.tenantMemberships.userId })
+      .from(schema.tenantMemberships)
+      .where(
+        and(
+          eq(schema.tenantMemberships.tenantId, context.tenantId),
+          inArray(schema.tenantMemberships.userId, [input.fromUserId, input.toUserId])
+        )
+      );
+
+    if (members.length < 2) {
+      throw new Error("Os usuários de origem e destino devem pertencer ao mesmo tenant.");
+    }
+
+    await db
+      .update(schema.leads)
+      .set({ corretorId: input.toUserId, assignedAt: new Date() })
+      .where(
+        and(
+          eq(schema.leads.tenantId, context.tenantId),
+          eq(schema.leads.corretorId, input.fromUserId)
+        )
+      );
+
+    revalidatePath("/equipe");
+    revalidatePath("/leads");
+    return { success: true };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Erro desconhecido ao transferir leads.";
     return { success: false, error: message };
   }
 }
