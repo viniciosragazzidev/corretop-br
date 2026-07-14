@@ -19,10 +19,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
+  SheetBody,
   SheetContent,
   SheetDescription,
   SheetHeader,
@@ -99,7 +99,7 @@ const DEFAULT_AGE_BANDS = [
   "44 a 48",
   "49 a 53",
   "54 a 58",
-  "59+"
+  "59+",
 ];
 
 function PlanForm({
@@ -118,33 +118,31 @@ function PlanForm({
 
   // Preço por faixa etária state
   const [prices, setPrices] = useState<{ ageBand: string; monthlyPrice: number }[]>(() =>
-    DEFAULT_AGE_BANDS.map((band) => ({ ageBand: band, monthlyPrice: 0 }))
+    DEFAULT_AGE_BANDS.map((band) => ({ ageBand: band, monthlyPrice: 0 })),
   );
   useEffect(() => {
     if (!plan) return;
-    getPlanPrices(plan.id)
-      .then((existingPrices) => {
-        if (existingPrices.length > 0) {
-          const map = new Map(existingPrices.map((p) => [p.ageBand, Number(p.monthlyPrice)]));
-          setPrices(
-            DEFAULT_AGE_BANDS.map((band) => ({
-              ageBand: band,
-              monthlyPrice: map.get(band) ?? 0,
-            }))
-          );
-        }
-      });
+    getPlanPrices(plan.id).then((existingPrices) => {
+      if (existingPrices.length > 0) {
+        const map = new Map(existingPrices.map((p) => [p.ageBand, Number(p.monthlyPrice)]));
+        setPrices(
+          DEFAULT_AGE_BANDS.map((band) => ({
+            ageBand: band,
+            monthlyPrice: map.get(band) ?? 0,
+          })),
+        );
+      }
+    });
   }, [plan]);
 
   useEffect(() => {
     if (!state.success) return;
     if (plan) {
       // Se for edição, salvar os preços em paralelo
-      upsertPlanPricesAction(plan.id, prices)
-        .then((res) => {
-          if (res.error) toast.error(`Erro ao salvar preços: ${res.error}`);
-          else onDone();
-        });
+      upsertPlanPricesAction(plan.id, prices).then((res) => {
+        if (res.error) toast.error(`Erro ao salvar preços: ${res.error}`);
+        else onDone();
+      });
     } else {
       formRef.current?.reset();
       onDone();
@@ -243,26 +241,32 @@ function PlanForm({
         <div className="space-y-3 rounded-lg border p-4 bg-muted/10">
           <div>
             <Label className="text-sm font-semibold">Tabela de Preços (Faixa Etária)</Label>
-            <p className="text-xs text-muted-foreground">Informe o preço mensal para cada faixa etária da ANS.</p>
+            <p className="text-xs text-muted-foreground">
+              Informe o preço mensal para cada faixa etária da ANS.
+            </p>
           </div>
           <div className="grid gap-3 grid-cols-2 sm:grid-cols-5">
-              {prices.map((p) => (
-                <div key={p.ageBand} className="space-y-1">
-                  <span className="text-[10px] uppercase font-bold text-muted-foreground">{p.ageBand} anos</span>
-                  <div className="relative">
-                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      className="pl-7 pr-1 h-8 text-xs"
-                      value={p.monthlyPrice || ""}
-                      onChange={(e) => handlePriceChange(p.ageBand, e.target.value)}
-                      placeholder="0.00"
-                    />
-                  </div>
+            {prices.map((p) => (
+              <div key={p.ageBand} className="space-y-1">
+                <span className="text-[10px] uppercase font-bold text-muted-foreground">
+                  {p.ageBand} anos
+                </span>
+                <div className="relative">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                    R$
+                  </span>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className="pl-7 pr-1 h-8 text-xs"
+                    value={p.monthlyPrice || ""}
+                    onChange={(e) => handlePriceChange(p.ageBand, e.target.value)}
+                    placeholder="0.00"
+                  />
                 </div>
-              ))}
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -274,7 +278,6 @@ function PlanForm({
     </form>
   );
 }
-
 
 function PlanRow({ plan, onEdit }: { plan: CarrierPlanRecord; onEdit: () => void }) {
   const [toggleState, toggleAction, togglePending] = useActionState<CatalogActionState, FormData>(
@@ -299,7 +302,14 @@ function PlanRow({ plan, onEdit }: { plan: CarrierPlanRecord; onEdit: () => void
       </TableCell>
       <TableCell className="text-muted-foreground">{plan.coverage ?? "Não informada"}</TableCell>
       <TableCell>
-        <Badge variant="outline" className={plan.active ? "border-emerald-500/40 text-emerald-700 dark:text-emerald-400" : "text-muted-foreground"}>
+        <Badge
+          variant="outline"
+          className={
+            plan.active
+              ? "border-emerald-500/40 text-emerald-700 dark:text-emerald-400"
+              : "text-muted-foreground"
+          }
+        >
           {plan.active ? "Ativo" : "Inativo"}
         </Badge>
       </TableCell>
@@ -307,7 +317,13 @@ function PlanRow({ plan, onEdit }: { plan: CarrierPlanRecord; onEdit: () => void
         <div className="flex justify-end gap-1">
           <form action={toggleAction}>
             <input type="hidden" name="planId" value={plan.id} />
-            <Button type="submit" size="icon-sm" variant="ghost" disabled={togglePending} aria-label={plan.active ? "Desativar plano" : "Ativar plano"}>
+            <Button
+              type="submit"
+              size="icon-sm"
+              variant="ghost"
+              disabled={togglePending}
+              aria-label={plan.active ? "Desativar plano" : "Ativar plano"}
+            >
               <Power className="size-4" />
             </Button>
           </form>
@@ -316,7 +332,14 @@ function PlanRow({ plan, onEdit }: { plan: CarrierPlanRecord; onEdit: () => void
           </Button>
           <form action={deleteAction}>
             <input type="hidden" name="planId" value={plan.id} />
-            <Button type="submit" size="icon-sm" variant="ghost" disabled={deletePending} className="text-destructive hover:text-destructive" aria-label="Excluir plano">
+            <Button
+              type="submit"
+              size="icon-sm"
+              variant="ghost"
+              disabled={deletePending}
+              className="text-destructive hover:text-destructive"
+              aria-label="Excluir plano"
+            >
               <Trash className="size-4" />
             </Button>
           </form>
@@ -374,20 +397,28 @@ export function CarrierSheet({ carrier: initialCarrier }: { carrier: CarrierReco
             <span className="min-w-0">
               <span className="flex items-center gap-2">
                 <span className="truncate font-medium">{initialCarrier.name}</span>
-                <span className="sm:hidden"><CarrierStatus status={initialCarrier.status} /></span>
+                <span className="sm:hidden">
+                  <CarrierStatus status={initialCarrier.status} />
+                </span>
               </span>
               <span className="mt-1 block truncate text-xs text-muted-foreground">
-                {initialCarrier.ansCode ? `ANS ${initialCarrier.ansCode}` : "Código ANS não informado"}
+                {initialCarrier.ansCode
+                  ? `ANS ${initialCarrier.ansCode}`
+                  : "Código ANS não informado"}
               </span>
             </span>
             <span className="hidden min-w-0 sm:block">
-              <span className="block truncate text-sm text-foreground">{initialCarrier.contact ?? "Contato não informado"}</span>
+              <span className="block truncate text-sm text-foreground">
+                {initialCarrier.contact ?? "Contato não informado"}
+              </span>
               <span className="mt-1 flex items-center gap-1 truncate text-xs text-muted-foreground">
                 <Phone className="size-3" />
                 {initialCarrier.phone ?? initialCarrier.email ?? "Sem canal cadastrado"}
               </span>
             </span>
-            <span className="hidden sm:block"><CarrierStatus status={initialCarrier.status} /></span>
+            <span className="hidden sm:block">
+              <CarrierStatus status={initialCarrier.status} />
+            </span>
             <span className="hidden text-sm text-muted-foreground sm:block">
               {initialCarrier.planCount} {initialCarrier.planCount === 1 ? "plano" : "planos"}
             </span>
@@ -411,29 +442,40 @@ export function CarrierSheet({ carrier: initialCarrier }: { carrier: CarrierReco
           </div>
         </SheetHeader>
 
-        <ScrollArea className="h-[calc(100dvh-88px)]">
-          <div className="space-y-7 px-6 py-6 sm:px-8">
+        <SheetBody contentClassName="px-6 py-6 sm:px-8">
+          <div className="space-y-7">
             <section className="grid gap-3 sm:grid-cols-3" aria-label="Resumo da operadora">
               <div className="rounded-xl border bg-muted/20 p-4">
                 <p className="text-xs font-medium text-muted-foreground">Status</p>
-                <div className="mt-2"><CarrierStatus status={initialCarrier.status} /></div>
+                <div className="mt-2">
+                  <CarrierStatus status={initialCarrier.status} />
+                </div>
               </div>
               <div className="rounded-xl border bg-muted/20 p-4">
                 <p className="text-xs font-medium text-muted-foreground">Planos ativos</p>
-                <p className="mt-1 text-2xl font-semibold tracking-tight">{initialCarrier.planCount}</p>
+                <p className="mt-1 text-2xl font-semibold tracking-tight">
+                  {initialCarrier.planCount}
+                </p>
               </div>
               <div className="rounded-xl border bg-muted/20 p-4">
                 <p className="text-xs font-medium text-muted-foreground">Código ANS</p>
-                <p className="mt-1 truncate text-sm font-medium">{initialCarrier.ansCode ?? "Não informado"}</p>
+                <p className="mt-1 truncate text-sm font-medium">
+                  {initialCarrier.ansCode ?? "Não informado"}
+                </p>
               </div>
             </section>
 
             <section className="space-y-4">
               <div>
                 <h3 className="font-heading text-base font-medium">Dados da operadora</h3>
-                <p className="mt-1 text-sm text-muted-foreground">Estas informações apoiam o trabalho comercial interno.</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Estas informações apoiam o trabalho comercial interno.
+                </p>
               </div>
-              <form action={updateAction} className="space-y-4 rounded-xl border bg-card p-4 sm:p-5">
+              <form
+                action={updateAction}
+                className="space-y-4 rounded-xl border bg-card p-4 sm:p-5"
+              >
                 <input type="hidden" name="carrierId" value={initialCarrier.id} />
                 <div className="rounded-lg bg-muted/50 px-3 py-2.5">
                   <p className="text-xs text-muted-foreground">Operadora</p>
@@ -442,11 +484,21 @@ export function CarrierSheet({ carrier: initialCarrier }: { carrier: CarrierReco
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor={`carrier-ans-${initialCarrier.id}`}>Código ANS</Label>
-                    <Input id={`carrier-ans-${initialCarrier.id}`} name="ansCode" defaultValue={initialCarrier.ansCode ?? ""} placeholder="Ex.: 12345" />
+                    <Input
+                      id={`carrier-ans-${initialCarrier.id}`}
+                      name="ansCode"
+                      defaultValue={initialCarrier.ansCode ?? ""}
+                      placeholder="Ex.: 12345"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor={`carrier-status-${initialCarrier.id}`}>Status</Label>
-                    <select id={`carrier-status-${initialCarrier.id}`} name="status" defaultValue={initialCarrier.status} className="flex h-9 w-full rounded-lg border border-input bg-input/30 px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50">
+                    <select
+                      id={`carrier-status-${initialCarrier.id}`}
+                      name="status"
+                      defaultValue={initialCarrier.status}
+                      className="flex h-9 w-full rounded-lg border border-input bg-input/30 px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                    >
                       <option value="active">Ativa</option>
                       <option value="inactive">Inativa</option>
                     </select>
@@ -454,24 +506,48 @@ export function CarrierSheet({ carrier: initialCarrier }: { carrier: CarrierReco
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor={`carrier-contact-${initialCarrier.id}`}>Contato</Label>
-                  <Input id={`carrier-contact-${initialCarrier.id}`} name="contact" defaultValue={initialCarrier.contact ?? ""} placeholder="Nome do contato na operadora" />
+                  <Input
+                    id={`carrier-contact-${initialCarrier.id}`}
+                    name="contact"
+                    defaultValue={initialCarrier.contact ?? ""}
+                    placeholder="Nome do contato na operadora"
+                  />
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor={`carrier-phone-${initialCarrier.id}`}>Telefone</Label>
-                    <Input id={`carrier-phone-${initialCarrier.id}`} name="phone" defaultValue={initialCarrier.phone ?? ""} placeholder="(11) 99999-9999" />
+                    <Input
+                      id={`carrier-phone-${initialCarrier.id}`}
+                      name="phone"
+                      defaultValue={initialCarrier.phone ?? ""}
+                      placeholder="(11) 99999-9999"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor={`carrier-email-${initialCarrier.id}`}>E-mail</Label>
-                    <Input id={`carrier-email-${initialCarrier.id}`} name="email" type="email" defaultValue={initialCarrier.email ?? ""} placeholder="contato@operadora.com" />
+                    <Input
+                      id={`carrier-email-${initialCarrier.id}`}
+                      name="email"
+                      type="email"
+                      defaultValue={initialCarrier.email ?? ""}
+                      placeholder="contato@operadora.com"
+                    />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor={`carrier-notes-${initialCarrier.id}`}>Observações</Label>
-                  <Textarea id={`carrier-notes-${initialCarrier.id}`} name="notes" defaultValue={initialCarrier.notes ?? ""} rows={3} placeholder="Informações internas sobre a operadora." />
+                  <Textarea
+                    id={`carrier-notes-${initialCarrier.id}`}
+                    name="notes"
+                    defaultValue={initialCarrier.notes ?? ""}
+                    rows={3}
+                    placeholder="Informações internas sobre a operadora."
+                  />
                 </div>
                 <div className="flex justify-end">
-                  <Button type="submit" disabled={updatePending}>{updatePending ? "Salvando..." : "Salvar dados"}</Button>
+                  <Button type="submit" disabled={updatePending}>
+                    {updatePending ? "Salvando..." : "Salvar dados"}
+                  </Button>
                 </div>
                 <ActionFeedback state={updateState} />
               </form>
@@ -483,10 +559,15 @@ export function CarrierSheet({ carrier: initialCarrier }: { carrier: CarrierReco
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <h3 className="font-heading text-base font-medium">Planos</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">Cadastre e mantenha os planos disponíveis para cotação.</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Cadastre e mantenha os planos disponíveis para cotação.
+                  </p>
                 </div>
                 {!showCreatePlan && !editingPlan && (
-                  <Button onClick={() => setShowCreatePlan(true)}><Plus className="size-4" />Novo plano</Button>
+                  <Button onClick={() => setShowCreatePlan(true)}>
+                    <Plus className="size-4" />
+                    Novo plano
+                  </Button>
                 )}
               </div>
 
@@ -495,28 +576,59 @@ export function CarrierSheet({ carrier: initialCarrier }: { carrier: CarrierReco
                   <CardContent className="space-y-4 p-4 sm:p-5">
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <h4 className="font-medium">{editingPlan ? "Editar plano" : "Novo plano"}</h4>
-                        <p className="mt-1 text-xs text-muted-foreground">Preencha os dados que serão usados pelo catálogo e pelas cotações.</p>
+                        <h4 className="font-medium">
+                          {editingPlan ? "Editar plano" : "Novo plano"}
+                        </h4>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Preencha os dados que serão usados pelo catálogo e pelas cotações.
+                        </p>
                       </div>
-                      <Button size="icon-sm" variant="ghost" onClick={() => { setEditingPlan(null); setShowCreatePlan(false); }} aria-label="Cancelar edição">
+                      <Button
+                        size="icon-sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setEditingPlan(null);
+                          setShowCreatePlan(false);
+                        }}
+                        aria-label="Cancelar edição"
+                      >
                         <ArrowRight className="size-4 rotate-180" />
                       </Button>
                     </div>
-                    <PlanForm carrierId={initialCarrier.id} plan={editingPlan ?? undefined} onDone={() => { void refreshPlans(); setEditingPlan(null); setShowCreatePlan(false); }} />
+                    <PlanForm
+                      carrierId={initialCarrier.id}
+                      plan={editingPlan ?? undefined}
+                      onDone={() => {
+                        void refreshPlans();
+                        setEditingPlan(null);
+                        setShowCreatePlan(false);
+                      }}
+                    />
                   </CardContent>
                 </Card>
               )}
 
               {plansLoading ? (
-                <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">Carregando planos...</div>
+                <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+                  Carregando planos...
+                </div>
               ) : plans.length === 0 && !showCreatePlan ? (
                 <div className="flex flex-col items-center rounded-xl border border-dashed px-6 py-10 text-center">
                   <div className="flex size-10 items-center justify-center rounded-xl bg-muted">
                     <FileText className="size-5 text-muted-foreground" />
                   </div>
                   <p className="mt-3 font-medium">Nenhum plano cadastrado</p>
-                  <p className="mt-1 max-w-sm text-sm text-muted-foreground">Adicione o primeiro plano para disponibilizá-lo ao time comercial.</p>
-                  <Button className="mt-4" variant="outline" onClick={() => setShowCreatePlan(true)}><Plus className="size-4" />Adicionar plano</Button>
+                  <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+                    Adicione o primeiro plano para disponibilizá-lo ao time comercial.
+                  </p>
+                  <Button
+                    className="mt-4"
+                    variant="outline"
+                    onClick={() => setShowCreatePlan(true)}
+                  >
+                    <Plus className="size-4" />
+                    Adicionar plano
+                  </Button>
                 </div>
               ) : plans.length > 0 ? (
                 <div className="overflow-hidden rounded-xl border">
@@ -531,21 +643,33 @@ export function CarrierSheet({ carrier: initialCarrier }: { carrier: CarrierReco
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {plans.map((plan) => <PlanRow key={plan.id} plan={plan} onEdit={() => { setEditingPlan(plan); setShowCreatePlan(false); }} />)}
+                      {plans.map((plan) => (
+                        <PlanRow
+                          key={plan.id}
+                          plan={plan}
+                          onEdit={() => {
+                            setEditingPlan(plan);
+                            setShowCreatePlan(false);
+                          }}
+                        />
+                      ))}
                     </TableBody>
                   </Table>
                 </div>
               ) : null}
             </section>
           </div>
-        </ScrollArea>
+        </SheetBody>
       </SheetContent>
     </Sheet>
   );
 }
 
 function normalize(value: string) {
-  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR");
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("pt-BR");
 }
 
 export function CarriersGrid({ carriers }: { carriers: CarrierRecord[] }) {
@@ -554,7 +678,13 @@ export function CarriersGrid({ carriers }: { carriers: CarrierRecord[] }) {
   const normalizedQuery = normalize(query.trim());
   const visibleCarriers = carriers.filter((carrier) => {
     const matchesStatus = status === "all" || carrier.status === status;
-    const searchable = [carrier.name, carrier.ansCode, carrier.contact, carrier.phone, carrier.email]
+    const searchable = [
+      carrier.name,
+      carrier.ansCode,
+      carrier.contact,
+      carrier.phone,
+      carrier.email,
+    ]
       .filter((value): value is string => Boolean(value))
       .join(" ");
     return matchesStatus && (!normalizedQuery || normalize(searchable).includes(normalizedQuery));
@@ -563,26 +693,46 @@ export function CarriersGrid({ carriers }: { carriers: CarrierRecord[] }) {
   if (carriers.length === 0) {
     return (
       <div className="flex flex-col items-center rounded-xl border border-dashed px-6 py-14 text-center">
-        <div className="flex size-11 items-center justify-center rounded-xl bg-muted"><Buildings className="size-5 text-muted-foreground" /></div>
+        <div className="flex size-11 items-center justify-center rounded-xl bg-muted">
+          <Buildings className="size-5 text-muted-foreground" />
+        </div>
         <p className="mt-3 font-medium">Nenhuma operadora cadastrada</p>
-        <p className="mt-1 text-sm text-muted-foreground">As operadoras disponíveis aparecerão aqui quando forem cadastradas.</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          As operadoras disponíveis aparecerão aqui quando forem cadastradas.
+        </p>
       </div>
     );
   }
 
   return (
-    <section className="overflow-hidden rounded-xl border bg-card" aria-label="Operadoras cadastradas">
+    <section
+      className="overflow-hidden rounded-xl border bg-card"
+      aria-label="Operadoras cadastradas"
+    >
       <div className="flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <div>
           <h2 className="font-heading text-base font-medium">Operadoras</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Selecione uma operadora para ver seus dados e planos.</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Selecione uma operadora para ver seus dados e planos.
+          </p>
         </div>
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
           <div className="relative sm:w-72">
             <MagnifyingGlass className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input value={query} onChange={(event) => setQuery(event.target.value)} className="pl-9" placeholder="Buscar operadora, ANS ou contato" aria-label="Buscar operadora, ANS ou contato" />
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              className="pl-9"
+              placeholder="Buscar operadora, ANS ou contato"
+              aria-label="Buscar operadora, ANS ou contato"
+            />
           </div>
-          <select value={status} onChange={(event) => setStatus(event.target.value as "all" | CarrierRecord["status"])} className="h-9 rounded-lg border border-input bg-input/30 px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" aria-label="Filtrar por status">
+          <select
+            value={status}
+            onChange={(event) => setStatus(event.target.value as "all" | CarrierRecord["status"])}
+            className="h-9 rounded-lg border border-input bg-input/30 px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            aria-label="Filtrar por status"
+          >
             <option value="all">Todas</option>
             <option value="active">Ativas</option>
             <option value="inactive">Inativas</option>
@@ -600,15 +750,28 @@ export function CarriersGrid({ carriers }: { carriers: CarrierRecord[] }) {
       </div>
 
       <div className="divide-y">
-        {visibleCarriers.map((carrier) => <CarrierSheet key={carrier.id} carrier={carrier} />)}
+        {visibleCarriers.map((carrier) => (
+          <CarrierSheet key={carrier.id} carrier={carrier} />
+        ))}
       </div>
 
       {visibleCarriers.length === 0 && (
         <div className="flex flex-col items-center px-6 py-12 text-center">
           <MagnifyingGlass className="size-5 text-muted-foreground" />
           <p className="mt-3 font-medium">Nenhuma operadora encontrada</p>
-          <p className="mt-1 text-sm text-muted-foreground">Ajuste a busca ou o filtro de status para ver outros resultados.</p>
-          <Button variant="outline" className="mt-4" onClick={() => { setQuery(""); setStatus("all"); }}>Limpar filtros</Button>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Ajuste a busca ou o filtro de status para ver outros resultados.
+          </p>
+          <Button
+            variant="outline"
+            className="mt-4"
+            onClick={() => {
+              setQuery("");
+              setStatus("all");
+            }}
+          >
+            Limpar filtros
+          </Button>
         </div>
       )}
     </section>

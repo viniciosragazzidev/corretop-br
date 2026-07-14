@@ -2,7 +2,7 @@ import { PlatformAdminHeader } from "@/components/platform-admin-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-export default function SuperAdminSettingsPage() {
+export default function SuperDevSettingsPage() {
   return (
     <>
       <PlatformAdminHeader breadcrumb="CorreTop / Admin" title="Configurações da Plataforma" />

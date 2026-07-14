@@ -2,7 +2,7 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 import { hashPassword } from "better-auth/crypto";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { getRequiredPlatformAdmin } from "@/shared/auth/platform-admin";
@@ -107,4 +107,108 @@ export async function createTenantAccess(rawInput: unknown) {
     await tx.insert(schema.tenantMemberships).values({ id: randomUUID(), tenantId: input.tenantId, userId, branchId: input.branchId, role: input.role, status: "active" });
   });
   await writeAudit("tenant_access.created", "tenant_membership", userId, { tenantId: input.tenantId, role: input.role });
+}
+
+export async function getPlatformAuditLogs() {
+  await getRequiredPlatformAdmin();
+  const db = getDatabase();
+  return db.select({
+    id: schema.platformAuditLogs.id,
+    action: schema.platformAuditLogs.action,
+    targetType: schema.platformAuditLogs.targetType,
+    targetId: schema.platformAuditLogs.targetId,
+    metadata: schema.platformAuditLogs.metadata,
+    createdAt: schema.platformAuditLogs.createdAt,
+    actorName: schema.user.name,
+    actorEmail: schema.user.email,
+  }).from(schema.platformAuditLogs)
+    .innerJoin(schema.user, eq(schema.platformAuditLogs.actorUserId, schema.user.id))
+    .orderBy(schema.platformAuditLogs.createdAt);
+}
+
+export async function getTenantAuditLogs() {
+  await getRequiredPlatformAdmin();
+  const db = getDatabase();
+  return db.select({
+    id: schema.auditLogs.id,
+    userId: schema.auditLogs.userId,
+    entidade: schema.auditLogs.entidade,
+    entidadeId: schema.auditLogs.entidadeId,
+    acao: schema.auditLogs.acao,
+    createdAt: schema.auditLogs.createdAt,
+    userName: schema.user.name,
+    userEmail: schema.user.email,
+  }).from(schema.auditLogs)
+    .innerJoin(schema.user, eq(schema.auditLogs.userId, schema.user.id))
+    .orderBy(schema.auditLogs.createdAt);
+}
+
+export async function getActiveSessions() {
+  await getRequiredPlatformAdmin();
+  const db = getDatabase();
+  return db.select({
+    id: schema.session.id,
+    ipAddress: schema.session.ipAddress,
+    userAgent: schema.session.userAgent,
+    expiresAt: schema.session.expiresAt,
+    createdAt: schema.session.createdAt,
+    userName: schema.user.name,
+    userEmail: schema.user.email,
+    userId: schema.user.id,
+  }).from(schema.session)
+    .innerJoin(schema.user, eq(schema.session.userId, schema.user.id))
+    .orderBy(schema.session.createdAt);
+}
+
+export async function terminateSession(sessionId: string) {
+  await getRequiredPlatformAdmin();
+  const db = getDatabase();
+  await db.delete(schema.session).where(eq(schema.session.id, sessionId));
+  await writeAudit("session.terminated", "session", sessionId);
+}
+
+export async function getLossRateAlerts() {
+  await getRequiredPlatformAdmin();
+  const db = getDatabase();
+
+  const brokersLeads = await db.select({
+    corretorId: schema.leads.corretorId,
+    corretorNome: schema.user.name,
+    corretorEmail: schema.user.email,
+    total: sql<number>`count(${schema.leads.id})::int`,
+    lost: sql<number>`count(case when ${schema.leads.status} = 'lost' then 1 end)::int`,
+  }).from(schema.leads)
+    .innerJoin(schema.user, eq(schema.leads.corretorId, schema.user.id))
+    .groupBy(schema.leads.corretorId, schema.user.name, schema.user.email);
+
+  return brokersLeads
+    .map((broker) => {
+      const rate = broker.total > 0 ? (broker.lost / broker.total) * 100 : 0;
+      return {
+        ...broker,
+        rate: Math.round(rate),
+      };
+    })
+    .filter((broker) => broker.rate >= 75 && broker.total >= 3); // Minimum 3 leads to avoid noise
+}
+
+export async function purgeUserLGPD(userId: string) {
+  await getRequiredPlatformAdmin();
+  const db = getDatabase();
+  await db.transaction(async (tx) => {
+    // Purge session
+    await tx.delete(schema.session).where(eq(schema.session.userId, userId));
+    // Purge account
+    await tx.delete(schema.account).where(eq(schema.account.userId, userId));
+    // Purge tenant membership
+    await tx.delete(schema.tenantMemberships).where(eq(schema.tenantMemberships.userId, userId));
+    // Update user active status and nullify details
+    await tx.update(schema.user).set({
+      name: "LGPD EXCLUÍDO",
+      email: `lgpd-deleted-${randomUUID()}@corretop.com.br`,
+      active: false,
+      twoFactorEnabled: false,
+    }).where(eq(schema.user.id, userId));
+  });
+  await writeAudit("lgpd.user_purged", "user", userId);
 }

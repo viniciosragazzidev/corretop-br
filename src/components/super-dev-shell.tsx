@@ -3,7 +3,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
-import { PlatformAdminSidebar } from "./platform-admin-sidebar";
+import { SuperDevSidebar } from "@/components/super-dev-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { SquaresFour, ShieldStar } from "@/components/huge-icons";
 import Link from "next/link";
@@ -11,10 +11,10 @@ import { cn } from "@/lib/utils";
 
 const railAreas = [
   { label: "Área do Sistema", href: "/dashboard", icon: SquaresFour },
-  { label: "Área de Administração", href: "/super-admin", icon: ShieldStar },
+  { label: "Área de Administração", href: "/super-dev", icon: ShieldStar },
 ] as const;
 
-export function PlatformAdminShell({ children }: { children: ReactNode }) {
+export function SuperDevShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   return (
@@ -48,12 +48,7 @@ export function PlatformAdminShell({ children }: { children: ReactNode }) {
               aria-label={railAreas[1].label}
               aria-current="page"
               title={railAreas[1].label}
-              className={cn(
-                "grid size-10 place-items-center rounded-xl transition-all duration-180",
-                pathname.startsWith("/super-admin")
-                  ? "border border-primary/20 bg-primary/10 text-primary shadow-sm"
-                  : "border border-transparent text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              )}
+              className="grid size-10 place-items-center rounded-xl border border-primary/20 bg-primary/10 text-primary shadow-sm"
             >
               <ShieldStar size={19} weight="duotone" />
             </Link>
@@ -61,7 +56,7 @@ export function PlatformAdminShell({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      <PlatformAdminSidebar />
+      <SuperDevSidebar />
 
       <SidebarInset className="bg-background">
         <AnimatePresence mode="wait">

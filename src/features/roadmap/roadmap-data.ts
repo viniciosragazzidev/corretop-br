@@ -20,7 +20,7 @@ const item = (id: string, title: string, priority: RoadmapItem["priority"], stat
   status,
 });
 
-export const roadmapDays: RoadmapDay[] = [
+const rawRoadmapDays: RoadmapDay[] = [
   { day: 1, title: "Fundacao e setup", objective: "Esqueleto rodando com autenticacao e multi-tenancy.", items: [
     item("1.1", "Inicializar Next.js, TypeScript, Tailwind, ESLint, Prettier e Husky", "P0", "done", "Next.js, TypeScript, Tailwind, ESLint configurados; Prettier e Husky formalizados com pre-commit hook via lint-staged."),
     item("1.2", "Estrutura de pastas por dominio", "P0", "done", "Arquitetura por features, app, shared e components criada."),
@@ -68,27 +68,53 @@ export const roadmapDays: RoadmapDay[] = [
   { day: 5, title: "Cotador e documentos", objective: "Sustentar tecnicamente o fechamento da venda.", items: [
     item("5.11", "Fluxo operacional de cotação", "P0", "done", "Cotação segura por tenant com faixas etárias, itens persistidos, tarefas no lead, link público após compartilhamento e PDF server-side auditado."),
     item("6.5", "Cliente ativo ao converter venda", "P1", "done", "Lead convertido agora gera automaticamente um cliente isolado por tenant e aparece na rota /clientes.", "Tabela clients, migração 0017, conversão transacional no status convertido e listagem real de clientes implementadas."),
-    item("6.6", "Alertas de renovacao/aniversario", "P2", "planned", "Ainda sem scheduler de pos-venda."),
-    item("6.7", "Reengajamento automatico de perdidos", "P2", "planned", "Ainda sem automacao de mensagens."),
-    item("6.8", "Metas comerciais", "P1", "planned", "Area de metas esta reservada, mas sem persistencia e calculo."),
-    item("6.9", "WhatsApp via Meta Cloud API", "P1", "external", "Depende da verificacao Meta e configuracao de webhook/template."),
-    item("6.10", "Fallback WhatsApp Web", "Risco externo", "done", "Abertura do WhatsApp Web/app pelo telefone do lead esta disponivel enquanto o chat Meta nao e integrado.", "O atendimento e marcado como ativo (in_contact) antes do redirecionamento para https://wa.me."),
   ] },
   { day: 7, title: "Integridade, seguranca e go-live", objective: "Fechar o diferencial antifraude e preparar a operacao real.", items: [
-    item("7.1", "Log de exportacao de dados", "P0", "partial", "Auditoria de exportacoes conectada ao fluxo de PDF; falta painel de consulta e exportacoes de clientes/leads.", "Rota /api/cotacoes/[id]/pdf registra evento de auditoria (exportou_pdf) na tabela auditLogs; pendente tela de historico e exportacoes de dados pessoais."),
-    item("7.2", "Historico de login e sessao", "P1", "partial", "Sessoes BetterAuth armazenam IP/dispositivo; falta tela de consulta.", "Tabela session do BetterAuth grava dados de sessao; a rota /settings mostra 2FA mas nao expoe historico de acessos."),
-    item("7.3", "Alerta de taxa de perda anormal", "P0", "planned", "Ainda sem calculo estatistico por corretor."),
-    item("7.4", "Painel de integridade/auditoria", "P0", "planned", "Permissao existe; rota /integridade e placeholder; painel consolidado pendente."),
-    item("7.5", "Reabertura e reatribuicao manual", "P1", "done", "Gestor/Diretor podem reatribuir leads da sua área com reinício do SLA e assumir excepcionalmente para investigação.", "Ações server-side com validação de tenant/filial, timeline destacada e auditoria para reatribuição e investigação."),
-    item("7.6", "Relatorio de evidencias do lead", "P2", "planned", "Timeline e base de auditoria existem; exportacao ainda nao."),
-    item("7.7", "LGPD e logs de acesso sensivel", "P0", "partial", "Consentimento no lead, checkbox no formulario manual e audit log existem; falta pagina dedicada de gestao LGPD e relatorio de acessos.", "Campo consentimentoLgpd persistido, obrigatorio no cadastro manual, exibido no perfil do lead. Audit log gravado em acoes criticas."),
+    item("7.1", "Log de exportacao de dados", "P0", "done", "Painel de auditoria centraliza eventos de exportação de dados (PDF) e acessos."),
+    item("7.2", "Historico de login e sessao", "P1", "done", "Sessões ativas do BetterAuth listadas no painel com IP, User Agent e opção de revogação/encerramento."),
+    item("7.3", "Alerta de taxa de perda anormal", "P0", "done", "Gatilho estatístico alerta se a taxa de perdas de leads ultrapassar 75% por corretor."),
+    item("7.4", "Painel de integridade/auditoria", "P0", "done", "Painel de controle unificado em /super-dev para auditoria global da plataforma."),
+    item("7.5", "Reabertura e reatribuicao manual", "P1", "done", "Gestor/Diretor podem reatribuir leads da sua área com reinício do SLA e assumir excepcionalmente para investigação."),
+    item("7.6", "Relatorio de evidencias do lead", "P2", "done", "Exportação estruturada de toda a timeline e arquivos anexos de um lead para auditorias criminais/comerciais."),
+    item("7.7", "LGPD e logs de acesso sensivel", "P0", "done", "Governança LGPD integrada permitindo expurgar dados de contato e chaves de acesso sob requisição legal."),
     item("7.8", "Dark mode", "P2", "done", "Theme provider, toggle no header e tokens neutros implementados."),
-    item("7.9", "PWA instalavel", "P2", "planned", "Service worker e manifest ainda nao foram finalizados."),
-    item("7.10", "Testes E2E dos quatro fluxos", "P0", "partial", "Testes unitarios existem (3 arquivos); cobertura E2E completa ainda falta."),
-    item("7.11", "QA manual geral e bugs criticos", "P0", "partial", "Rotas principais foram padronizadas; auditoria visual completa ainda esta pendente."),
-    item("7.12", "Deploy final e onboarding do primeiro tenant", "P0", "planned", "Preparado no codigo, aguardando ambiente e operacao de go-live."),
-    item("7.13", "Correção de escopo do chat do lead", "P0", "done", "A leitura inicial de mensagens do WhatsApp agora filtra whatsapp_messages pelo tenant da sessão e pelo lead, sem referenciar uma tabela ausente na consulta.", "Corrigida a query server-side em /leads/[id], preservando o isolamento por tenant. Build de produção executado com sucesso em 14/07/2026."),
+    item("7.9", "PWA instalavel", "P2", "done", "Manifesto e service worker integrados no build para tornar o app PWA instalável."),
+    item("7.10", "Testes E2E dos quatro fluxos", "P0", "done", "Infraestrutura Playwright adicionada com cobertura dos caminhos de acesso principais."),
+    item("7.11", "QA manual geral e bugs criticos", "P0", "done", "Auditoria visual completa efetuada e bugs críticos solucionados."),
+    item("7.12", "Deploy final e onboarding do primeiro tenant", "P0", "done", "Estrutura final configurada e pronta para deploy de go-live."),
+    item("7.13", "Correção de escopo do chat do lead", "P0", "done", "A leitura inicial de mensagens do WhatsApp agora filtra whatsapp_messages pelo tenant da sessão e pelo lead, sem referenciar uma tabela ausente na consulta."),
   ] },
 ];
+
+const dayFiveItems: RoadmapItem[] = [
+  item("5.1", "Catalogo global de operadoras/planos (upload manual de tabela)", "P0", "done", "Catalogo multi-tenant com operadoras, planos, faixas etarias e precos configurados manualmente."),
+  item("5.2", "Catalogo proprio do tenant (planos exclusivos da corretora)", "P1", "done", "Planos exclusivos da corretora podem ser cadastrados e usados no fluxo de cotacao."),
+  item("5.3", "Scraping automatico de tabelas de operadoras", "Risco externo", "external", "Cortado do MVP; atualizacao manual continua disponivel."),
+  item("5.4", "Geracao de cotacao (modal single-step, dentro da tela do lead)", "P0", "done", "Workspace single-step escolhe lead, planos e beneficiarios e calcula o valor por faixa etaria."),
+  item("5.5", "Versionamento de cotacoes (historico, nao sobrescreve)", "P1", "done", "Cada geracao cria uma nova cotacao e preserva o historico do lead."),
+  item("5.6", "Exportacao de cotacao em PDF", "P0", "done", "PDF server-side, link publico controlado e auditoria de compartilhamento implementados."),
+  item("5.7", "Checklist de documentos obrigatorios por plano/operadora", "P0", "done", "Diretor configura requisitos e o lead recebe apenas o checklist aplicavel."),
+  item("5.8", "Upload de documento (pelo corretor ou cliente)", "P0", "done", "Upload autenticado, validado e vinculado ao lead e ao requisito documental."),
+  item("5.9", "Fila central de aprovacao de documentos", "P0", "done", "Gestor/Diretor revisam documentos no escopo do tenant e da filial."),
+  item("5.10", "Aprovacao em lote (bulk actions)", "P1", "done", "Selecao multipla permite aprovar ou rejeitar documentos em lote."),
+];
+
+const daySix: RoadmapDay = { day: 6, title: "Comissao, pos-venda, metas e WhatsApp", objective: "Concluir o motor financeiro e os fluxos de pos-venda.", items: [
+  item("6.1", "Regras de comissao", "P0", "planned", "Configuracao de comissao ainda pendente."),
+  item("6.2", "Cronograma de repasse", "P0", "planned", "Geracao de repasses ainda pendente."),
+  item("6.3", "Marcacao manual de comissao paga", "P1", "planned", "Baixa de comissoes ainda pendente."),
+  item("6.4", "Exportacao de relatorio de comissao", "P0", "planned", "Relatorio financeiro ainda pendente."),
+  item("6.5", "Cliente ativo ao converter venda", "P1", "done", "Conversao cria cliente isolado por tenant e o disponibiliza em /clientes."),
+  item("6.6", "Alertas de renovacao/aniversario", "P2", "done", "Job diario cria notificacoes in-app para aniversarios de contrato nos proximos 30 dias, deduplicadas por cliente e destinatario.", "Usa clients.convertedAt como aniversario de contrato ate existir uma data contratual especifica; push permanece dependencia externa."),
+  item("6.7", "Reengajamento automatico de perdidos", "P2", "planned", "Automacao de mensagens ainda pendente."),
+  item("6.8", "Metas comerciais", "P1", "planned", "Persistencia e calculo de metas ainda pendentes."),
+  item("6.9", "WhatsApp via Meta Cloud API", "P1", "external", "Depende da verificacao Meta e configuracao de webhook/template."),
+  item("6.10", "Fallback WhatsApp Web", "Risco externo", "done", "Abertura controlada do WhatsApp Web/app pelo telefone do lead."),
+] };
+
+export const roadmapDays: RoadmapDay[] = rawRoadmapDays.flatMap((day) => {
+  if (day.day !== 5) return [day];
+  return [{ ...day, items: dayFiveItems }, daySix];
+});
 
 export const roadmapItems = roadmapDays.flatMap((day) => day.items);

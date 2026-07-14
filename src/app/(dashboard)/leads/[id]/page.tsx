@@ -122,7 +122,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                   <CardDescription>Upload de arquivos necessários para a contratação.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <LeadDocumentsSection leadId={lead.id} requirements={requirements} documents={leadDocs} planId={lead.planId} />
+                  <LeadDocumentsSection leadId={lead.id} requirements={requirements} documents={leadDocs} />
                 </CardContent>
               </Card>
             )}

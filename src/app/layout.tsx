@@ -19,6 +19,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "CorreTop",
   description: "CRM para corretoras de planos de saúde.",
+  manifest: "/manifest.json",
 };
 
 export default async function RootLayout({
@@ -35,6 +36,21 @@ export default async function RootLayout({
           <TooltipProvider>{children}</TooltipProvider>
           <Toaster />
         </AppProviders>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js').then(function(reg) {
+                    console.log('SW registrado com sucesso:', reg.scope);
+                  }, function(err) {
+                    console.log('Falha no SW:', err);
+                  });
+                });
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   );

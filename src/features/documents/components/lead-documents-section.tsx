@@ -4,13 +4,9 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
   FileText,
-  CheckCircle,
-  XCircle,
   Eye,
-  Trash,
   Plus
 } from "@/components/huge-icons";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { confirmDocumentUploadAction } from "@/features/documents/actions";
 
@@ -33,16 +29,14 @@ export function LeadDocumentsSection({
   leadId,
   requirements,
   documents: initialDocs,
-  planId,
 }: {
   leadId: string;
   requirements: Requirement[];
   documents: UserDoc[];
-  planId: string | null;
 }) {
-  const [documents, setDocuments] = useState<UserDoc[]>(initialDocs);
+  const [documents] = useState<UserDoc[]>(initialDocs);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, reqId: string | null) => {
     const file = e.target.files?.[0];
@@ -57,6 +51,7 @@ export function LeadDocumentsSection({
     setUploadingId(reqId || "avulso");
     const formData = new FormData();
     formData.append("file", file);
+    formData.append("leadId", leadId);
 
     try {
       const uploadRes = await fetch("/api/documents/upload", {

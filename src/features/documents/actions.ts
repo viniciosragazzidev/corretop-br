@@ -149,6 +149,27 @@ export async function confirmDocumentUploadAction({
   const db = getDatabase();
 
   try {
+    const [lead] = await db
+      .select({ id: schema.leads.id, corretorId: schema.leads.corretorId, branchId: schema.leads.branchId })
+      .from(schema.leads)
+      .where(and(eq(schema.leads.id, leadId), eq(schema.leads.tenantId, context.tenantId)))
+      .limit(1);
+    if (!lead) return { error: "Lead não encontrado." };
+    if (context.role === "broker" && lead.corretorId !== context.userId) {
+      return { error: "Você não pode anexar documentos a este lead." };
+    }
+    if (context.role === "manager" && (!context.branchId || lead.branchId !== context.branchId)) {
+      return { error: "Este lead não pertence à sua filial." };
+    }
+    if (requirementId) {
+      const [requirement] = await db
+        .select({ id: schema.documentRequirements.id })
+        .from(schema.documentRequirements)
+        .where(and(eq(schema.documentRequirements.id, requirementId), eq(schema.documentRequirements.tenantId, context.tenantId)))
+        .limit(1);
+      if (!requirement) return { error: "Requisito de documento inválido." };
+    }
+
     const docId = randomUUID();
     await db.transaction(async (tx) => {
       await tx.insert(schema.leadDocuments).values({
@@ -286,7 +307,7 @@ export async function bulkReviewDocumentsAction(
     await db.transaction(async (tx) => {
       // Find all target documents to verify context
       const docs = await tx
-        .select({ id: schema.leadDocuments.id, leadId: schema.leadDocuments.leadId, filename: schema.leadDocuments.filename })
+        .select({ id: schema.leadDocuments.id, leadId: schema.leadDocuments.leadId, filename: schema.leadDocuments.filename, branchId: schema.leads.branchId })
         .from(schema.leadDocuments)
         .innerJoin(schema.leads, eq(schema.leadDocuments.leadId, schema.leads.id))
         .where(
@@ -298,7 +319,7 @@ export async function bulkReviewDocumentsAction(
 
       // Filter by branch if manager
       const allowedDocs = context.role === "manager" && context.branchId
-        ? docs // In database query we would join branch, here we check in memory/filter or proceed
+        ? docs.filter((doc) => doc.branchId === context.branchId)
         : docs;
 
       if (allowedDocs.length === 0) return;

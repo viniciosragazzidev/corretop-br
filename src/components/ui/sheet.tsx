@@ -1,26 +1,27 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Dialog as SheetPrimitive } from "@base-ui/react/dialog"
+import * as React from "react";
+import { Dialog as SheetPrimitive } from "@base-ui/react/dialog";
 
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { XIcon } from "@/components/huge-icons"
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { XIcon } from "@/components/huge-icons";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 function Sheet({ ...props }: SheetPrimitive.Root.Props) {
-  return <SheetPrimitive.Root data-slot="sheet" {...props} />
+  return <SheetPrimitive.Root data-slot="sheet" {...props} />;
 }
 
 function SheetTrigger({ ...props }: SheetPrimitive.Trigger.Props) {
-  return <SheetPrimitive.Trigger data-slot="sheet-trigger" {...props} />
+  return <SheetPrimitive.Trigger data-slot="sheet-trigger" {...props} />;
 }
 
 function SheetClose({ ...props }: SheetPrimitive.Close.Props) {
-  return <SheetPrimitive.Close data-slot="sheet-close" {...props} />
+  return <SheetPrimitive.Close data-slot="sheet-close" {...props} />;
 }
 
 function SheetPortal({ ...props }: SheetPrimitive.Portal.Props) {
-  return <SheetPrimitive.Portal data-slot="sheet-portal" {...props} />
+  return <SheetPrimitive.Portal data-slot="sheet-portal" {...props} />;
 }
 
 function SheetOverlay({ className, ...props }: SheetPrimitive.Backdrop.Props) {
@@ -28,12 +29,12 @@ function SheetOverlay({ className, ...props }: SheetPrimitive.Backdrop.Props) {
     <SheetPrimitive.Backdrop
       data-slot="sheet-overlay"
       className={cn(
-        "fixed inset-0 z-50 bg-black/10 transition-opacity duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0 supports-backdrop-filter:backdrop-blur-xs",
-        className
+        "fixed inset-0 z-50 bg-foreground/35 supports-backdrop-filter:backdrop-blur-[2px] transition-opacity duration-[var(--duration-quick)] ease-[var(--ease-smooth-out)] data-ending-style:opacity-0 data-starting-style:opacity-0 motion-reduce:transition-none",
+        className,
       )}
       {...props}
     />
-  )
+  );
 }
 
 function SheetContent({
@@ -43,8 +44,8 @@ function SheetContent({
   showCloseButton = true,
   ...props
 }: SheetPrimitive.Popup.Props & {
-  side?: "top" | "right" | "bottom" | "left"
-  showCloseButton?: boolean
+  side?: "top" | "right" | "bottom" | "left";
+  showCloseButton?: boolean;
 }) {
   return (
     <SheetPortal>
@@ -53,8 +54,8 @@ function SheetContent({
         data-slot="sheet-content"
         data-side={side}
         className={cn(
-          "fixed z-50 flex flex-col gap-4 bg-popover bg-clip-padding text-sm text-popover-foreground shadow-lg transition duration-200 ease-in-out data-ending-style:opacity-0 data-starting-style:opacity-0 data-[side=bottom]:inset-x-0 data-[side=bottom]:bottom-0 data-[side=bottom]:h-auto data-[side=bottom]:border-t data-[side=bottom]:data-ending-style:translate-y-[2.5rem] data-[side=bottom]:data-starting-style:translate-y-[2.5rem] data-[side=left]:inset-y-0 data-[side=left]:left-0 data-[side=left]:h-full data-[side=left]:w-3/4 data-[side=left]:border-r data-[side=left]:data-ending-style:translate-x-[-2.5rem] data-[side=left]:data-starting-style:translate-x-[-2.5rem] data-[side=right]:inset-y-0 data-[side=right]:right-0 data-[side=right]:h-full data-[side=right]:w-3/4 data-[side=right]:border-l data-[side=right]:data-ending-style:translate-x-[2.5rem] data-[side=right]:data-starting-style:translate-x-[2.5rem] data-[side=top]:inset-x-0 data-[side=top]:top-0 data-[side=top]:h-auto data-[side=top]:border-b data-[side=top]:data-ending-style:translate-y-[-2.5rem] data-[side=top]:data-starting-style:translate-y-[-2.5rem] data-[side=left]:sm:max-w-sm data-[side=right]:sm:max-w-sm",
-          className
+          "fixed z-50 flex max-h-[calc(100dvh-1rem)] flex-col overflow-hidden border border-border bg-popover/98 bg-clip-padding text-sm text-popover-foreground shadow-2xl shadow-black/15 outline-none supports-backdrop-filter:bg-popover/92 transition-[transform,opacity] duration-[var(--duration-fast)] ease-[var(--ease-smooth-out)] data-ending-style:opacity-0 data-starting-style:opacity-0 motion-reduce:transition-none data-[side=bottom]:inset-x-2 data-[side=bottom]:bottom-2 data-[side=bottom]:h-auto data-[side=bottom]:rounded-2xl data-[side=bottom]:data-ending-style:translate-y-6 data-[side=bottom]:data-starting-style:translate-y-6 sm:data-[side=bottom]:inset-x-4 sm:data-[side=bottom]:bottom-4 sm:data-[side=bottom]:mx-auto sm:data-[side=bottom]:max-w-xl data-[side=left]:inset-y-2 data-[side=left]:left-2 data-[side=left]:h-[calc(100dvh-1rem)] data-[side=left]:w-[min(100vw-1rem,32rem)] data-[side=left]:rounded-2xl data-[side=left]:data-ending-style:translate-x-6 data-[side=left]:data-starting-style:translate-x-6 sm:data-[side=left]:inset-y-3 sm:data-[side=left]:left-3 sm:data-[side=left]:h-[calc(100dvh-1.5rem)] data-[side=right]:inset-y-2 data-[side=right]:right-2 data-[side=right]:h-[calc(100dvh-1rem)] data-[side=right]:w-[min(100vw-1rem,32rem)] data-[side=right]:rounded-2xl data-[side=right]:data-ending-style:translate-x-6 data-[side=right]:data-starting-style:translate-x-6 sm:data-[side=right]:inset-y-3 sm:data-[side=right]:right-3 sm:data-[side=right]:h-[calc(100dvh-1.5rem)] data-[side=top]:inset-x-2 data-[side=top]:top-2 data-[side=top]:h-auto data-[side=top]:rounded-2xl data-[side=top]:data-ending-style:translate-y-6 data-[side=top]:data-starting-style:translate-y-6 sm:data-[side=top]:inset-x-4 sm:data-[side=top]:top-4 sm:data-[side=top]:mx-auto sm:data-[side=top]:max-w-xl",
+          className,
         )}
         {...props}
       >
@@ -65,39 +66,67 @@ function SheetContent({
             render={
               <Button
                 variant="ghost"
-                className="absolute top-3 right-3"
-                size="icon-sm"
+                aria-label="Fechar painel"
+                className="absolute top-4 right-4 z-10 size-8 rounded-full border border-transparent bg-background/70 text-muted-foreground shadow-sm hover:border-border hover:bg-muted hover:text-foreground focus-visible:ring-2"
+                size="icon"
               />
             }
           >
-            <XIcon
-            />
-            <span className="sr-only">Close</span>
+            <XIcon />
+            <span className="sr-only">Fechar painel</span>
           </SheetPrimitive.Close>
         )}
       </SheetPrimitive.Popup>
     </SheetPortal>
-  )
+  );
 }
 
 function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="sheet-header"
-      className={cn("flex flex-col gap-0.5 p-4", className)}
+      className={cn(
+        "flex shrink-0 flex-col gap-1.5 border-b border-border/80 bg-card/70 px-5 py-4 pr-14 sm:px-6 sm:py-5",
+        className,
+      )}
       {...props}
     />
-  )
+  );
+}
+
+function SheetBody({
+  className,
+  contentClassName,
+  children,
+  ...props
+}: React.ComponentProps<typeof ScrollArea> & { contentClassName?: string }) {
+  return (
+    <ScrollArea
+      data-slot="sheet-body"
+      className={cn("min-h-0 flex-1 overscroll-contain", className)}
+      {...props}
+    >
+      <div
+        data-slot="sheet-body-content"
+        className={cn("min-h-full px-5 py-5 sm:px-6 sm:py-6", contentClassName)}
+      >
+        {children}
+      </div>
+    </ScrollArea>
+  );
 }
 
 function SheetFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="sheet-footer"
-      className={cn("mt-auto flex flex-col gap-2 p-4", className)}
+      className={cn(
+        "mt-auto flex shrink-0 flex-col gap-2 border-t border-border/80 bg-card/80 px-5 py-3.5 supports-backdrop-filter:bg-card/70 sm:flex-row sm:items-center sm:justify-end sm:px-6",
+        className,
+      )}
       {...props}
     />
-  )
+  );
 }
 
 function SheetTitle({ className, ...props }: SheetPrimitive.Title.Props) {
@@ -105,25 +134,45 @@ function SheetTitle({ className, ...props }: SheetPrimitive.Title.Props) {
     <SheetPrimitive.Title
       data-slot="sheet-title"
       className={cn(
-        "font-heading text-base font-medium text-foreground",
-        className
+        "font-heading text-base font-semibold tracking-tight text-foreground",
+        className,
       )}
       {...props}
     />
-  )
+  );
 }
 
-function SheetDescription({
-  className,
-  ...props
-}: SheetPrimitive.Description.Props) {
+function SheetDescription({ className, ...props }: SheetPrimitive.Description.Props) {
   return (
     <SheetPrimitive.Description
       data-slot="sheet-description"
-      className={cn("text-sm text-muted-foreground", className)}
+      className={cn("max-w-[44ch] text-sm leading-5 text-muted-foreground", className)}
       {...props}
     />
-  )
+  );
+}
+
+function SheetSection({ className, ...props }: React.ComponentProps<"section">) {
+  return (
+    <section
+      data-slot="sheet-section"
+      className={cn("rounded-xl border border-border/80 bg-card/60", className)}
+      {...props}
+    />
+  );
+}
+
+function SheetSectionHeader({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="sheet-section-header"
+      className={cn(
+        "flex items-start justify-between gap-4 border-b border-border/70 px-4 py-3.5",
+        className,
+      )}
+      {...props}
+    />
+  );
 }
 
 export {
@@ -135,4 +184,7 @@ export {
   SheetFooter,
   SheetTitle,
   SheetDescription,
-}
+  SheetBody,
+  SheetSection,
+  SheetSectionHeader,
+};

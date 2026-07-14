@@ -2,6 +2,7 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import { usePathname } from "next/navigation";
+import { useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { CorreTopSidebar } from "@/components/corretop-sidebar";
 import { CorreTopFinanceiroSidebar } from "@/components/corretop-financeiro-sidebar";
@@ -34,6 +35,36 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const isFinanceiro = pathname === "/financeiro" || pathname.startsWith("/financeiro/");
+  const readableBrandForeground = branding?.brandColor
+    ? getReadableForeground(branding.brandColor)
+    : null;
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const variables = {
+      "--primary": branding?.brandColor ?? "",
+      "--primary-foreground": readableBrandForeground ?? "",
+      "--ring": branding?.brandColor ?? "",
+      "--sidebar-primary": branding?.brandColor ?? "",
+      "--sidebar-primary-foreground": readableBrandForeground ?? "",
+      "--sidebar-ring": branding?.brandColor ?? "",
+    } as const;
+    const previous = Object.fromEntries(
+      Object.keys(variables).map((name) => [name, root.style.getPropertyValue(name)]),
+    );
+
+    for (const [name, value] of Object.entries(variables)) {
+      if (value) root.style.setProperty(name, value);
+    }
+
+    return () => {
+      for (const name of Object.keys(variables)) {
+        const previousValue = previous[name];
+        if (previousValue) root.style.setProperty(name, previousValue);
+        else root.style.removeProperty(name);
+      }
+    };
+  }, [branding?.brandColor, readableBrandForeground]);
 
   return (
     <SidebarProvider
@@ -45,10 +76,10 @@ export function AppShell({
           ...(branding?.brandColor
             ? {
                 "--primary": branding.brandColor,
-                "--primary-foreground": getReadableForeground(branding.brandColor),
+                "--primary-foreground": readableBrandForeground,
                 "--ring": branding.brandColor,
                 "--sidebar-primary": branding.brandColor,
-                "--sidebar-primary-foreground": getReadableForeground(branding.brandColor),
+                "--sidebar-primary-foreground": readableBrandForeground,
                 "--sidebar-ring": branding.brandColor,
               }
             : {}),

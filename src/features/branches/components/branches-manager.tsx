@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Table, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { createBranchAction, toggleBranchAction, updateBranchAction, type BranchActionState } from "@/features/branches/actions";
 
@@ -46,7 +46,7 @@ function CreateBranchForm({ onSuccess }: { onSuccess: () => void }) {
 
 function CreateBranchSheet() {
   const [open, setOpen] = useState(false);
-  return <Sheet open={open} onOpenChange={setOpen}><SheetTrigger render={<Button><Plus weight="bold" /> Nova filial</Button>} /><SheetContent className="w-full sm:max-w-md"><SheetHeader><SheetTitle>Nova filial</SheetTitle><SheetDescription>Crie uma unidade para organizar equipe e leads.</SheetDescription></SheetHeader><div className="px-4 pb-6"><CreateBranchForm onSuccess={() => setOpen(false)} /></div></SheetContent></Sheet>;
+  return <Sheet open={open} onOpenChange={setOpen}><SheetTrigger render={<Button><Plus weight="bold" /> Nova filial</Button>} /><SheetContent><SheetHeader><SheetTitle>Nova filial</SheetTitle><SheetDescription>Crie uma unidade para organizar equipe e leads.</SheetDescription></SheetHeader><SheetBody><CreateBranchForm onSuccess={() => setOpen(false)} /></SheetBody></SheetContent></Sheet>;
 }
 
 function BranchRow({ branch, index }: { branch: Branch; index?: number }) {

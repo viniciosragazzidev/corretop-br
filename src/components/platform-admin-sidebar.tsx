@@ -1,6 +1,6 @@
 "use client";
 
-import { Buildings, Gear, House, ShieldStar, SignOut } from "@/components/huge-icons";
+import { Buildings, Gear, House, ShieldStar, SignOut, Clock, ShieldWarning } from "@/components/huge-icons";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -28,67 +28,130 @@ export function PlatformAdminSidebar() {
 
   async function handleLogout() {
     toast.info("Encerrando sessão administrativa...");
-    try { await signOut(); toast.success("Sessão encerrada."); window.setTimeout(() => { router.replace("/admin/login"); router.refresh(); }, 250); }
-    catch (error) { toast.error(error instanceof Error ? error.message : "Não foi possível sair agora."); }
+    try {
+      await signOut();
+      toast.success("Sessão encerrada.");
+      window.setTimeout(() => {
+        router.replace("/admin/login");
+        router.refresh();
+      }, 250);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível sair agora.");
+    }
   }
 
   return (
-    <Sidebar collapsible="icon" variant="sidebar">
-      <SidebarHeader>
+    <Sidebar collapsible="icon" variant="sidebar" rail>
+      <SidebarHeader className="border-b border-sidebar-border/50 py-3.5 pl-5 pr-4">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton className="h-10" size="lg" render={<Link href="/super-admin" prefetch />}>
-              <span className="grid size-7 place-items-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
+            <SidebarMenuButton className="h-10 hover:bg-transparent active:bg-transparent" size="lg">
+              <span className="grid size-8 place-items-center rounded-lg bg-primary/10 text-sm font-bold text-primary">
                 {userInitial}
               </span>
-              <span className="font-semibold tracking-tight">CorreTop</span>
+              <div className="flex flex-col text-left">
+                <span className="font-semibold tracking-tight text-sm text-foreground">Super Admin</span>
+                <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">CorreTop Platform</span>
+              </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
-        <div className="mx-2 rounded-md border border-sidebar-border bg-sidebar-accent/45 px-3 py-2.5 group-data-[collapsible=icon]:hidden">
-          <p className="text-[11px] text-sidebar-foreground/55">Plataforma</p>
-          <p className="mt-0.5 text-sm font-medium">Super administração</p>
-        </div>
       </SidebarHeader>
-      <SidebarContent>
+      
+      <SidebarContent className="px-3 pt-4">
         <SidebarGroup>
-          <SidebarGroupLabel>Plataforma</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
+          <SidebarGroupLabel className="px-3.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
+            Painel Geral
+          </SidebarGroupLabel>
+          <SidebarGroupContent className="mt-1.5">
+            <SidebarMenu className="gap-1">
               <SidebarMenuItem>
-                <SidebarMenuButton isActive={pathname === "/super-admin"} render={<Link href="/super-admin" prefetch />} tooltip="Empresas">
-                  <Buildings weight="fill" />
-                  <span>Empresas</span>
+                <SidebarMenuButton
+                  isActive={pathname === "/super-admin"}
+                  render={<Link href="/super-admin" prefetch />}
+                  tooltip="Visão Geral"
+                  className="px-3.5 py-2 text-xs font-medium"
+                >
+                  <House className="size-4" />
+                  <span>Visão Geral & DevTools</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                  <SidebarMenuButton isActive={pathname.startsWith("/super-admin/overview")} render={<Link href="/super-admin/overview" prefetch />} tooltip="Visão geral">
-                  <House />
-                  <span>Visão geral</span>
+                <SidebarMenuButton
+                  isActive={pathname === "/super-admin/tenants" || pathname.startsWith("/super-admin/tenants/")}
+                  render={<Link href="/super-admin/tenants" prefetch />}
+                  tooltip="Empresas"
+                  className="px-3.5 py-2 text-xs font-medium"
+                >
+                  <Buildings className="size-4" />
+                  <span>Empresas (Tenants)</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup className="mt-4">
+          <SidebarGroupLabel className="px-3.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
+            Segurança & Monitoramento
+          </SidebarGroupLabel>
+          <SidebarGroupContent className="mt-1.5">
+            <SidebarMenu className="gap-1">
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={pathname === "/super-admin/audit"}
+                  render={<Link href="/super-admin/audit" prefetch />}
+                  tooltip="Logs de Auditoria"
+                  className="px-3.5 py-2 text-xs font-medium"
+                >
+                  <ShieldWarning className="size-4" />
+                  <span>Logs de Auditoria</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                  <SidebarMenuButton isActive={pathname.startsWith("/super-admin/settings")} render={<Link href="/super-admin/settings" prefetch />} tooltip="Configurações">
-                  <Gear />
-                  <span>Configurações</span>
+                <SidebarMenuButton
+                  isActive={pathname === "/super-admin/sessions"}
+                  render={<Link href="/super-admin/sessions" prefetch />}
+                  tooltip="Sessões Ativas"
+                  className="px-3.5 py-2 text-xs font-medium"
+                >
+                  <Clock className="size-4" />
+                  <span>Sessões Ativas</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={pathname === "/super-admin/settings"}
+                  render={<Link href="/super-admin/settings" prefetch />}
+                  tooltip="Configurações"
+                  className="px-3.5 py-2 text-xs font-medium"
+                >
+                  <Gear className="size-4" />
+                  <span>Parâmetros do Servidor</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter>
+
+      <SidebarFooter className="border-t border-sidebar-border/50 p-3">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" render={<button type="button" onClick={handleLogout} />} tooltip={userName}>
-              <span className="grid size-7 place-items-center rounded-full bg-sidebar-accent">
-                <ShieldStar weight="fill" />
+            <SidebarMenuButton
+              size="lg"
+              render={<button type="button" onClick={handleLogout} />}
+              tooltip={userName}
+              className="w-full justify-start rounded-lg hover:bg-sidebar-accent px-3 py-2"
+            >
+              <span className="grid size-7 place-items-center rounded-full bg-sidebar-accent/50 text-foreground/80">
+                <ShieldStar weight="fill" className="size-3.5" />
               </span>
-              <span className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{userName}</span>
-                <span className="truncate text-xs text-sidebar-foreground/55">Equipe CorreTop</span>
-              </span>
-              <SignOut className="ml-auto size-4 shrink-0 text-sidebar-foreground/55 group-data-[collapsible=icon]:hidden" />
+              <div className="flex flex-col text-left flex-1 pl-2">
+                <span className="truncate text-xs font-medium text-foreground">{userName}</span>
+                <span className="truncate text-[10px] text-muted-foreground">Equipe CorreTop</span>
+              </div>
+              <SignOut className="ml-auto size-4 shrink-0 text-muted-foreground/60" />
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
