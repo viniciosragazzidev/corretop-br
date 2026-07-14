@@ -2,14 +2,20 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { randomUUID } from "node:crypto";
 
+import { updateSession } from "@/utils/supabase/middleware";
+
 const protectedPathPrefixes = ["/dashboard", "/equipe", "/leads", "/roadmap", "/cotacoes", "/documentos", "/clientes", "/metas", "/relatorios", "/integridade", "/catalogo", "/assinatura", "/minha-fila", "/minha-meta", "/notificacoes", "/filiais", "/financeiro", "/configuracoes", "/diretor", "/gestor", "/corretor", "/super-admin"] as const;
 const authPaths = ["/login", "/verify", "/admin/login"] as const;
 
-export function proxy(request: NextRequest) {
+function copyCookies(source: NextResponse, target: NextResponse) {
+  source.cookies.getAll().forEach((cookie) => target.cookies.set(cookie));
+}
+
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const requestId = request.headers.get("x-request-id") ?? randomUUID();
-  const requestHeaders = new Headers(request.headers);
-  requestHeaders.set("x-request-id", requestId);
+  request.headers.set("x-request-id", requestId);
+  const supabaseResponse = await updateSession(request);
   const session = request.cookies.get("better-auth.session_token")
     ?? request.cookies.get("__Secure-better-auth.session_token")
     ?? request.cookies.get("better-auth.session_token.value");
@@ -17,27 +23,29 @@ export function proxy(request: NextRequest) {
   if (authPaths.some((p) => pathname.startsWith(p))) {
     if (session) {
       const response = NextResponse.redirect(new URL(pathname.startsWith("/admin") ? "/super-admin" : "/dashboard", request.url));
+      copyCookies(supabaseResponse, response);
       response.headers.set("x-request-id", requestId);
       return response;
     }
-    const response = NextResponse.next({ request: { headers: requestHeaders } });
+    const response = supabaseResponse;
     response.headers.set("x-request-id", requestId);
     return response;
   }
 
   if (!protectedPathPrefixes.some((prefix) => pathname.startsWith(prefix))) {
-    const response = NextResponse.next({ request: { headers: requestHeaders } });
+    const response = supabaseResponse;
     response.headers.set("x-request-id", requestId);
     return response;
   }
 
   if (!session) {
     const response = NextResponse.redirect(new URL(pathname.startsWith("/super-admin") ? "/admin/login" : "/login", request.url));
+    copyCookies(supabaseResponse, response);
     response.headers.set("x-request-id", requestId);
     return response;
   }
 
-  const response = NextResponse.next({ request: { headers: requestHeaders } });
+  const response = supabaseResponse;
   response.headers.set("x-request-id", requestId);
   return response;
 }

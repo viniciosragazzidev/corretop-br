@@ -108,3 +108,16 @@ Upstash. Nenhum segredo foi criado, exposto ou adicionado ao repositorio.
 - Toda rotina em background precisa transportar tenant, idempotency key e
   request-id quando houver uma requisicao de origem.
 - Toda alteracao de schema deve vir com migration reversivel ou plano de rollback.
+
+## Integracao Supabase adicionada
+
+- Dependencias instaladas: `@supabase/supabase-js` e `@supabase/ssr`.
+- `src/utils/supabase/server.ts` cria o client SSR usando cookies do Next.
+- `src/utils/supabase/client.ts` cria o client para componentes/browser.
+- `src/utils/supabase/middleware.ts` atualiza a sessao Supabase no proxy quando
+  houver cookies Supabase validos.
+- `src/proxy.ts` preserva os cookies renovados e continua usando BetterAuth para
+  autenticar e redirecionar usuarios do CorreTop.
+
+Essa separacao permite adotar Realtime, Storage e Auth do Supabase gradualmente
+sem trocar a autoridade de acesso atual ou quebrar as rotas existentes.
