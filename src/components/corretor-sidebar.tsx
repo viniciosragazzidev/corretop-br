@@ -118,14 +118,9 @@ export function CorretorSidebar() {
               <span className="grid size-7 place-items-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
                 C
               </span>
-              <span className="font-semibold tracking-tight">CorreTop</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
-        <div className="mx-2 rounded-md border border-sidebar-border bg-sidebar-accent/45 px-3 py-2.5 group-data-[collapsible=icon]:hidden">
-          <p className="text-[11px] text-sidebar-foreground/55">Meu ambiente</p>
-          <p className="mt-0.5 text-sm font-medium">Vida Mais Corretora</p>
-        </div>
       </SidebarHeader>
       <SidebarContent>
         <NavigationGroup items={workItems} label="Atendimento" />

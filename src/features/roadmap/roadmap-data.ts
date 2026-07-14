@@ -55,7 +55,7 @@ const rawRoadmapDays: RoadmapDay[] = [
     item("4.1", "Fila de leads do corretor", "P0", "done", "Lista de leads com estados, filtros basicos e paginacao tradicional.", "Tabela refinada com coluna de ações, acesso direto ao detalhe do lead e atalho de ligação por telefone."),
     item("4.2", "Filtros salvaveis", "P2", "done", "Filtros de busca, status e filial podem ser aplicados e salvos no dispositivo do usuario para reutilizacao.", "LeadsFilters usa query string para resultados reproduziveis e localStorage para manter a ultima combinacao escolhida."),
     item("4.3", "Busca global Cmd/Ctrl+K", "P2", "done", "Busca global acessivel pelo atalho Cmd/Ctrl+K e pelo botao Buscar do cabecalho.", "O comando direciona a consulta para a fila de Leads com feedback visual de overlay e suporte a Escape."),
-    item("4.4", "Detalhe do lead com acoes", "P0", "done", "Contato, status, responsavel, timeline e inicio do atendimento ficam na mesma tela.", "Corretor responsavel pode iniciar atendimento, registrar o status in_contact e abrir o WhatsApp Web/app do lead."),
+    item("4.4", "Detalhe do lead com acoes", "P0", "done", "Contato, status, responsavel, timeline e inicio do atendimento ficam na mesma tela.", "Corretor responsavel pode iniciar atendimento, registrar o status in_contact e abrir o WhatsApp Web/app do lead. Hub de proxima acao adicionado em lead-action-hub.tsx com atalhos contextuais para conversa, tarefas, cotacoes e documentos; /conversas aceita leadId para abrir o contexto correto e preserva o escopo de cargo e filial. Type-check, lint focado, diff-check e build de producao validados em 14/07/2026."),
     item("4.5", "Confirmacao para acoes criticas", "P0", "done", "Dialog de perda e validacoes de status implementados."),
     item("4.6", "Home do Corretor", "P1", "done", "Dashboard pessoal com dados reais da carteira, fila atribuída, disponibilidade e estados vazios.", "Leads e interações agora vêm do PostgreSQL no escopo do corretor; metas, SLA e renovações permanecem mascarados como backlog."),
     item("4.7", "Home do Gestor", "P1", "done", "Resumo real da equipe e da filial com indicadores de leads, responsáveis e atendimento.", "Equipe e funil básico agora vêm do PostgreSQL; alertas SLA, documentos e metas permanecem explicitamente planejados."),
@@ -97,6 +97,7 @@ const dayFiveItems: RoadmapItem[] = [
   item("5.8", "Upload de documento (pelo corretor ou cliente)", "P0", "done", "Upload autenticado, validado e vinculado ao lead e ao requisito documental."),
   item("5.9", "Fila central de aprovacao de documentos", "P0", "done", "Gestor/Diretor revisam documentos no escopo do tenant e da filial."),
   item("5.10", "Aprovacao em lote (bulk actions)", "P1", "done", "Selecao multipla permite aprovar ou rejeitar documentos em lote."),
+  item("5.11", "Fluxo operacional de cotacao", "P0", "done", "Cotacao segura por tenant com faixas etarias, itens persistidos, tarefas no lead, link publico apos compartilhamento e PDF server-side auditado.", "O detalhe da cotacao e a fila de tarefas preservam o lead de origem por links contextuais; /tarefas aceita leadId com filtro server-side e retorno ao lead."),
 ];
 
 const daySix: RoadmapDay = { day: 6, title: "Comissao, pos-venda, metas e WhatsApp", objective: "Concluir o motor financeiro e os fluxos de pos-venda.", items: [

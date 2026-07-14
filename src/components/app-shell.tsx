@@ -70,7 +70,7 @@ export function AppShell({
     <SidebarProvider
       style={
         {
-          "--sidebar-width": "21.5rem",
+          "--sidebar-width": "18rem",
           "--workspace-rail-width": "4rem",
           "--header-height": "3.75rem",
           ...(branding?.brandColor
@@ -90,7 +90,7 @@ export function AppShell({
       {isFinanceiro ? (
         <CorreTopFinanceiroSidebar />
       ) : (
-        <CorreTopSidebar logoUrl={branding?.logoUrl ?? null} tenantName={branding?.tenantName ?? null} />
+        <CorreTopSidebar logoUrl={branding?.logoUrl ?? null} />
       )}
       <SidebarInset className="bg-background">
         <AnimatePresence mode="wait">

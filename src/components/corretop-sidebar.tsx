@@ -7,6 +7,7 @@ import {
   ChartBar,
   ClipboardText,
   CreditCard,
+  CurrencyCircleDollar,
   FolderSimple,
   Handshake,
   House,
@@ -50,6 +51,7 @@ const primaryItems = [
   { label: "Cotações", icon: ListChecks, url: "/cotacoes" },
   { label: "Documentos", icon: Note, url: "/documentos" },
   { label: "Clientes", icon: Handshake, url: "/clientes" },
+  { label: "Vendas", icon: CurrencyCircleDollar, url: "/vendas" },
 ];
 
 const managementItems = [
@@ -67,6 +69,7 @@ const operationItems = [
 
 const systemItems = [
   { label: "Catálogo", icon: FolderSimple, url: "/catalogo" },
+  { label: "Comissões", icon: CurrencyCircleDollar, url: "/configuracoes/comissoes", permission: "gerenciar_comissoes" as const },
   { label: "Assinatura", icon: CreditCard, url: "/assinatura", permission: "configurar_white_label" as const },
   { label: "Configurações", icon: SlidersHorizontal, url: "/settings" },
   { label: "Roadmap", icon: RoadHorizon, url: "/roadmap" },
@@ -136,7 +139,7 @@ function NavigationGroup({
   );
 }
 
-export function CorreTopSidebar({ logoUrl, tenantName }: { logoUrl?: string | null; tenantName?: string | null }) {
+export function CorreTopSidebar({ logoUrl }: { logoUrl?: string | null }) {
   const router = useRouter();
   const [user, setUser] = useState<UserDisplayInfo | null>(null);
 
@@ -163,23 +166,14 @@ export function CorreTopSidebar({ logoUrl, tenantName }: { logoUrl?: string | nu
   return (
     <Sidebar collapsible="icon" variant="sidebar" rail>
       <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton className="h-10" size="lg" render={<Link href="/dashboard" prefetch />}>
-              {logoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={logoUrl} alt="Logo" className="size-7 rounded-md object-contain" />
-              ) : (
-                <span className="grid size-7 place-items-center rounded-md bg-primary text-xs font-bold text-primary-foreground">C</span>
-              )}
-              <span className="truncate font-semibold tracking-tight">{tenantName || "CorreTop"}</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-        <div className="mx-2 rounded-md border border-sidebar-border bg-sidebar-accent/45 px-3 py-2.5 group-data-[collapsible=icon]:hidden">
-          <p className="text-[11px] text-sidebar-foreground/55">Ambiente ativo</p>
-          <p className="mt-0.5 truncate text-sm font-medium">{tenantName || "Sua corretora"}</p>
-        </div>
+        <Link href="/dashboard" prefetch className="block px-2 pt-2">
+          {logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={logoUrl} alt="Logo" className="w-full rounded-md object-contain object-left" />
+          ) : (
+            <span className="grid size-7 place-items-center rounded-md bg-primary text-xs font-bold text-primary-foreground">C</span>
+          )}
+        </Link>
       </SidebarHeader>
       <SidebarContent>
         <NavigationGroup items={primaryItems} label="Atendimento" roleKey={roleKey} groupIndex={0} />

@@ -693,6 +693,18 @@ export const tenantMembershipRelations = relations(
   }),
 );
 
+export const commissionRuleTypeValues = ["unica", "escalonada"] as const;
+export const commissionScheduleStatusValues = ["pending", "paid", "cancelled"] as const;
+export const goalScopeValues = ["broker", "team", "branch", "tenant"] as const;
+export const goalTargetTypeValues = ["sales_count", "revenue", "conversion_rate", "leads_contacted"] as const;
+export const saleStatusValues = ["active", "cancelled"] as const;
+
+export const commissionRuleType = pgEnum("commission_rule_type", commissionRuleTypeValues);
+export const commissionScheduleStatus = pgEnum("commission_schedule_status", commissionScheduleStatusValues);
+export const goalScope = pgEnum("goal_scope", goalScopeValues);
+export const goalTargetType = pgEnum("goal_target_type", goalTargetTypeValues);
+export const saleStatus = pgEnum("sale_status", saleStatusValues);
+
 export const documentStatusValues = ["pending", "approved", "rejected"] as const;
 export const documentStatus = pgEnum("document_status", documentStatusValues);
 
@@ -740,6 +752,240 @@ export const leadDocuments = pgTable(
     index("lead_documents_tenant_lead_idx").on(table.tenantId, table.leadId),
   ]
 );
+
+/* ─── Sales / Commission ─── */
+
+export const commissionRules = pgTable(
+  "commission_rules",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    carrierId: text("carrier_id").references(() => carriers.id, { onDelete: "cascade" }),
+    planId: text("plan_id").references(() => carrierPlans.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    type: commissionRuleType("type").notNull().default("escalonada"),
+    percentages: jsonb("percentages").notNull().default([100]),
+    appliesToAll: boolean("applies_to_all").notNull().default(false),
+    active: boolean("active").notNull().default(true),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => user.id),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("commission_rules_tenant_idx").on(table.tenantId),
+    index("commission_rules_carrier_idx").on(table.carrierId),
+    index("commission_rules_plan_idx").on(table.planId),
+  ],
+);
+
+export const sales = pgTable(
+  "sales",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    leadId: text("lead_id")
+      .notNull()
+      .references(() => leads.id, { onDelete: "cascade" }),
+    clientId: text("client_id").references(() => clients.id, { onDelete: "set null" }),
+    brokerId: text("broker_id")
+      .notNull()
+      .references(() => user.id),
+    carrierPlanId: text("carrier_plan_id").references(() => carrierPlans.id),
+    commissionRuleId: text("commission_rule_id").references(() => commissionRules.id),
+    saleDate: timestamp("sale_date", { withTimezone: true }).notNull(),
+    saleValue: numeric("sale_value", { precision: 12, scale: 2 }).notNull(),
+    status: saleStatus("status").notNull().default("active"),
+    notes: text("notes"),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => user.id),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("sales_tenant_idx").on(table.tenantId),
+    index("sales_lead_idx").on(table.leadId),
+    index("sales_broker_idx").on(table.brokerId),
+  ],
+);
+
+export const commissionSchedule = pgTable(
+  "commission_schedule",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    saleId: text("sale_id")
+      .notNull()
+      .references(() => sales.id, { onDelete: "cascade" }),
+    monthNumber: integer("month_number").notNull(),
+    referenceMonth: text("reference_month").notNull(),
+    dueDate: timestamp("due_date", { withTimezone: true }),
+    percentage: numeric("percentage", { precision: 5, scale: 2 }).notNull(),
+    amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+    status: commissionScheduleStatus("status").notNull().default("pending"),
+    paidAt: timestamp("paid_at", { withTimezone: true }),
+    paidBy: text("paid_by").references(() => user.id),
+    notes: text("notes"),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("commission_schedule_tenant_idx").on(table.tenantId),
+    index("commission_schedule_sale_idx").on(table.saleId),
+    index("commission_schedule_ref_month_idx").on(table.referenceMonth),
+    index("commission_schedule_status_idx").on(table.status),
+  ],
+);
+
+/* ─── Goals ─── */
+
+export const goals = pgTable(
+  "goals",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    scope: goalScope("scope").notNull(),
+    scopeId: text("scope_id"),
+    name: text("name").notNull(),
+    targetType: goalTargetType("target_type").notNull().default("sales_count"),
+    targetValue: numeric("target_value", { precision: 12, scale: 2 }).notNull(),
+    period: text("period").notNull(),
+    startDate: timestamp("start_date", { withTimezone: true }).notNull(),
+    endDate: timestamp("end_date", { withTimezone: true }).notNull(),
+    active: boolean("active").notNull().default(true),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => user.id),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("goals_tenant_scope_idx").on(table.tenantId, table.scope),
+    index("goals_period_idx").on(table.tenantId, table.period),
+  ],
+);
+
+export const goalProgress = pgTable(
+  "goal_progress",
+  {
+    id: text("id").primaryKey(),
+    goalId: text("goal_id")
+      .notNull()
+      .references(() => goals.id, { onDelete: "cascade" }),
+    currentValue: numeric("current_value", { precision: 12, scale: 2 })
+      .notNull()
+      .default("0"),
+    percentage: numeric("percentage", { precision: 5, scale: 2 })
+      .notNull()
+      .default("0"),
+    calculatedAt: timestamp("calculated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("goal_progress_goal_unique").on(table.goalId),
+  ],
+);
+
+/* ─── Relations ─── */
+
+export const commissionRuleRelations = relations(commissionRules, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [commissionRules.tenantId],
+    references: [tenants.id],
+  }),
+  carrier: one(carriers, {
+    fields: [commissionRules.carrierId],
+    references: [carriers.id],
+  }),
+  plan: one(carrierPlans, {
+    fields: [commissionRules.planId],
+    references: [carrierPlans.id],
+  }),
+  createdByUser: one(user, {
+    fields: [commissionRules.createdBy],
+    references: [user.id],
+  }),
+}));
+
+export const saleRelations = relations(sales, ({ one, many }) => ({
+  tenant: one(tenants, {
+    fields: [sales.tenantId],
+    references: [tenants.id],
+  }),
+  lead: one(leads, {
+    fields: [sales.leadId],
+    references: [leads.id],
+  }),
+  client: one(clients, {
+    fields: [sales.clientId],
+    references: [clients.id],
+  }),
+  broker: one(user, {
+    fields: [sales.brokerId],
+    references: [user.id],
+  }),
+  carrierPlan: one(carrierPlans, {
+    fields: [sales.carrierPlanId],
+    references: [carrierPlans.id],
+  }),
+  commissionRule: one(commissionRules, {
+    fields: [sales.commissionRuleId],
+    references: [commissionRules.id],
+  }),
+  createdByUser: one(user, {
+    fields: [sales.createdBy],
+    references: [user.id],
+  }),
+  scheduleItems: many(commissionSchedule),
+}));
+
+export const commissionScheduleRelations = relations(commissionSchedule, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [commissionSchedule.tenantId],
+    references: [tenants.id],
+  }),
+  sale: one(sales, {
+    fields: [commissionSchedule.saleId],
+    references: [sales.id],
+  }),
+  paidByUser: one(user, {
+    fields: [commissionSchedule.paidBy],
+    references: [user.id],
+  }),
+}));
+
+export const goalRelations = relations(goals, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [goals.tenantId],
+    references: [tenants.id],
+  }),
+  createdByUser: one(user, {
+    fields: [goals.createdBy],
+    references: [user.id],
+  }),
+  progress: one(goalProgress, {
+    fields: [goals.id],
+    references: [goalProgress.goalId],
+  }),
+}));
+
+export const goalProgressRelations = relations(goalProgress, ({ one }) => ({
+  goal: one(goals, {
+    fields: [goalProgress.goalId],
+    references: [goals.id],
+  }),
+}));
 
 export type TenantRole = (typeof tenantRoleValues)[number];
 export type TenantStatus = (typeof tenantStatusValues)[number];

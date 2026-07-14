@@ -54,17 +54,21 @@ type ViewFilter = "all" | "with_messages" | "without_messages";
 
 export function ConversationsWorkspace({
   conversations: initialConversations,
+  initialLeadId,
   plans,
   whatsappReady,
   canSend,
 }: {
   conversations: ConversationItem[];
+  initialLeadId?: string;
   plans: PlanSuggestion[];
   whatsappReady: boolean;
   canSend: boolean;
 }) {
   const [conversations, setConversations] = useState(initialConversations);
-  const [selectedId, setSelectedId] = useState(initialConversations.find((item) => item.messages.length > 0)?.id ?? initialConversations[0]?.id ?? null);
+  const [selectedId, setSelectedId] = useState(initialLeadId && initialConversations.some((item) => item.id === initialLeadId)
+    ? initialLeadId
+    : initialConversations.find((item) => item.messages.length > 0)?.id ?? initialConversations[0]?.id ?? null);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<ViewFilter>("all");
   const [draft, setDraft] = useState("");

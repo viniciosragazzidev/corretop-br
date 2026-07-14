@@ -20,6 +20,17 @@ export const FIXED_CARRIERS = [
   "Omint",
   "Care Plus",
   "Mediservice",
+  "Assim Saúde",
+  "Blue Med",
+  "São Cristóvão",
+  "Nordeste Saúde",
+  "Ônix Saúde",
+  "Nova Saúde",
+  "Proasa Saúde",
+  "Unimed Santos",
+  "Ameplan Saúde",
+  "Klini Saúde",
+  "Bemstar Saúde",
 ] as const;
 
 export type FixedCarrierName = (typeof FIXED_CARRIERS)[number];

@@ -1,7 +1,7 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ThemeProvider } from "@/components/theme-provider";
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
@@ -10,6 +10,15 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       queries: { staleTime: 30_000, refetchOnWindowFocus: false },
     },
   }));
+
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").then(
+        (reg) => console.log("SW registrado com sucesso:", reg.scope),
+        (err) => console.error("Falha no SW:", err)
+      );
+    }
+  }, []);
 
   return <ThemeProvider><QueryClientProvider client={queryClient}>{children}</QueryClientProvider></ThemeProvider>;
 }

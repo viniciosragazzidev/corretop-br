@@ -23,6 +23,7 @@ import { QuoteModalButton } from "./quote-modal-button";
 
 import { getRequirementsForLead, getLeadDocuments } from "@/features/documents/actions";
 import { LeadDocumentsSection } from "@/features/documents/components/lead-documents-section";
+import { LeadActionHub } from "@/features/leads/components/lead-action-hub";
 
 export default async function LeadDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -101,6 +102,13 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
           </div>
         </div>
 
+        <LeadActionHub
+          hasPendingDocuments={leadDocs.some((document) => document.status === "pending" || document.status === "rejected")}
+          hasQuotes={quotes.length > 0}
+          leadId={lead.id}
+          pendingTasks={tasks.filter((task) => !task.completedAt).length}
+        />
+
         <section className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(24rem,0.85fr)]">
           <div className="space-y-6">
             <Card className="h-fit border-border bg-card shadow-none">
@@ -116,7 +124,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             </Card>
 
             {lead.status !== "distributed" && (
-              <Card className="h-fit border-border bg-card shadow-none">
+              <Card className="h-fit border-border bg-card shadow-none" id="documentos">
                 <CardHeader>
                   <CardTitle>Documentos Obrigatórios</CardTitle>
                   <CardDescription>Upload de arquivos necessários para a contratação.</CardDescription>
@@ -142,7 +150,9 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
 
           <LeadTimeline leadId={lead.id} interactions={interactions} />
         </section>
-        <LeadTasks assignees={context.role === "broker" ? [{ id: context.userId, name: lead.corretorNome ?? "Eu" }] : brokers} leadId={lead.id} tasks={tasks.map((task) => ({ ...task, dueAt: task.dueAt?.toISOString() ?? null, completedAt: task.completedAt?.toISOString() ?? null }))} />
+        <div id="tarefas">
+          <LeadTasks assignees={context.role === "broker" ? [{ id: context.userId, name: lead.corretorNome ?? "Eu" }] : brokers} leadId={lead.id} tasks={tasks.map((task) => ({ ...task, dueAt: task.dueAt?.toISOString() ?? null, completedAt: task.completedAt?.toISOString() ?? null }))} />
+        </div>
         <LeadChat active={whatsappConnection?.active ?? false} canAssume={chatCanAssume} canSend={chatCanSend} leadId={lead.id} messages={whatsappMessages} phone={canSeePersonalData ? lead.telefone : null} />
         <LeadManagementActions leadId={lead.id} brokers={brokers} canManage={context.role === "manager" || context.role === "director"} isLost={lead.status === "lost"} currentStatus={lead.status} currentOwner={lead.corretorNome} />
       </main>

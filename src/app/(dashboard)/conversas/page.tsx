@@ -5,7 +5,8 @@ import { ConversationsWorkspace, type ConversationItem, type ConversationMessage
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
 
-export default async function ConversationsPage() {
+export default async function ConversationsPage({ searchParams }: { searchParams: Promise<{ leadId?: string }> }) {
+  const { leadId } = await searchParams;
   const context = await getRequiredTenantContext();
   const db = getDatabase();
 
@@ -92,6 +93,7 @@ export default async function ConversationsPage() {
         <ConversationsWorkspace
           canSend={context.role === "broker"}
           conversations={conversations}
+          initialLeadId={leadId}
           plans={plans}
           whatsappReady={whatsappReady}
         />

@@ -16,6 +16,7 @@ import {
   MOTIVO_PERDA_LABELS,
 } from "./lead-status-constants";
 import type { MotivoPerda } from "./lead-status-constants";
+import { generateCommissionSchedule } from "@/features/commissions/commission-rules-service";
 
 // ─── Tipos ────────────────────────────────────────────────────────────
 
@@ -96,6 +97,7 @@ export async function changeLeadStatus(
       tenantId: schema.leads.tenantId,
       corretorId: schema.leads.corretorId,
       branchId: schema.leads.branchId,
+      planId: schema.leads.planId,
       status: schema.leads.status,
       nome: schema.leads.nome,
       telefone: schema.leads.telefone,
@@ -171,8 +173,9 @@ export async function changeLeadStatus(
     });
 
     if (newStatus === "converted") {
+      const clientId = randomUUID();
       await tx.insert(schema.clients).values({
-        id: randomUUID(),
+        id: clientId,
         tenantId: context.tenantId,
         leadId: lead.id,
         branchId: lead.branchId,
@@ -182,6 +185,36 @@ export async function changeLeadStatus(
         email: lead.email,
         convertedAt: now,
       }).onConflictDoNothing({ target: schema.clients.leadId });
+
+      // Criar venda e cronograma de comissão
+      const saleId = randomUUID();
+      const saleValue = 0; // Valor será preenchido via cotação aceita em versão futura
+
+      await tx.insert(schema.sales).values({
+        id: saleId,
+        tenantId: context.tenantId,
+        leadId: lead.id,
+        clientId,
+        brokerId: lead.corretorId ?? context.userId,
+        carrierPlanId: lead.planId,
+        commissionRuleId: null,
+        saleDate: now,
+        saleValue: String(saleValue),
+        status: "active",
+        createdBy: context.userId,
+      });
+
+      // Gerar cronograma de comissão automaticamente
+      const schedule = await generateCommissionSchedule(
+        context.tenantId,
+        saleId,
+        lead.planId,
+        saleValue,
+      );
+
+      if (schedule.length > 0) {
+        await tx.insert(schema.commissionSchedule).values(schedule);
+      }
     }
 
     // Criar auditoria

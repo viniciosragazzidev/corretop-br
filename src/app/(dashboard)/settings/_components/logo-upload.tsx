@@ -59,7 +59,7 @@ export function LogoUpload({ defaultValue, name, disabled = false }: Props) {
         onChange={handleChange}
       />
       {preview ? (
-        <div className="relative flex h-24 w-48 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted/30">
+        <div className="relative flex aspect-[20/9] w-full max-w-[400px] items-center justify-center overflow-hidden rounded-lg border border-border bg-muted/30">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={preview} alt="Logo" className="h-full w-full object-contain p-2" />
           <button
@@ -76,13 +76,13 @@ export function LogoUpload({ defaultValue, name, disabled = false }: Props) {
           disabled={disabled}
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="flex h-24 w-48 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted/20 transition-colors hover:border-primary/50 hover:bg-muted/40"
+          className="flex aspect-[20/9] w-full max-w-[400px] flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted/20 transition-colors hover:border-primary/50 hover:bg-muted/40"
         >
           <HugeiconsIcon icon={Camera01Icon} size={20} className="text-muted-foreground" />
           <span className="text-xs text-muted-foreground">Carregar logo</span>
         </button>
       )}
-      <p className="text-xs text-muted-foreground">PNG, JPG, WebP ou SVG · máximo 512 KB</p>
+      <p className="text-xs text-muted-foreground">400 × 180 px · PNG, JPG, WebP ou SVG · máximo 512 KB</p>
       {error ? <p className="text-xs text-destructive" role="alert">{error}</p> : null}
     </div>
   );

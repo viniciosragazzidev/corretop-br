@@ -1,5 +1,5 @@
 import { and, eq, or } from "drizzle-orm";
-
+/* eslint-disable @next/next/no-html-link-for-pages */
 import { DashboardHeader } from "@/components/dashboard-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,13 +8,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
 
-export default async function TasksPage() {
+export default async function TasksPage({ searchParams }: { searchParams: Promise<{ leadId?: string }> }) {
+  const { leadId } = await searchParams;
   const context = await getRequiredTenantContext();
   const db = getDatabase();
   const access = context.role === "broker" ? or(eq(schema.leadTasks.assignedTo, context.userId), eq(schema.leadTaskAssignees.userId, context.userId)) : context.role === "manager" && context.branchId ? eq(schema.leads.branchId, context.branchId) : undefined;
+  const leadFilter = leadId ? eq(schema.leadTasks.leadId, leadId) : undefined;
   const tasks = await db.select({ id: schema.leadTasks.id, leadId: schema.leads.id, leadName: schema.leads.nome, title: schema.leadTasks.title, description: schema.leadTasks.description, priority: schema.leadTasks.priority, dueAt: schema.leadTasks.dueAt, completedAt: schema.leadTasks.completedAt, assigneeName: schema.user.name })
     .from(schema.leadTasks).innerJoin(schema.leads, eq(schema.leadTasks.leadId, schema.leads.id)).leftJoin(schema.leadTaskAssignees, eq(schema.leadTaskAssignees.taskId, schema.leadTasks.id)).leftJoin(schema.user, eq(schema.leadTasks.assignedTo, schema.user.id))
-    .where(and(eq(schema.leadTasks.tenantId, context.tenantId), eq(schema.leads.tenantId, context.tenantId), ...(access ? [access] : []))).orderBy(schema.leadTasks.completedAt, schema.leadTasks.dueAt);
+    .where(and(eq(schema.leadTasks.tenantId, context.tenantId), eq(schema.leads.tenantId, context.tenantId), ...(access ? [access] : []), ...(leadFilter ? [leadFilter] : []))).orderBy(schema.leadTasks.completedAt, schema.leadTasks.dueAt);
 
   return <><DashboardHeader breadcrumb="Operação comercial" title="Tarefas" /><main className="flex min-h-full flex-col gap-6 bg-background p-4 lg:p-6"><section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-medium text-primary">OPERAÇÃO COMERCIAL</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Tarefas</h1><p className="mt-1 text-sm text-muted-foreground">Priorize o que precisa acontecer agora e abra o lead para criar ou ajustar responsáveis.</p></div><Button render={<a href="/leads" />} variant="outline">Abrir leads para criar tarefa</Button></section><Card className="border-border bg-card shadow-none"><CardHeader><CardTitle>Minha operação</CardTitle><CardDescription>Tarefas urgentes podem envolver vários corretores. As demais preservam um responsável claro.</CardDescription></CardHeader><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead className="pl-5">Tarefa</TableHead><TableHead>Agendamento</TableHead><TableHead>Prioridade</TableHead><TableHead className="hidden md:table-cell">Responsável</TableHead><TableHead className="pr-5 text-right">Lead</TableHead></TableRow></TableHeader><TableBody>{tasks.map((task) => <TableRow key={task.id}><TableCell className="pl-5"><p className={task.completedAt ? "font-medium line-through text-muted-foreground" : "font-medium"}>{task.title}</p>{task.description ? <p className="mt-1 max-w-lg truncate text-xs text-muted-foreground">{task.description}</p> : null}</TableCell><TableCell className="text-muted-foreground">{task.dueAt ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(task.dueAt) : "Sem prazo"}</TableCell><TableCell><Badge className={task.priority === "urgent" ? "border-destructive/30 bg-destructive/10 text-destructive" : "border-border"} variant="outline">{task.priority === "urgent" ? "Urgente" : task.priority === "low" ? "Baixa" : "Normal"}</Badge></TableCell><TableCell className="hidden md:table-cell">{task.assigneeName ?? "Equipe"}</TableCell><TableCell className="pr-5 text-right"><Button render={<a href={`/leads/${task.leadId}`} />} size="sm" variant="outline">{task.leadName}</Button></TableCell></TableRow>)}</TableBody></Table>{!tasks.length ? <div className="p-12 text-center"><p className="font-medium">Nenhuma tarefa no seu escopo</p><p className="mt-1 text-sm text-muted-foreground">Abra um lead para criar o próximo passo e atribuí-lo à equipe.</p></div> : null}</CardContent></Card></main></>;
 }

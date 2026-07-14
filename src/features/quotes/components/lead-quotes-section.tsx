@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
-import { FileText, LinkSimple } from "@/components/huge-icons";
+import { ArrowSquareOut, FileText, LinkSimple } from "@/components/huge-icons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { shareQuoteAction } from "@/features/quotes/actions";
@@ -78,6 +79,14 @@ export function LeadQuotesSection({
               </div>
 
               <div className="flex gap-1.5">
+                <Button
+                  render={<Link href={`/cotacoes/${quote.id}`} />}
+                  size="icon-xs"
+                  title="Abrir detalhes da cotaÃ§Ã£o"
+                  variant="outline"
+                >
+                  <ArrowSquareOut className="size-3.5" />
+                </Button>
                 <Button
                   size="icon-xs"
                   variant="outline"

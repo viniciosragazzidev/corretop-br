@@ -163,7 +163,85 @@ Antes de criar qualquer tela nova:
 
 ## Referência de dashboard
 
-As referências Nexus anexadas pelo usuário orientam a composição do CorreTop, sem copiar marca, nomes ou métricas fictícias. O padrão é um shell lateral persistente, cabeçalho compacto com busca global, cards curtos na primeira linha, gráfico principal com leitura comparativa na segunda e tabela/alertas na terceira.
+As referências Nexus orientam a composição do CorreTop, sem copiar marca ou nomes fictícios. O padrão é um shell lateral persistente, cabeçalho compacto com busca global, cards curtos na primeira linha, gráfico principal com leitura comparativa na segunda e tabela/alertas na terceira.
 
 Use `--chart-1` a `--chart-5` para visualizações. No light mode, o canvas é cinza muito claro com cards brancos e bordas suaves; no dark mode, a hierarquia usa carvão, grafite e texto claro. Violeta, azul e teal são reservados para dados de gráfico, não para substituir os estados semânticos de sucesso, atenção e erro.
 
+---
+
+## Catálogo de Componentes e Variáveis CSS
+
+Abaixo encontra-se a especificação de cada componente do design system, descrevendo suas variáveis, variantes de estilos de tamanho/cores e comportamentos de estado (`hover`, `focus`, `disabled` e `loading`).
+
+### 1. `Button` (Botão)
+Componente de ação primário e secundário.
+- **Variáveis Relacionadas**:
+  - Fundo principal: `var(--primary)` / Texto: `var(--primary-foreground)`
+  - Hover: `opacity: 0.9` ou `var(--accent)`
+  - Raio de Borda: `var(--radius)` (base: 8px)
+- **Tamanhos e Variantes**:
+  - `default`: Altura de 36px (`h-9`), padding horizontal de 16px (`px-4`).
+  - `sm`: Altura de 32px (`h-8`), padding horizontal de 12px (`px-3`).
+  - `lg`: Altura de 40px (`h-10`), padding horizontal de 32px (`px-8`).
+  - `icon`: Quadrado de 36px (`h-9 w-9`).
+- **Estados**:
+  - `hover`: Transição suave (`transition-colors duration-150`).
+  - `focus-visible`: Outline de 2px em `var(--ring)`.
+  - `disabled`: `opacity: 0.5`, sem cursor ou ações.
+
+### 2. `Card` (Cartão / Bloco Bento)
+Usado para grids de dashboards e bento boxes.
+- **Variáveis Relacionadas**:
+  - Fundo: `var(--card)`
+  - Texto: `var(--card-foreground)`
+  - Borda: `var(--border)`
+- **Estrutura interna**:
+  - `CardHeader`: Padding de 24px (`p-6`), gap de 6px.
+  - `CardTitle`: Fonte Geist, peso semi-bold (`font-semibold`), tracking reduzido (`tracking-tight`).
+  - `CardContent`: Área de conteúdo principal com espaçamento de base flexível.
+
+### 3. `Badge` (Etiqueta de Status)
+Etiquetas para classificar status de leads, operadoras ou planos.
+- **Variantes de Cores**:
+  - `default`: Fundo `var(--primary)`, texto `var(--primary-foreground)`.
+  - `secondary`: Fundo `var(--secondary)`, texto `var(--secondary-foreground)`.
+  - `success`: Fundo verde translúcido, texto `--success`.
+  - `warning`: Fundo amarelo translúcido, texto `--warning`.
+  - `destructive`: Fundo vermelho translúcido, texto `--destructive` (`destructive-foreground`).
+  - `outline`: Borda fina, fundo transparente.
+
+### 4. `Input` / `Textarea` (Campos de Texto)
+Campos de entrada estruturados para formulários.
+- **Variáveis Relacionadas**:
+  - Fundo: `var(--input)` ou transparente
+  - Borda: `var(--border)`
+  - Foco: `var(--ring)`
+- **Estados**:
+  - `hover`: Borda levemente realçada.
+  - `focus`: Outline/sombra suave com cor de destaque `var(--primary)`.
+  - `disabled`: Fundo opaco/cinza suave (`opacity: 0.5`), bloqueado para digitação.
+
+### 5. `Table` (Tabela)
+Usado para dados tabulares densos de leads, corretores ou sessões.
+- **Estrutura de Bordas e Alinhamento**:
+  - Borda inferior fina (`border-b`) separando linhas.
+  - `TableHead`: Fonte Geist, peso `font-medium`, cor `var(--muted-foreground)` para menor distração.
+  - `TableRow`: Animação hover suave de mudança de fundo (`hover:bg-muted/50`).
+
+### 6. `Sidebar` (Menu de Navegação Lateral)
+O elemento de navegação do AppShell e do SuperAdmin.
+- **Variáveis de Estilo**:
+  - Fundo: `var(--sidebar)`
+  - Texto ativo: `var(--sidebar-accent-foreground)`
+  - Item ativo: `var(--sidebar-accent)`
+  - Borda: `var(--sidebar-border)`
+- **Offset e Trilho (Rail)**:
+  - Adota `rail` para se deslocar `4rem` em layouts dual-rail de múltiplos workspaces.
+
+### 7. `Sheet` / `Dialog` (Painéis e Overlays)
+Painéis laterais (slide-over) e modais para ações críticas.
+- **Variáveis Relacionadas**:
+  - Fundo elevado: `var(--popover)` ou `var(--background)`
+  - Overlay de fundo: `var(--black-overlay)` ou opacidade preta.
+- **Movimento**:
+  - Suporte total a transições curtas (`duration-200`) e animações de entrada/saída suaves.

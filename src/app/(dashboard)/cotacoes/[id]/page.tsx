@@ -1,7 +1,8 @@
 import { and, eq, inArray } from "drizzle-orm";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { ArrowSquareOut, FileArrowDown } from "@/components/huge-icons";
+import { ArrowSquareOut, ChatCircleText, FileArrowDown } from "@/components/huge-icons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DashboardHeader } from "@/components/dashboard-header";
