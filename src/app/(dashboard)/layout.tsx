@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { AuthorizationError, AuthenticationError } from "@/shared/auth/errors";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
@@ -34,8 +34,10 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
       .select({ onboardingDismissedAt: schema.tenantMemberships.onboardingDismissedAt })
       .from(schema.tenantMemberships)
       .where(
-        eq(schema.tenantMemberships.userId, context.userId),
-        eq(schema.tenantMemberships.tenantId, context.tenantId),
+        and(
+          eq(schema.tenantMemberships.userId, context.userId),
+          eq(schema.tenantMemberships.tenantId, context.tenantId),
+        )
       )
       .limit(1);
 
