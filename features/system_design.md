@@ -31,11 +31,10 @@ previsiveis, processamento assincrono e diagnostico rapido de incidentes.
 - A politica nunca aceita `tenant_id` vindo do cliente; o contexto precisa vir
   da sessao confiavel do servidor.
 
-Aplicacao segura: rode a migration no projeto Supabase depois de confirmar que
-as operacoes que acessam tabelas protegidas passaram a usar
-`withTenantTransaction()`. Como o codigo legado ainda possui leituras diretas
-com `getDatabase()`, a migration esta versionada e preparada, mas nao foi
-executada automaticamente neste checkout para evitar indisponibilidade.
+Aplicacao segura: a migration RLS continua versionada, mas nao foi ativada com
+`FORCE ROW LEVEL SECURITY`, porque o codigo legado ainda possui leituras diretas
+com `getDatabase()`. Ativa-la antes de migrar todas as leituras para o helper
+transacional poderia bloquear o runtime.
 
 ### 4. Request-id e logs estruturados
 
@@ -78,9 +77,15 @@ Upstash. Nenhum segredo foi criado, exposto ou adicionado ao repositorio.
 - Request-id, logger, contrato de jobs e helper transacional.
 - Migration RLS versionada.
 
-### Fase 1 - proxima
+### Fase 1 - parcialmente concluida
 
-- Configurar `SUPABASE_DB_URL` no ambiente de staging.
+- Configurar `SUPABASE_DB_URL` localmente apontando para o pooler Supabase.
+- Resetar o schema vazio/parcial do projeto Supabase e reconstruir o schema atual
+  com `drizzle-kit push` (22 tabelas publicas).
+- Registrar baseline das 23 migrations historicas para manter `db:migrate`
+  idempotente apesar do historico antigo nao conter a tabela `leads`.
+- O `DATABASE_URL` da Vercel ainda precisa ser cadastrado manualmente como
+  segredo; o ambiente Codex bloqueou o envio automatico dessa credencial.
 - Migrar leituras e mutacoes tenant-sensitive para `withTenantTransaction()`.
 - Executar a migration em staging e validar isolamento com dois tenants.
 - Criar testes automatizados que tentem ler e gravar dados cruzados.

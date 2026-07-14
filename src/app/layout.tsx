@@ -15,6 +15,15 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const themeBootstrap = `(() => {
+  try {
+    const theme = localStorage.getItem("corretop-theme") === "dark" ? "dark" : "light";
+    const root = document.documentElement;
+    root.classList.toggle("dark", theme === "dark");
+    root.style.colorScheme = theme;
+  } catch {}
+})()`;
+
 export const metadata: Metadata = {
   title: "CorreTop",
   description: "CRM para corretoras de planos de saúde.",
@@ -27,6 +36,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
+      </head>
       <body className="min-h-full flex flex-col">
         <AppProviders>
           <TooltipProvider>{children}</TooltipProvider>

@@ -1,8 +1,10 @@
 import { Pool } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-serverless";
+import { drizzle as drizzlePostgres } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import * as schema from "./schema";
 
-type Database = ReturnType<typeof drizzle<typeof schema>>;
+type Database = ReturnType<typeof drizzlePostgres<typeof schema>>;
 
 let database: Database | undefined;
 
@@ -18,7 +20,12 @@ function getDatabaseUrl(): string {
 
 /** Infrastructure-only database entry point. Domain code must use tenantDb. */
 export function getDatabase(): Database {
-  database ??= drizzle(new Pool({ connectionString: getDatabaseUrl() }), { schema });
+  const supabaseUrl = process.env.SUPABASE_DB_URL;
+  if (supabaseUrl) {
+    database ??= drizzlePostgres(postgres(supabaseUrl, { prepare: false }), { schema });
+  } else {
+    database ??= drizzle(new Pool({ connectionString: getDatabaseUrl() }), { schema }) as unknown as Database;
+  }
   return database;
 }
 
