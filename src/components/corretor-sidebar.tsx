@@ -3,15 +3,16 @@
 import {
   Bell,
   ChartLineUp,
+  ChatCircleText,
   ClipboardText,
-  FileText,
   Handshake,
   House,
   ListChecks,
+  Note,
   Pause,
   RoadHorizon,
   SignOut,
-} from "@phosphor-icons/react";
+} from "@/components/huge-icons";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -25,7 +26,6 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
@@ -34,17 +34,22 @@ import { toast } from "sonner";
 import { getUserDisplayInfo, type UserDisplayInfo } from "@/shared/auth/actions";
 
 const workItems = [
-  { label: "Resumo", icon: House, url: "/corretor/resumo" },
-  { label: "Minha fila", icon: ListChecks, url: "/minha-fila", badge: "10" },
-  { label: "Cotações", icon: FileText, url: "/cotacoes", badge: "3" },
-  { label: "Documentos", icon: ClipboardText, url: "/documentos", badge: "3" },
+  { label: "Minha fila", icon: ListChecks, url: "/minha-fila" },
+  { label: "Conversas", icon: ChatCircleText, url: "/conversas" },
+  { label: "Tarefas", icon: ClipboardText, url: "/tarefas" },
+  { label: "Cotações", icon: ListChecks, url: "/cotacoes" },
+  { label: "Documentos", icon: Note, url: "/documentos" },
   { label: "Clientes", icon: Handshake, url: "/clientes" },
 ];
 
-const trackingItems = [
-  { label: "Roadmap", icon: RoadHorizon, url: "/roadmap" },
+const performanceItems = [
+  { label: "Resumo", icon: House, url: "/corretor/resumo" },
   { label: "Minha meta", icon: ChartLineUp, url: "/minha-meta" },
-  { label: "Notificações", icon: Bell, url: "/notificacoes", badge: "2" },
+  { label: "Notificações", icon: Bell, url: "/notificacoes" },
+];
+
+const systemItems = [
+  { label: "Roadmap", icon: RoadHorizon, url: "/roadmap" },
 ];
 
 function NavigationGroup({
@@ -72,7 +77,6 @@ function NavigationGroup({
                   <Icon weight={item.label === "Resumo" ? "fill" : "regular"} />
                   <span>{item.label}</span>
                 </SidebarMenuButton>
-                {item.badge ? <SidebarMenuBadge>{item.badge}</SidebarMenuBadge> : null}
               </SidebarMenuItem>
             );
           })}
@@ -124,8 +128,9 @@ export function CorretorSidebar() {
         </div>
       </SidebarHeader>
       <SidebarContent>
-        <NavigationGroup items={workItems} label="Principal" />
-        <NavigationGroup items={trackingItems} label="Acompanhamento" />
+        <NavigationGroup items={workItems} label="Atendimento" />
+        <NavigationGroup items={performanceItems} label="Desempenho" />
+        <NavigationGroup items={systemItems} label="Sistema" />
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>

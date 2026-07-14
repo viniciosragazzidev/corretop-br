@@ -2,10 +2,12 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import { usePathname } from "next/navigation";
+import { AnimatePresence, motion } from "motion/react";
 import { CorreTopSidebar } from "@/components/corretop-sidebar";
 import { CorreTopFinanceiroSidebar } from "@/components/corretop-financeiro-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { WorkspaceRail } from "@/components/workspace-rail";
+import { pageTransitionVariants } from "@/shared/animations";
 
 type Branding = {
   brandColor: string | null;
@@ -59,7 +61,20 @@ export function AppShell({
       ) : (
         <CorreTopSidebar logoUrl={branding?.logoUrl ?? null} tenantName={branding?.tenantName ?? null} />
       )}
-      <SidebarInset className="bg-background">{children}</SidebarInset>
+      <SidebarInset className="bg-background">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={pathname}
+            variants={pageTransitionVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="flex min-h-full flex-col"
+          >
+            {children}
+          </motion.div>
+        </AnimatePresence>
+      </SidebarInset>
     </SidebarProvider>
   );
 }

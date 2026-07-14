@@ -69,7 +69,7 @@ export function LeadStatusSelector({
     {},
   );
 
-  // Optimistic UI state — safe to read during render, no refs needed
+  // Optimistic UI state - safe to read during render, no refs needed
   const [optimisticStatus, addOptimisticStatus] = useOptimistic(
     currentStatus,
     (_current, newStatus: string) => newStatus,

@@ -1,6 +1,6 @@
 "use client";
 
-import { Buildings, Gear, House, ShieldStar, SignOut } from "@phosphor-icons/react";
+import { Buildings, Gear, House, ShieldStar, SignOut } from "@/components/huge-icons";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 

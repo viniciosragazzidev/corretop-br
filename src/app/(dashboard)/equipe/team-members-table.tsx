@@ -1,10 +1,11 @@
 "use client";
 
-import { UsersThree } from "@phosphor-icons/react";
+import { motion } from "motion/react";
+import { UsersThree } from "@/components/huge-icons";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TeamMemberActions } from "./member-actions";
 
 type BranchOption = { id: string; name: string };
@@ -69,18 +70,34 @@ export function TeamMembersTable({ members, branches, currentRole, currentBranch
                 <TableHead className="pr-5 text-right">Acoes</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
-              {members.map((member) => (
-                <TableRow key={member.id}>
+            <motion.tbody
+              initial="hidden"
+              animate="visible"
+            >
+              {members.map((member, i) => (
+                <motion.tr
+                  key={member.id}
+                  custom={i}
+                  variants={{
+                    hidden: { opacity: 0, x: -8 },
+                    visible: (index: number) => ({
+                      opacity: 1,
+                      x: 0,
+                      transition: { duration: 0.15, ease: [0, 0, 0.2, 1], delay: Math.min(index * 0.03, 0.25) },
+                    }),
+                  }}
+                  whileHover={{ backgroundColor: "var(--sidebar-accent)" }}
+                  className="group/card cursor-default transition-colors"
+                >
                   <TableCell className="pl-5">
                     <p className="font-medium">{member.name ?? "Sem nome"}</p>
                     {member.userId === currentUserId ? <p className="text-xs text-muted-foreground">Você</p> : null}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{member.email}</TableCell>
+                  <TableCell className="text-muted-foreground transition-colors duration-200 group-hover/card:text-foreground">{member.email}</TableCell>
                   <TableCell>{roleLabel[member.role]}</TableCell>
-                  <TableCell className="text-muted-foreground">{member.branchName ?? "Sem filial"}</TableCell>
+                  <TableCell className="text-muted-foreground transition-colors duration-200 group-hover/card:text-foreground">{member.branchName ?? "Sem filial"}</TableCell>
                   <TableCell>
-                    <Badge variant={member.status === "active" ? "default" : member.status === "pending" ? "secondary" : "outline"}>{statusLabel[member.status]}</Badge>
+                    <Badge variant={member.status === "active" ? "default" : member.status === "pending" ? "secondary" : "outline"} className="transition-transform duration-200 group-hover/card:scale-105">{statusLabel[member.status]}</Badge>
                   </TableCell>
                   <TableCell className="pr-5">
                     <TeamMemberActions
@@ -91,9 +108,9 @@ export function TeamMembersTable({ members, branches, currentRole, currentBranch
                       member={member}
                     />
                   </TableCell>
-                </TableRow>
+                </motion.tr>
               ))}
-            </TableBody>
+            </motion.tbody>
           </Table>
         )}
       </CardContent>

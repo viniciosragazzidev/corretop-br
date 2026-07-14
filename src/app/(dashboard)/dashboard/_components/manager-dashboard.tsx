@@ -1,6 +1,6 @@
 "use client";
 
-import { Users, WarningCircle } from "@phosphor-icons/react";
+import { Users, WarningCircle } from "@/components/huge-icons";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { BacklogOverlay } from "@/components/dashboard/backlog-overlay";
 import { MiniDonut } from "@/components/dashboard/mini-donut";

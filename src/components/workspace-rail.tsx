@@ -1,10 +1,11 @@
 "use client";
 
-import { CurrencyCircleDollar, SquaresFour } from "@phosphor-icons/react";
+import { CurrencyCircleDollar, SquaresFour } from "@/components/huge-icons";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/utils";
+import { QuickActionsMenu } from "@/components/quick-actions-menu";
 
 const areas = [
   { label: "Área administrativa", href: "/dashboard", icon: SquaresFour },
@@ -26,6 +27,7 @@ export function WorkspaceRail() {
           <div className="h-px w-5 bg-sidebar-border/40" />
           <WorkspaceRailButton area={areas[1]} active={financialActive} />
         </div>
+        {!financialActive ? <QuickActionsMenu /> : null}
       </div>
     </aside>
   );

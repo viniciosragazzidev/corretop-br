@@ -54,6 +54,61 @@ passed
 
 ---
 
+# Design QA - Central `/conversas`
+
+## Referências comparadas
+
+- **Fonte visual:** `C:/Users/kyper/AppData/Local/Temp/codex-clipboard-2b10a5bc-6ce5-4271-bf19-4d064e7735f7.png`.
+- **Implementação:** captura renderizada no navegador in-app, aba `http://localhost:3000/conversas` (sessão de QA de 14/07/2026).
+- **Viewport:** 1280 × 720, desktop, tema claro, usuário Diretor autenticado com um lead sintético.
+- **Estado:** contato selecionado, sem mensagens persistidas e WhatsApp indisponível; perfil lateral removido nesse breakpoint para manter o chat legível.
+
+## Evidência de comparação
+
+- **Comparativo integral:** a fonte organiza inbox, lista de mensagens, conversa e perfil em camadas verticais claras. A implementação preserva essa hierarquia usando o shell CorreTop: navegação do produto, pastas da inbox, lista pesquisável e chat como região dominante.
+- **Região focada:** o primeiro render em 1280px mantinha o perfil direito e comprimia o texto do chat para uma coluna estreita (**P1**). O grid foi ajustado para três painéis nesse viewport e quatro apenas em `2xl`; a captura posterior confirma cabeçalho, estado vazio, ações rápidas e compositor com largura suficiente.
+- **Interações verificadas:** busca por conversa mostra o estado vazio; `Lista de planos` abre o painel de planos; navegação para lead/cotação é feita por links reais. O console da aba não registrou erros.
+
+## Superfícies de fidelidade
+
+- **Tipografia:** Geist e pesos compactos; nomes e cabeçalhos preservam hierarquia, com truncamento na lista em vez de sobreposição.
+- **Ritmo e layout:** divisórias sutis, painéis verticais, campo de busca e compositor seguem a estrutura da referência; a adaptação do quarto painel impede perda de leitura com o sidebar global do CorreTop aberto.
+- **Cores e tokens:** superfícies, bordas, seleção, foco, indisponibilidade e sucesso usam tokens do sistema; não há cores de marca locais ou números operacionais fictícios.
+- **Imagens e ícones:** a referência usa avatares ilustrados, mas a implementação usa `Avatar` com iniciais porque o domínio não fornece foto do lead; Hugeicons são utilizados nos controles e possuem rótulos acessíveis.
+- **Copy:** os textos descrevem o estado real do canal e deixam claro que o usuário deve revisar os modelos antes de enviar. "Enviar contrato" prepara texto, sem alegar assinatura ou envio externo inexistente.
+
+## Histórico de comparação
+
+1. **P1 - chat comprimido no desktop.** Evidência: a primeira captura em 1280px mostrou o quarto painel junto ao sidebar global, deixando o estado vazio e as mensagens quebrados em uma coluna estreita. **Correção:** perfil lateral agora somente a partir de `2xl`; em `lg`/`xl`, a central usa inbox, lista e chat.
+2. **Pós-correção:** captura do navegador no mesmo viewport mostrou o chat ocupando a região principal, com estado vazio, ações e compositor legíveis. Nenhum P0, P1 ou P2 remanescente.
+
+## Follow-up polish
+
+- [P3] Quando o domínio passar a armazenar avatar do lead, substituir as iniciais por imagem privada e autorizada.
+- [P3] Exibir perfil como sheet acionável também no breakpoint intermediário, caso o uso em telas de 1280px demande consulta recorrente de dados pessoais.
+
+## Refinamento visual (14/07/2026)
+
+- Hierarquia de textos ajustada: tÃ­tulos operacionais em 14px/semibold, metadados em 12px e rÃ³tulos de grupos em 11px com espaÃ§amento de leitura consistente.
+- A conversa selecionada agora possui um marcador interno de estado, sem depender apenas da cor; prÃ©vias e datas usam limites e nÃºmeros tabulares para evitar sobreposiÃ§Ã£o.
+- O perfil lateral recebeu ritmo vertical, seÃ§Ãµes e pares rÃ³tulo/valor mais claros. O estado vazio tambÃ©m passou a orientar a primeira aÃ§Ã£o.
+- O painel de planos usa a transiÃ§Ã£o compartilhada `t-panel-slide`, com fallback para `prefers-reduced-motion`; a central nÃ£o cria imagens de pessoas sem um ativo autorizado pelo domÃ­nio.
+- VerificaÃ§Ã£o: lint especÃ­fico e build de produÃ§Ã£o concluÃ­dos sem erros.
+
+## Ajuste de densidade e viewport (14/07/2026)
+
+- A lista de conversas foi reduzida a uma linha de leitura: identidade, tempo, status compacto e prévia dividem a mesma faixa, sem empilhar um card alto.
+- Mensagens deixaram de usar o tratamento de card pesado; balões diferenciam entrada e saída por alinhamento, raio e superfície, mantendo a leitura como prioridade.
+- O perfil do cliente pode ser ocultado ou alternar entre largura compacta e ampla a partir de `2xl`. A área de chat recebe imediatamente o espaço liberado.
+- A central usa altura de viewport e `ScrollArea` em navegação, lista, histórico e perfil; cabeçalho e compositor permanecem fixos.
+- Limite de validação visual: a captura automática da sessão não disponibilizou uma aba controlável; a revisão foi feita por inspeção de implementação, lint e build.
+
+## Final result
+
+passed
+
+---
+
 # Design QA - Resumo `/corretor/resumo`
 
 ## Referências comparadas

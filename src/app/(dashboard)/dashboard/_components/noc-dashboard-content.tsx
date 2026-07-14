@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { motion } from "motion/react";
 import {
   ArrowUpRight,
   ChartBar,
@@ -13,7 +14,7 @@ import {
   Warning,
   WifiHigh,
   XCircle,
-} from "@phosphor-icons/react";
+} from "@/components/huge-icons";
 import {
   Area,
   AreaChart,
@@ -37,6 +38,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { cardItemVariants, cardGridVariants } from "@/shared/animations";
 import type {
   DirectorDashboardData,
   ManagerDashboardData,
@@ -98,29 +100,35 @@ function NocMetricCard({
 }) {
   const isUp = !change.startsWith("-");
   return (
-    <Card
-      className="animate-in rounded-xl border-border/70 bg-card shadow-none transition-all duration-300 hover:border-primary/25 hover:shadow-sm"
-      style={{ animation: `fadeSlideIn 400ms ease-out ${delay}ms both` }}
+    <motion.div
+      variants={cardItemVariants}
+      initial="hidden"
+      animate="visible"
+      transition={{ delay: delay / 1000 }}
+      whileHover={{ y: -2, transition: { duration: 0.2, ease: [0, 0, 0.2, 1] } }}
+      whileTap={{ scale: 0.995, transition: { duration: 0.1 } }}
     >
-      <CardHeader className="pb-1">
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-sm text-muted-foreground">{label}</span>
-          <Badge
-            className="rounded-md text-xs font-medium"
-            variant={isUp ? "success" : "destructive"}
-          >
-            <ArrowUpRight className="mr-0.5 size-3" weight="bold" />
-            {change}
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <p className="text-2xl font-semibold tracking-tight tabular-nums lg:text-3xl">
-          {value}
-        </p>
-        <p className="mt-1 text-xs text-muted-foreground">{description}</p>
-      </CardContent>
-    </Card>
+      <Card className="group/card rounded-xl border-border/70 bg-card shadow-none transition-all duration-200 hover:border-primary/25 hover:shadow-sm hover:shadow-primary/5">
+        <CardHeader className="pb-1">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm text-muted-foreground transition-colors duration-200 group-hover/card:text-foreground">{label}</span>
+            <Badge
+              className="rounded-md text-xs font-medium transition-transform duration-200 group-hover/card:scale-105"
+              variant={isUp ? "success" : "destructive"}
+            >
+              <ArrowUpRight className="mr-0.5 size-3 transition-transform duration-200 group-hover/card:translate-x-0.5 group-hover/card:-translate-y-0.5" weight="bold" />
+              {change}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-2xl font-semibold tracking-tight tabular-nums lg:text-3xl">
+            {value}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground transition-colors duration-200 group-hover/card:text-foreground/70">{description}</p>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 }
 
@@ -375,12 +383,16 @@ function DirectorNocContent({ data }: { data: DirectorDashboardData }) {
           description="Unidades cadastradas"
           delay={320}
         />
-      </section>
-
-      {/* Charts Row */}
+      </section>        {/* Charts Row */}
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-7">
         {/* Funnel Flow */}
-        <Card className="rounded-xl border-border/70 bg-card shadow-none lg:col-span-4">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, ease: [0, 0, 0.2, 1] }}
+          className="lg:col-span-4"
+        >
+        <Card className="rounded-xl border-border/70 bg-card shadow-none">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
@@ -464,15 +476,24 @@ function DirectorNocContent({ data }: { data: DirectorDashboardData }) {
                     stroke="var(--chart-1)"
                     strokeWidth={2}
                     type="monotone"
+                    animationDuration={600}
+                    animationEasing="ease-out"
                   />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
+        </motion.div>
 
         {/* Status Distribution Pie */}
-        <Card className="rounded-xl border-border/70 bg-card shadow-none lg:col-span-3">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, ease: [0, 0, 0.2, 1], delay: 0.08 }}
+          className="lg:col-span-3"
+        >
+        <Card className="rounded-xl border-border/70 bg-card shadow-none">
           <CardHeader>
             <CardTitle>Distribuição por Status</CardTitle>
             <CardDescription>
@@ -494,6 +515,8 @@ function DirectorNocContent({ data }: { data: DirectorDashboardData }) {
                       outerRadius={75}
                       paddingAngle={3}
                       strokeWidth={0}
+                      animationDuration={600}
+                      animationEasing="ease-out"
                     >
                       {statusDistribution
                         .filter((d) => d.value > 0)
@@ -537,6 +560,7 @@ function DirectorNocContent({ data }: { data: DirectorDashboardData }) {
             </div>
           </CardContent>
         </Card>
+        </motion.div>
       </section>
 
       {/* Branches Performance */}
@@ -550,12 +574,12 @@ function DirectorNocContent({ data }: { data: DirectorDashboardData }) {
           </CardHeader>
           <CardContent className="space-y-4">
             {data.branches.map((branch, i) => (
-              <div
+              <motion.div
                 key={branch.name}
-                className="animate-in rounded-lg border border-border/40 bg-muted/20 p-3"
-                style={{
-                  animation: `fadeSlideIn 400ms ease-out ${i * 60}ms both`,
-                }}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, ease: [0, 0, 0.2, 1], delay: Math.min(i * 0.06, 0.3) }}
+                className="rounded-lg border border-border/40 bg-muted/20 p-3"
               >
                 <div className="mb-2 flex items-center justify-between">
                   <span className="text-sm font-medium">
@@ -584,7 +608,7 @@ function DirectorNocContent({ data }: { data: DirectorDashboardData }) {
                     }}
                   />
                 </div>
-              </div>
+              </motion.div>
             ))}
             {data.branches.length === 0 && (
               <p className="py-6 text-center text-sm text-muted-foreground">
@@ -656,34 +680,25 @@ function DirectorNocContent({ data }: { data: DirectorDashboardData }) {
 
       {/* Bottom Stats Bar */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div className="rounded-lg border border-border/40 bg-card p-3 text-center shadow-none">
-          <p className="text-2xl font-bold tabular-nums text-chart-1">
-            {totalLeads}
-          </p>
-          <p className="text-xs text-muted-foreground">Leads totais</p>
-        </div>
-        <div className="rounded-lg border border-border/40 bg-card p-3 text-center shadow-none">
-          <p className="text-2xl font-bold tabular-nums text-chart-5">
-            {totalConverted}
-          </p>
-          <p className="text-xs text-muted-foreground">Conversões</p>
-        </div>
-        <div className="rounded-lg border border-border/40 bg-card p-3 text-center shadow-none">
-          <p className="text-2xl font-bold tabular-nums text-chart-2">
-            {conversionRate}%
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Taxa de conversão
-          </p>
-        </div>
-        <div className="rounded-lg border border-border/40 bg-card p-3 text-center shadow-none">
-          <p className="text-2xl font-bold tabular-nums text-chart-4">
-            {data.totals.activeBrokers}/{data.totals.members}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Corretores ativos
-          </p>
-        </div>
+        {[
+          { label: 'Leads totais', value: totalLeads, color: 'text-chart-1' },
+          { label: 'Conversões', value: totalConverted, color: 'text-chart-5' },
+          { label: 'Taxa de conversão', value: `${conversionRate}%`, color: 'text-chart-2' },
+          { label: 'Corretores ativos', value: `${data.totals.activeBrokers}/${data.totals.members}`, color: 'text-chart-4' },
+        ].map((stat, i) => (
+          <motion.div
+            key={stat.label}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.15, ease: [0, 0, 0.2, 1], delay: Math.min(i * 0.05, 0.2) }}
+            className="rounded-lg border border-border/40 bg-card p-3 text-center shadow-none"
+          >
+            <p className={`text-2xl font-bold tabular-nums ${stat.color}`}>
+              {stat.value}
+            </p>
+            <p className="text-xs text-muted-foreground">{stat.label}</p>
+          </motion.div>
+        ))}
       </div>
     </>
   );
@@ -937,30 +952,25 @@ function ManagerNocContent({ data }: { data: ManagerDashboardData }) {
 
       {/* Bottom Stats */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div className="rounded-lg border border-border/40 bg-card p-3 text-center shadow-none">
-          <p className="text-2xl font-bold tabular-nums text-chart-1">
-            {data.leadsTotal}
-          </p>
-          <p className="text-xs text-muted-foreground">Leads totais</p>
-        </div>
-        <div className="rounded-lg border border-border/40 bg-card p-3 text-center shadow-none">
-          <p className="text-2xl font-bold tabular-nums text-chart-3">
-            {data.newLeads}
-          </p>
-          <p className="text-xs text-muted-foreground">Leads novos</p>
-        </div>
-        <div className="rounded-lg border border-border/40 bg-card p-3 text-center shadow-none">
-          <p className="text-2xl font-bold tabular-nums text-chart-5">
-            {data.activeMembers}
-          </p>
-          <p className="text-xs text-muted-foreground">Corretores ativos</p>
-        </div>
-        <div className="rounded-lg border border-border/40 bg-card p-3 text-center shadow-none">
-          <p className="text-2xl font-bold tabular-nums text-chart-4">
-            {data.inContact}
-          </p>
-          <p className="text-xs text-muted-foreground">Em atendimento</p>
-        </div>
+        {[
+          { label: 'Leads totais', value: data.leadsTotal, color: 'text-chart-1' },
+          { label: 'Leads novos', value: data.newLeads, color: 'text-chart-3' },
+          { label: 'Corretores ativos', value: data.activeMembers, color: 'text-chart-5' },
+          { label: 'Em atendimento', value: data.inContact, color: 'text-chart-4' },
+        ].map((stat, i) => (
+          <motion.div
+            key={stat.label}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.15, ease: [0, 0, 0.2, 1], delay: Math.min(i * 0.05, 0.2) }}
+            className="rounded-lg border border-border/40 bg-card p-3 text-center shadow-none"
+          >
+            <p className={`text-2xl font-bold tabular-nums ${stat.color}`}>
+              {stat.value}
+            </p>
+            <p className="text-xs text-muted-foreground">{stat.label}</p>
+          </motion.div>
+        ))}
       </div>
     </>
   );
@@ -1128,6 +1138,8 @@ function BrokerNocContent({ data }: { data: BrokerDashboardData }) {
                       outerRadius={75}
                       paddingAngle={3}
                       strokeWidth={0}
+                      animationDuration={600}
+                      animationEasing="ease-out"
                     >
                       {distributionData.map((entry, i) => (
                         <Cell key={i} fill={entry.color} />
@@ -1173,15 +1185,14 @@ function BrokerNocContent({ data }: { data: BrokerDashboardData }) {
               Leads que você está atendendo
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2">
-            {data.activeLeads.length > 0 ? (
+          <CardContent className="space-y-2">              {data.activeLeads.length > 0 ? (
               data.activeLeads.slice(0, 5).map((lead, i) => (
-                <div
+                <motion.div
                   key={lead.id}
-                  className="animate-in flex items-center gap-3 rounded-lg border border-border/40 bg-muted/20 p-2.5"
-                  style={{
-                    animation: `fadeSlideIn 300ms ease-out ${i * 50}ms both`,
-                  }}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.15, ease: [0, 0, 0.2, 1], delay: Math.min(i * 0.05, 0.2) }}
+                  className="flex items-center gap-3 rounded-lg border border-border/40 bg-muted/20 p-2.5"
                 >
                   <div className="flex size-8 items-center justify-center rounded-full bg-chart-3/10">
                     <Users
@@ -1205,7 +1216,7 @@ function BrokerNocContent({ data }: { data: BrokerDashboardData }) {
                       }).format(lead.serviceStartedAt)}
                     </span>
                   )}
-                </div>
+                </motion.div>
               ))
             ) : (
               <div className="py-10 text-center text-sm text-muted-foreground">
@@ -1226,30 +1237,25 @@ function BrokerNocContent({ data }: { data: BrokerDashboardData }) {
 
       {/* Bottom Stats */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div className="rounded-lg border border-border/40 bg-card p-3 text-center shadow-none">
-          <p className="text-2xl font-bold tabular-nums text-chart-1">
-            {data.totals.all}
-          </p>
-          <p className="text-xs text-muted-foreground">Leads totais</p>
-        </div>
-        <div className="rounded-lg border border-border/40 bg-card p-3 text-center shadow-none">
-          <p className="text-2xl font-bold tabular-nums text-chart-3">
-            {data.totals.new}
-          </p>
-          <p className="text-xs text-muted-foreground">Leads novos</p>
-        </div>
-        <div className="rounded-lg border border-border/40 bg-card p-3 text-center shadow-none">
-          <p className="text-2xl font-bold tabular-nums text-chart-5">
-            {data.totals.converted}
-          </p>
-          <p className="text-xs text-muted-foreground">Convertidos</p>
-        </div>
-        <div className="rounded-lg border border-border/40 bg-card p-3 text-center shadow-none">
-          <p className="text-2xl font-bold tabular-nums text-chart-4">
-            {data.activeLeads.length}
-          </p>
-          <p className="text-xs text-muted-foreground">Em atendimento</p>
-        </div>
+        {[
+          { label: 'Leads totais', value: data.totals.all, color: 'text-chart-1' },
+          { label: 'Leads novos', value: data.totals.new, color: 'text-chart-3' },
+          { label: 'Convertidos', value: data.totals.converted, color: 'text-chart-5' },
+          { label: 'Em atendimento', value: data.activeLeads.length, color: 'text-chart-4' },
+        ].map((stat, i) => (
+          <motion.div
+            key={stat.label}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.15, ease: [0, 0, 0.2, 1], delay: Math.min(i * 0.05, 0.2) }}
+            className="rounded-lg border border-border/40 bg-card p-3 text-center shadow-none"
+          >
+            <p className={`text-2xl font-bold tabular-nums ${stat.color}`}>
+              {stat.value}
+            </p>
+            <p className="text-xs text-muted-foreground">{stat.label}</p>
+          </motion.div>
+        ))}
       </div>
     </>
   );
@@ -1325,16 +1331,7 @@ export default function NocDashboardContent(props: RoleProps) {
         )}
       </main>
 
-      {/* Animations */}
-      <style>{`
-        @keyframes fadeSlideIn {
-          from { opacity: 0; transform: translateY(12px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-in {
-          animation: fadeSlideIn 400ms ease-out both;
-        }
-      `}</style>
+
     </>
   );
 }

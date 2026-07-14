@@ -1,6 +1,6 @@
 "use client"
 
-import { CheckCircle, Circle } from "@phosphor-icons/react"
+import { CheckCircle, Circle } from "@/components/huge-icons"
 import { cn } from "@/lib/utils"
 import type { TenantOnboardingStep } from "../types/onboarding.types"
 

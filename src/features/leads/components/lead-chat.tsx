@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { ArrowSquareOut, ChatCircleText, PaperPlaneTilt, ShieldWarning } from "@phosphor-icons/react";
+import { ArrowSquareOut, ChatCircleText, PaperPlaneTilt, ShieldWarning } from "@/components/huge-icons";
 import { toast } from "sonner";
 import { getLeadMessagesAction, sendLeadMessageAction } from "../actions/send-lead-message";
 import { assumeLeadForMessagingAction } from "../management-actions";

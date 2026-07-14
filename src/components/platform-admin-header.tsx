@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell } from "@phosphor-icons/react";
+import { Bell } from "@/components/huge-icons";
 
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";

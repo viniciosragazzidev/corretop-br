@@ -24,7 +24,7 @@ export function LogoUpload({ defaultValue, name, disabled = false }: Props) {
       return;
     }
     if (file.size > 512 * 1024) {
-      setError("O logo deve ter no mÃ¡ximo 512 KB.");
+      setError("O logo deve ter no máximo 512 KB.");
       return;
     }
     setError(null);
@@ -82,7 +82,7 @@ export function LogoUpload({ defaultValue, name, disabled = false }: Props) {
           <span className="text-xs text-muted-foreground">Carregar logo</span>
         </button>
       )}
-      <p className="text-xs text-muted-foreground">PNG, JPG, WebP ou SVG · mÃ¡ximo 512 KB</p>
+      <p className="text-xs text-muted-foreground">PNG, JPG, WebP ou SVG · máximo 512 KB</p>
       {error ? <p className="text-xs text-destructive" role="alert">{error}</p> : null}
     </div>
   );

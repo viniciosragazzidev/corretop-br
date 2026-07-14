@@ -22,7 +22,12 @@ function getDatabaseUrl(): string {
 export function getDatabase(): Database {
   const supabaseUrl = process.env.SUPABASE_DB_URL;
   if (supabaseUrl) {
-    database ??= drizzlePostgres(postgres(supabaseUrl, { prepare: false }), { schema });
+    database ??= drizzlePostgres(postgres(supabaseUrl, {
+      prepare: false,
+      max: 5,
+      connect_timeout: 15,
+      idle_timeout: 20,
+    }), { schema });
   } else {
     database ??= drizzle(new Pool({ connectionString: getDatabaseUrl() }), { schema }) as unknown as Database;
   }

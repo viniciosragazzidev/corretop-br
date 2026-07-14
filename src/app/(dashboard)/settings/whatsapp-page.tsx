@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle, ShieldWarning } from "@phosphor-icons/react";
+import { CheckCircle, ShieldWarning } from "@/components/huge-icons";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { WhatsAppConnectDialog } from "@/components/whatsapp/whatsapp-connect-dialog";
 import { getWhatsAppConnection } from "./whatsapp-actions";

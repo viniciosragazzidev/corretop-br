@@ -15,10 +15,11 @@ import {
   Target,
   TrendDown,
   TrendUp,
-} from "@phosphor-icons/react";
+} from "@/components/huge-icons";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { motion } from "motion/react";
 
 import {
   Sidebar,
@@ -65,40 +66,65 @@ const settingsItems = [
   { label: "Configurações", icon: Gear, url: "/financeiro/configuracoes" },
 ];
 
+const groupNames = ["Visão geral", "Comissões", "Metas", "Relatórios", "Configurações"] as const;
+
 function NavigationGroup({
   label,
   items,
+  groupIndex,
 }: {
   label: string;
   items: typeof overviewItems;
+  groupIndex: number;
 }) {
   const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
 
   return (
-    <SidebarGroup>
-      <SidebarGroupLabel>{label}</SidebarGroupLabel>
-      <SidebarGroupContent>
-        <SidebarMenu>
-          {items.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.url || pathname.startsWith(item.url + "/");
-            return (
-              <SidebarMenuItem key={item.label}>
-                <SidebarMenuButton
-                  isActive={isActive}
-                  render={<a href={item.url} onClick={() => isMobile && setOpenMobile(false)} />}
-                  tooltip={item.label}
+    <motion.div
+      initial={{ opacity: 0, x: -12 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{
+        duration: 0.18,
+        ease: [0, 0, 0.2, 1],
+        delay: groupIndex * 0.06,
+      }}
+    >
+      <SidebarGroup>
+        <SidebarGroupLabel>{label}</SidebarGroupLabel>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            {items.map((item, index) => {
+              const Icon = item.icon;
+              const isActive = pathname === item.url || pathname.startsWith(item.url + "/");
+              return (
+                <motion.div
+                  key={item.label}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{
+                    duration: 0.15,
+                    ease: [0, 0, 0.2, 1],
+                    delay: groupIndex * 0.06 + index * 0.04,
+                  }}
                 >
-                  <Icon weight={isActive ? "fill" : "regular"} />
-                  <span>{item.label}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            );
-          })}
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      isActive={isActive}
+                      render={<a href={item.url} onClick={() => isMobile && setOpenMobile(false)} />}
+                      tooltip={item.label}
+                    >
+                      <Icon weight={isActive ? "fill" : "regular"} />
+                      <span>{item.label}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </motion.div>
+              );
+            })}
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+    </motion.div>
   );
 }
 
@@ -152,11 +178,11 @@ export function CorreTopFinanceiroSidebar() {
         </div>
       </SidebarHeader>
       <SidebarContent>
-        <NavigationGroup items={overviewItems} label="Visão geral" />
-        <NavigationGroup items={commissionItems} label="Comissões" />
-        <NavigationGroup items={goalsItems} label="Metas" />
-        <NavigationGroup items={reportsItems} label="Relatórios" />
-        <NavigationGroup items={settingsItems} label="Configurações" />
+        <NavigationGroup items={overviewItems} label="Visão geral" groupIndex={0} />
+        <NavigationGroup items={commissionItems} label="Comissões" groupIndex={1} />
+        <NavigationGroup items={goalsItems} label="Metas" groupIndex={2} />
+        <NavigationGroup items={reportsItems} label="Relatórios" groupIndex={3} />
+        <NavigationGroup items={settingsItems} label="Configurações" groupIndex={4} />
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>

@@ -5,7 +5,7 @@ import {
   Clock,
   Flag,
   WarningCircle,
-} from "@phosphor-icons/react/dist/ssr";
+} from "@/components/huge-icons";
 
 import { DashboardHeader } from "@/components/dashboard-header";
 import { Badge } from "@/components/ui/badge";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { CheckCircle, LockKey, WhatsappLogo } from "@phosphor-icons/react";
+import { CheckCircle, LockKey, WhatsappLogo } from "@/components/huge-icons";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

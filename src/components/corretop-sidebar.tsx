@@ -1,27 +1,29 @@
 "use client";
 
 import {
+  Bell,
   Buildings,
+  ChatCircleText,
   ChartBar,
   ClipboardText,
   CreditCard,
-  FileText,
   FolderSimple,
   Handshake,
   House,
+  ListChecks,
   Monitor,
-  RocketLaunch,
+  Note,
   RoadHorizon,
   ShieldCheck,
   SignOut,
   SlidersHorizontal,
   Target,
-  UserSwitch,
   Users,
-} from "@phosphor-icons/react";
+} from "@/components/huge-icons";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { motion } from "motion/react";
 
 import {
   Sidebar,
@@ -42,68 +44,95 @@ import { getUserDisplayInfo, type UserDisplayInfo } from "@/shared/auth/actions"
 import { hasPermission, type PermissionKey } from "@/shared/auth/permissions";
 
 const primaryItems = [
-  { label: "Resumo", icon: House, url: "/dashboard" },
+  { label: "Conversas", icon: ChatCircleText, url: "/conversas" },
   { label: "Leads", icon: Users, url: "/leads" },
-  { label: "Cotações", icon: FileText, url: "/cotacoes" },
-  { label: "Documentos", icon: ClipboardText, url: "/documentos" },
+  { label: "Tarefas", icon: ClipboardText, url: "/tarefas" },
+  { label: "Cotações", icon: ListChecks, url: "/cotacoes" },
+  { label: "Documentos", icon: Note, url: "/documentos" },
   { label: "Clientes", icon: Handshake, url: "/clientes" },
 ];
 
 const managementItems = [
-  { label: "Primeiros passos", icon: RocketLaunch, url: "/dashboard?onboarding=1", permission: "ver_dashboard_equipe" as const },
-  { label: "Equipe", icon: UserSwitch, url: "/equipe", permission: "convidar_corretor" as const },
+  { label: "Resumo", icon: House, url: "/dashboard" },
+  { label: "Equipe", icon: Users, url: "/equipe", permission: "convidar_corretor" as const },
   { label: "Metas", icon: Target, url: "/metas", permission: "ver_dashboard_equipe" as const },
-  { label: "NOC", icon: Monitor, url: "/noc", permission: "ver_dashboard_equipe" as const },
   { label: "Relatórios", icon: ChartBar, url: "/relatorios" },
-  { label: "Integridade", icon: ShieldCheck, url: "/integridade", permission: "ver_painel_integridade" as const },
-  { label: "Roadmap", icon: RoadHorizon, url: "/roadmap" },
+  { label: "Filiais", icon: Buildings, url: "/filiais", permission: "gerenciar_filiais" as const },
 ];
 
-const administrationItems = [
-  { label: "Filiais", icon: Buildings, url: "/filiais", permission: "gerenciar_filiais" as const },
+const operationItems = [
+  { label: "NOC", icon: Monitor, url: "/noc", permission: "ver_dashboard_equipe" as const },
+  { label: "Integridade", icon: ShieldCheck, url: "/integridade", permission: "ver_painel_integridade" as const },
+];
+
+const systemItems = [
   { label: "Catálogo", icon: FolderSimple, url: "/catalogo" },
   { label: "Assinatura", icon: CreditCard, url: "/assinatura", permission: "configurar_white_label" as const },
   { label: "Configurações", icon: SlidersHorizontal, url: "/settings" },
+  { label: "Roadmap", icon: RoadHorizon, url: "/roadmap" },
 ];
 
 function NavigationGroup({
   label,
   items,
   roleKey,
+  groupIndex,
 }: {
   label: string;
   items: typeof primaryItems;
   roleKey: UserDisplayInfo["roleKey"];
+  groupIndex: number;
 }) {
   const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
 
   return (
-    <SidebarGroup>
-      <SidebarGroupLabel>{label}</SidebarGroupLabel>
-      <SidebarGroupContent>
-        <SidebarMenu>
-          {items
-            .filter((item) => !("permission" in item) || hasPermission(roleKey, item.permission as PermissionKey))
-            .map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.url || pathname.startsWith(item.url + "/");
-              return (
-                <SidebarMenuItem key={item.label}>
-                  <SidebarMenuButton
-                    isActive={isActive}
-                    render={<a href={item.url} onClick={() => isMobile && setOpenMobile(false)} />}
-                    tooltip={item.label}
+    <motion.div
+      initial={{ opacity: 0, x: -12 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{
+        duration: 0.18,
+        ease: [0, 0, 0.2, 1],
+        delay: groupIndex * 0.06,
+      }}
+    >
+      <SidebarGroup>
+        <SidebarGroupLabel>{label}</SidebarGroupLabel>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            {items
+              .filter((item) => !("permission" in item) || hasPermission(roleKey, item.permission as PermissionKey))
+              .map((item, index) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.url || pathname.startsWith(item.url + "/");
+                return (
+                  <motion.div
+                    key={item.label}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{
+                      duration: 0.15,
+                      ease: [0, 0, 0.2, 1],
+                      delay: groupIndex * 0.06 + index * 0.04,
+                    }}
                   >
-                    <Icon weight={isActive ? "fill" : "regular"} />
-                    <span>{item.label}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              );
-            })}
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        isActive={isActive}
+                        render={<a href={item.url} onClick={() => isMobile && setOpenMobile(false)} />}
+                        tooltip={item.label}
+                      >
+                        <Icon weight={isActive ? "fill" : "regular"} />
+                        <span>{item.label}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </motion.div>
+                );
+              })}
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+    </motion.div>
   );
 }
 
@@ -153,9 +182,10 @@ export function CorreTopSidebar({ logoUrl, tenantName }: { logoUrl?: string | nu
         </div>
       </SidebarHeader>
       <SidebarContent>
-        <NavigationGroup items={primaryItems} label="Visão geral" roleKey={roleKey} />
-        <NavigationGroup items={managementItems} label="Gestão" roleKey={roleKey} />
-        <NavigationGroup items={administrationItems} label="Administração" roleKey={roleKey} />
+        <NavigationGroup items={primaryItems} label="Atendimento" roleKey={roleKey} groupIndex={0} />
+        <NavigationGroup items={managementItems} label="Gestão" roleKey={roleKey} groupIndex={1} />
+        <NavigationGroup items={operationItems} label="Operação" roleKey={roleKey} groupIndex={2} />
+        <NavigationGroup items={systemItems} label="Sistema" roleKey={roleKey} groupIndex={3} />
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>

@@ -95,7 +95,6 @@ export async function getCarriers() {
 
   return rows;
 }
-
 // ─── Update carrier ───────────────────────────────────────────────────────
 
 const carrierUpdateInput = z.object({
@@ -367,6 +366,85 @@ export async function deletePlanAction(
       .returning({ id: schema.carrierPlans.id });
 
     if (result.length === 0) return { error: "Plano não encontrado." };
+    revalidatePath("/catalogo");
+    return { success: true };
+  } catch (error) {
+    return actionError(error);
+  }
+}
+
+// ─── Get plan prices ──────────────────────────────────────────────────────
+
+export async function getPlanPrices(planId: string) {
+  const context = await getRequiredTenantContext();
+  const db = getDatabase();
+
+  return db
+    .select({
+      id: schema.carrierPlanPrices.id,
+      ageBand: schema.carrierPlanPrices.ageBand,
+      monthlyPrice: schema.carrierPlanPrices.monthlyPrice,
+    })
+    .from(schema.carrierPlanPrices)
+    .where(
+      and(
+        eq(schema.carrierPlanPrices.planId, planId),
+        eq(schema.carrierPlanPrices.tenantId, context.tenantId)
+      )
+    )
+    .orderBy(schema.carrierPlanPrices.ageBand);
+}
+
+// ─── Upsert plan prices ───────────────────────────────────────────────────
+
+const planPriceInput = z.object({
+  planId: z.string().trim().min(1, "Plano inválido."),
+  prices: z.array(
+    z.object({
+      ageBand: z.string().trim().min(1, "Faixa etária inválida."),
+      monthlyPrice: z.number().nonnegative("Preço deve ser positivo."),
+    })
+  ),
+});
+
+export async function upsertPlanPricesAction(
+  planId: string,
+  prices: { ageBand: string; monthlyPrice: number }[]
+): Promise<CatalogActionState> {
+  const parsed = planPriceInput.safeParse({ planId, prices });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+
+  try {
+    const context = await getDirectorContext();
+    const db = getDatabase();
+
+    // Verify ownership of the plan
+    const [plan] = await db
+      .select({ id: schema.carrierPlans.id })
+      .from(schema.carrierPlans)
+      .where(and(eq(schema.carrierPlans.id, planId), eq(schema.carrierPlans.tenantId, context.tenantId)))
+      .limit(1);
+    if (!plan) return { error: "Plano não encontrado." };
+
+    await db.transaction(async (tx) => {
+      // Clear existing prices for this plan
+      await tx
+        .delete(schema.carrierPlanPrices)
+        .where(eq(schema.carrierPlanPrices.planId, planId));
+
+      if (parsed.data.prices.length > 0) {
+        await tx.insert(schema.carrierPlanPrices).values(
+          parsed.data.prices.map((p) => ({
+            id: randomUUID(),
+            tenantId: context.tenantId,
+            planId,
+            ageBand: p.ageBand,
+            monthlyPrice: p.monthlyPrice.toFixed(2),
+          }))
+        );
+      }
+    });
+
     revalidatePath("/catalogo");
     return { success: true };
   } catch (error) {
