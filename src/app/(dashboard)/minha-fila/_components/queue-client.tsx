@@ -42,8 +42,6 @@ const sourceLabels: Record<string, string> = {
 
 export function BrokerQueueClient({
   leads,
-  userName,
-  availabilityStatus,
 }: {
   leads: Array<{
     id: string;
@@ -56,8 +54,6 @@ export function BrokerQueueClient({
     lastInteractionAt: Date | null;
     taskCount: number;
   }>;
-  userName: string;
-  availabilityStatus: string;
 }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");

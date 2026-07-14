@@ -12,7 +12,6 @@ import {
   Users,
 } from "@/components/huge-icons";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
@@ -27,7 +26,7 @@ export default async function ReportsPage() {
   const canExport = hasPermission(context.role, "exportar_relatorios");
 
   // Fetch aggregate stats
-  const [leadCount, clientCount, quoteCount, saleCount, memberCount] =
+  const [leadCount, clientCount, quoteCount, saleCount] =
     await Promise.all([
       db
         .select({ count: count() })
@@ -45,16 +44,6 @@ export default async function ReportsPage() {
         .select({ count: count() })
         .from(schema.sales)
         .where(eq(schema.sales.tenantId, context.tenantId)),
-      db
-        .select({ count: count() })
-        .from(schema.tenantMemberships)
-        .where(
-          and(
-            eq(schema.tenantMemberships.tenantId, context.tenantId),
-            eq(schema.tenantMemberships.status, "active"),
-            eq(schema.tenantMemberships.role, "broker"),
-          ),
-        ),
     ]);
 
   // Get this month's sales revenue

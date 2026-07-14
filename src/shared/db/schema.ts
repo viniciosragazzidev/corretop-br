@@ -461,6 +461,15 @@ export const auditLogs = pgTable(
   (table) => [index("audit_logs_user_created_idx").on(table.userId, table.createdAt)],
 );
 
+export const systemSettings = pgTable(
+  "system_settings",
+  {
+    key: text("key").primaryKey(),
+    value: text("value").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  }
+);
+
 export const notifications = pgTable(
   "notifications",
   {

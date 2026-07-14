@@ -1,8 +1,7 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, count, desc, eq, inArray } from "drizzle-orm";
 
 import { DashboardHeader } from "@/components/dashboard-header";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
@@ -24,23 +23,7 @@ export default async function MinhaFilaPage() {
   const context = await getRequiredTenantContext();
   const db = getDatabase();
 
-  const [user, membership, leads] = await Promise.all([
-    db
-      .select({ name: schema.user.name })
-      .from(schema.user)
-      .where(eq(schema.user.id, context.userId))
-      .limit(1),
-    db
-      .select({ availabilityStatus: schema.tenantMemberships.availabilityStatus })
-      .from(schema.tenantMemberships)
-      .where(
-        and(
-          eq(schema.tenantMemberships.tenantId, context.tenantId),
-          eq(schema.tenantMemberships.userId, context.userId),
-        ),
-      )
-      .limit(1),
-    db
+  const leads = await db
       .select({
         id: schema.leads.id,
         name: schema.leads.nome,
@@ -59,8 +42,7 @@ export default async function MinhaFilaPage() {
           eq(schema.leads.corretorId, context.userId),
         ),
       )
-      .orderBy(desc(schema.leads.createdAt)),
-  ]);
+      .orderBy(desc(schema.leads.createdAt));
 
   // Get last interaction per lead
   const interactions = leads.length
@@ -81,11 +63,11 @@ export default async function MinhaFilaPage() {
   }
 
   // Count tasks per lead
-  const tasks = leads.length
+  const taskCounts = leads.length
     ? await db
         .select({
           leadId: schema.leadTasks.leadId,
-          count: schema.leadTasks.id,
+          taskCount: count(schema.leadTasks.id),
         })
         .from(schema.leadTasks)
         .where(
@@ -94,11 +76,12 @@ export default async function MinhaFilaPage() {
             eq(schema.leadTasks.tenantId, context.tenantId),
           ),
         )
+        .groupBy(schema.leadTasks.leadId)
     : [];
 
   const taskCount = new Map<string, number>();
-  for (const task of tasks) {
-    taskCount.set(task.leadId, (taskCount.get(task.leadId) || 0) + 1);
+  for (const tc of taskCounts) {
+    taskCount.set(tc.leadId, tc.taskCount);
   }
 
   const totalLeads = leads.length;
@@ -219,10 +202,6 @@ export default async function MinhaFilaPage() {
           <CardContent className="p-0">
             <BrokerQueueClient
               leads={enrichedLeads}
-              userName={user[0]?.name ?? "Corretor"}
-              availabilityStatus={
-                membership[0]?.availabilityStatus ?? "available"
-              }
             />
           </CardContent>
         </Card>

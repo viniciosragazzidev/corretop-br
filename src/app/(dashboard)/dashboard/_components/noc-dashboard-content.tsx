@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { motion } from "motion/react";
 import {
   ArrowUpRight,
@@ -38,7 +39,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { cardItemVariants, cardGridVariants } from "@/shared/animations";
+import { cardItemVariants } from "@/shared/animations";
 import type {
   DirectorDashboardData,
   ManagerDashboardData,
@@ -81,6 +82,68 @@ function ActivityIcon({ type }: { type: string }) {
         <Circle className="size-3.5 text-muted-foreground" weight="fill" />
       );
   }
+}
+
+function DirectorActionCenter({ data }: { data: DirectorDashboardData }) {
+  const actions = [
+    {
+      label: "Leads sem contato",
+      value: data.totals.unworked,
+      description: "Distribuídos há mais de 15 minutos",
+      href: "/leads?status=distributed",
+      tone: data.totals.unworked > 0 ? "border-warning/30 bg-warning/[0.06]" : "border-border/60 bg-muted/20",
+      icon: Warning,
+    },
+    {
+      label: "Leads estagnados",
+      value: data.totals.stalled,
+      description: "Sem avanço há mais de 3 dias",
+      href: "/leads?status=stalled",
+      tone: data.totals.stalled > 0 ? "border-destructive/30 bg-destructive/[0.05]" : "border-border/60 bg-muted/20",
+      icon: XCircle,
+    },
+    {
+      label: "Equipe ativa",
+      value: `${data.totals.activeBrokers}/${data.totals.members}`,
+      description: "Membros ativos no tenant",
+      href: "/equipe",
+      tone: "border-border/60 bg-muted/20",
+      icon: Users,
+    },
+    {
+      label: "Configuração",
+      value: "Revisar",
+      description: "Marca, integrações e segurança",
+      href: "/settings",
+      tone: "border-border/60 bg-muted/20",
+      icon: Globe,
+    },
+  ] as const;
+
+  return (
+    <section aria-labelledby="director-action-center" className="space-y-3">
+      <div>
+        <h2 id="director-action-center" className="text-base font-semibold tracking-tight">Atenção agora</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Comece pelo que pode afetar atendimento, equipe ou configuração.</p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {actions.map((action) => {
+          const Icon = action.icon;
+          return (
+            <Link key={action.label} href={action.href} className={`group rounded-xl border p-4 outline-none transition-colors hover:border-primary/30 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring ${action.tone}`}>
+              <div className="flex items-start justify-between gap-3">
+                <Icon className="size-4 text-muted-foreground" weight="fill" />
+                <ArrowUpRight className="size-4 text-muted-foreground transition-transform duration-[var(--duration-quick)] group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+              </div>
+              <p className="mt-4 text-sm font-medium">{action.label}</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums">{action.value}</p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">{action.description}</p>
+            </Link>
+          );
+        })}
+      </div>
+    </section>
+  );
 }
 
 // ─── Metric Card ─────────────────────────────────────────────────────────────
@@ -345,6 +408,8 @@ function DirectorNocContent({ data }: { data: DirectorDashboardData }) {
           </Badge>
         </div>
       </section>
+
+      <DirectorActionCenter data={data} />
 
       {/* Metric Cards */}
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
@@ -1267,7 +1332,6 @@ export default function NocDashboardContent(props: RoleProps) {
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
 
   useEffect(() => {
-    setCurrentTime(new Date());
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);

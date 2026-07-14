@@ -51,42 +51,32 @@ export default async function IntegrityPage() {
     .limit(30);
 
   // Fetch integrity metrics
-  const [leadCount, totalLeads, stalledLeads, unworkedLeads] =
-    await Promise.all([
-      db
-        .select({ count: count() })
-        .from(schema.leads)
-        .where(eq(schema.leads.tenantId, context.tenantId)),
-      db
-        .select({ count: count() })
-        .from(schema.leads)
-        .where(
-          and(
-            eq(schema.leads.tenantId, context.tenantId),
-            inArray(schema.leads.status, activeLeadStatuses),
-          ),
+  const [leadCount, stalledLeads, unworkedLeads] = await Promise.all([
+    db
+      .select({ count: count() })
+      .from(schema.leads)
+      .where(eq(schema.leads.tenantId, context.tenantId)),
+    db
+      .select({ count: count() })
+      .from(schema.leads)
+      .where(
+        and(
+          eq(schema.leads.tenantId, context.tenantId),
+          inArray(schema.leads.status, activeLeadStatuses),
+          sql`${schema.leads.stageEnteredAt} < ${new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000)}`,
         ),
-      db
-        .select({ count: count() })
-        .from(schema.leads)
-        .where(
-          and(
-            eq(schema.leads.tenantId, context.tenantId),
-            sql`${schema.leads.status} IN (${sql.join(activeLeadStatuses.map((s) => sql`${s}`), sql`, ")`)})`,
-            sql`${schema.leads.stageEnteredAt} < ${new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000)}`,
-          ),
+      ),
+    db
+      .select({ count: count() })
+      .from(schema.leads)
+      .where(
+        and(
+          eq(schema.leads.tenantId, context.tenantId),
+          eq(schema.leads.status, "distributed"),
+          sql`${schema.leads.assignedAt} < ${new Date(now.getTime() - 15 * 60 * 1000)}`,
         ),
-      db
-        .select({ count: count() })
-        .from(schema.leads)
-        .where(
-          and(
-            eq(schema.leads.tenantId, context.tenantId),
-            eq(schema.leads.status, "distributed"),
-            sql`${schema.leads.assignedAt} < ${new Date(now.getTime() - 15 * 60 * 1000)}`,
-          ),
-        ),
-    ]);
+      ),
+  ]);
 
   const alerts = [
     {
@@ -214,7 +204,7 @@ export default async function IntegrityPage() {
                       Nenhum evento de auditoria registrado ainda.
                     </div>
                   )}
-                  {auditLogs.map((log, i) => (
+                  {auditLogs.map((log) => (
                     <div
                       key={log.id}
                       className="flex items-start gap-3 px-6 py-3.5 transition-colors hover:bg-muted/20"

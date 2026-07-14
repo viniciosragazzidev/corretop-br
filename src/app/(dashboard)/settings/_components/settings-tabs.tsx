@@ -3,11 +3,10 @@
 import { type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Building06Icon, Settings01Icon, LinkSquare01Icon, SecurityCheckIcon } from "@hugeicons/core-free-icons";
+import { Building06Icon, LinkSquare01Icon, SecurityCheckIcon } from "@hugeicons/core-free-icons";
 
 const tabs = [
   { id: "empresa", label: "Empresa", icon: Building06Icon },
-  { id: "sistema", label: "Sistema", icon: Settings01Icon },
   { id: "integracoes", label: "Integrações", icon: LinkSquare01Icon },
   { id: "seguranca", label: "Segurança", icon: SecurityCheckIcon },
 ] as const;

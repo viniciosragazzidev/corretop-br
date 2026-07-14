@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BookOpen,
   Bell,
   Buildings,
   ChatCircleText,
@@ -69,11 +70,13 @@ const managementItems = [
   { label: "Metas", icon: Target, url: "/metas", permission: "gerenciar_metas" as const },
   { label: "Relatórios", icon: ChartBar, url: "/relatorios" },
   { label: "Filiais", icon: Buildings, url: "/filiais", permission: "gerenciar_filiais" as const },
+  { label: "Comissoes", icon: CurrencyCircleDollar, url: "/configuracoes/comissoes", permission: "gerenciar_comissoes" as const },
 ];
 
 const operationItems = [
   { label: "NOC", icon: Monitor, url: "/noc", permission: "ver_dashboard_equipe" as const },
   { label: "Integridade", icon: ShieldCheck, url: "/integridade", permission: "ver_painel_integridade" as const },
+  { label: "Notificacoes", icon: Bell, url: "/notificacoes" },
 ];
 
 const systemItems = [
@@ -82,6 +85,10 @@ const systemItems = [
   { label: "Assinatura", icon: CreditCard, url: "/assinatura", permission: "configurar_white_label" as const },
   { label: "Configurações", icon: SlidersHorizontal, url: "/settings" },
   { label: "Roadmap", icon: RoadHorizon, url: "/roadmap" },
+];
+
+const supportItems = [
+  { label: "Guia do sistema", icon: BookOpen, url: "/guia" },
 ];
 
 function NavigationGroup({
@@ -185,10 +192,11 @@ export function CorreTopSidebar({ logoUrl }: { logoUrl?: string | null }) {
         </Link>
       </SidebarHeader>
       <SidebarContent>
-        <NavigationGroup items={primaryItems} label="Atendimento" roleKey={roleKey} groupIndex={0} />
+        <NavigationGroup items={primaryItems} label="Operacao" roleKey={roleKey} groupIndex={0} />
         <NavigationGroup items={managementItems} label="Gestão" roleKey={roleKey} groupIndex={1} />
         <NavigationGroup items={operationItems} label="Operação" roleKey={roleKey} groupIndex={2} />
-        <NavigationGroup items={systemItems} label="Sistema" roleKey={roleKey} groupIndex={3} />
+        <NavigationGroup items={systemItems} label="Administracao" roleKey={roleKey} groupIndex={3} />
+        <NavigationGroup items={supportItems} label="Ajuda" roleKey={roleKey} groupIndex={4} />
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
