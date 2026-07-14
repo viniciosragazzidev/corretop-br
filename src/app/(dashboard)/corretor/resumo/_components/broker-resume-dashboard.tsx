@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowRight, Bell, BellRinging, MagnifyingGlass, Plus } from "@phosphor-icons/react"
+import { ArrowRight, Bell, BellRinging, MagnifyingGlass, Plus } from "@/components/huge-icons"
 import { type CSSProperties, type ReactNode, useMemo, useState } from "react"
 
 import { CorretorSidebar } from "@/components/corretor-sidebar"

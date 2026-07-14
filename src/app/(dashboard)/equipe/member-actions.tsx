@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
-import { DotsThreeVertical, PencilSimple, Power, Trash } from "@phosphor-icons/react";
+import { DotsThreeVertical, PencilSimple, Power, Trash } from "@/components/huge-icons";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 

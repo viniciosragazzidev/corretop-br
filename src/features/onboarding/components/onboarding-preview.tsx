@@ -1,4 +1,4 @@
-import { Buildings, Handshake, Users } from "@phosphor-icons/react"
+import { Buildings, Handshake, Users } from "@/components/huge-icons"
 
 export function OnboardingPreview() {
   return (

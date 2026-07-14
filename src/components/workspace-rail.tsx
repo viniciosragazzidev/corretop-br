@@ -1,10 +1,11 @@
 "use client";
 
-import { CurrencyCircleDollar, SquaresFour } from "@phosphor-icons/react";
+import { CurrencyCircleDollar, SquaresFour } from "@/components/huge-icons";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/utils";
+import { QuickActionsMenu } from "@/components/quick-actions-menu";
 
 const areas = [
   { label: "Área administrativa", href: "/dashboard", icon: SquaresFour },
@@ -16,11 +17,18 @@ export function WorkspaceRail() {
   const financialActive = pathname === "/financeiro" || pathname.startsWith("/financeiro/");
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-30 hidden w-(--workspace-rail-width) flex-col items-center border-r border-sidebar-border bg-sidebar py-4 text-sidebar-foreground md:flex" aria-label="Áreas do sistema">
-      <nav className="flex h-full flex-col items-center justify-between">
-        <WorkspaceRailButton area={areas[0]} active={!financialActive} />
-        <WorkspaceRailButton area={areas[1]} active={financialActive} />
-      </nav>
+    <aside
+      className="fixed inset-y-0 left-0 z-30 hidden w-(--workspace-rail-width) flex-col items-center border-r border-sidebar-border bg-sidebar py-4 text-sidebar-foreground md:flex"
+      aria-label="Áreas do sistema"
+    >
+      <div className="flex h-full flex-col items-center justify-between">
+        <div className="flex flex-col items-center gap-3 pt-2">
+          <WorkspaceRailButton area={areas[0]} active={!financialActive} />
+          <div className="h-px w-5 bg-sidebar-border/40" />
+          <WorkspaceRailButton area={areas[1]} active={financialActive} />
+        </div>
+        {!financialActive ? <QuickActionsMenu /> : null}
+      </div>
     </aside>
   );
 }

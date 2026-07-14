@@ -201,6 +201,51 @@ body { margin: 0; background: var(--background); color: var(--foreground); font-
 @keyframes t-sync-enter { from { opacity: 0; transform: translateY(4px); } to { opacity: 0.6; transform: translateY(0); } }
 @keyframes t-sync-shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-4px); } 40% { transform: translateX(4px); } 60% { transform: translateX(-2px); } 80% { transform: translateX(2px); } }
 
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
 @media (prefers-reduced-motion: reduce) { .t-tabs-pill, .t-tab { transition: none !important; } }
 @media (prefers-reduced-motion: reduce) { .t-timeline-item { animation: none !important; } }
 @media (prefers-reduced-motion: reduce) { .t-sync-enter, .t-sync-error { animation: none !important; transform: none !important; } .t-sync-confirmed { transition: opacity 1ms linear, color 1ms linear; } }
+
+:root {
+  --panel-open-dur: 400ms;
+  --panel-close-dur: 350ms;
+  --panel-translate-y: 100px;
+  --panel-blur: 2px;
+  --panel-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+.t-panel-slide {
+  transform: translateY(var(--panel-translate-y));
+  opacity: 0;
+  filter: blur(var(--panel-blur));
+  pointer-events: none;
+  transition:
+    transform var(--panel-close-dur) var(--panel-ease),
+    opacity var(--panel-close-dur) var(--panel-ease),
+    filter var(--panel-close-dur) var(--panel-ease);
+  will-change: transform, opacity, filter;
+}
+.t-panel-slide[data-open="true"] {
+  transform: translateY(0);
+  opacity: 1;
+  filter: blur(0);
+  pointer-events: auto;
+  animation: t-panel-slide-enter var(--panel-open-dur) var(--panel-ease) both;
+  transition:
+    transform var(--panel-open-dur) var(--panel-ease),
+    opacity var(--panel-open-dur) var(--panel-ease),
+    filter var(--panel-open-dur) var(--panel-ease);
+}
+@keyframes t-panel-slide-enter {
+  from { transform: translateY(var(--panel-translate-y)); opacity: 0; filter: blur(var(--panel-blur)); }
+  to { transform: translateY(0); opacity: 1; filter: blur(0); }
+}
+@media (prefers-reduced-motion: reduce) { .t-panel-slide { transition: none !important; } }

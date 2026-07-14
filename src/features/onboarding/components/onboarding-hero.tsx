@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowRight, Compass } from "@phosphor-icons/react"
+import { ArrowRight, Compass } from "@/components/huge-icons"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import type { TenantOnboardingStep } from "../types/onboarding.types"

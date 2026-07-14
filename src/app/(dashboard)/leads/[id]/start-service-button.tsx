@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, type FormEvent } from "react";
-import { ChatCircleText } from "@phosphor-icons/react";
+import { ChatCircleText } from "@/components/huge-icons";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";

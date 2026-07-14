@@ -1,6 +1,6 @@
 "use client"
 
-import { Bell, ChartBar, FileArrowDown, MagnifyingGlass, Plus, ShieldCheck } from "@phosphor-icons/react"
+import { Bell, ChartBar, FileArrowDown, MagnifyingGlass, Plus, ShieldCheck } from "@/components/huge-icons"
 import { type CSSProperties, type ReactNode, useMemo, useState } from "react"
 
 import { CorreTopSidebar } from "@/components/corretop-sidebar"

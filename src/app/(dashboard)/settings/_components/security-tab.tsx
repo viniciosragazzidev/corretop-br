@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { CheckCircle, Copy, Key, LockKey, ShieldCheck, Warning } from "@phosphor-icons/react";
+import { CheckCircle, Copy, Key, LockKey, ShieldCheck, Warning } from "@/components/huge-icons";
 
 import { authClient } from "@/shared/auth/client";
 import { recordSecurityAuditAction } from "../security-actions";

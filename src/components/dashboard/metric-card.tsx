@@ -1,4 +1,4 @@
-import { ArrowDownRight, ArrowUpRight } from "@phosphor-icons/react"
+import { ArrowDownRight, ArrowUpRight } from "@/components/huge-icons"
 
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"

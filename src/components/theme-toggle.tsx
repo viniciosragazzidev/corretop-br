@@ -1,6 +1,6 @@
 "use client";
 
-import { MoonStars, SunDim } from "@phosphor-icons/react";
+import { MoonStars, SunDim } from "@/components/huge-icons";
 import { useSyncExternalStore } from "react";
 
 import { Button } from "@/components/ui/button";

@@ -2,7 +2,7 @@
 
 import { useCallback, useState, useTransition, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { X } from "@phosphor-icons/react"
+import { X } from "@/components/huge-icons"
 
 import { Dialog, DialogPopup, DialogClose } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"

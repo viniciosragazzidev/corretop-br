@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect } from "react";
-import { Check, WarningCircle } from "@phosphor-icons/react";
+import { Check, WarningCircle } from "@/components/huge-icons";
 import { toast } from "sonner";
 
 import { createManualLeadAction, type LeadCreateState } from "../actions";

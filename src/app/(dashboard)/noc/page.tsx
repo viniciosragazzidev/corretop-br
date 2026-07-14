@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { motion } from "motion/react";
 import {
   ArrowUpRight,
   ChartBar,
@@ -16,7 +17,7 @@ import {
   Warning,
   WifiHigh,
   XCircle,
-} from "@phosphor-icons/react";
+} from "@/components/huge-icons";
 import {
   Area,
   AreaChart,
@@ -142,27 +143,37 @@ function NocMetricCard({
   delay: number;
 }) {
   return (
-    <Card
-      className="animate-in rounded-xl border-border/70 bg-card shadow-none transition-all duration-300 hover:border-primary/25 hover:shadow-sm"
-      style={{ animation: `fadeSlideIn 400ms ease-out ${delay}ms both` }}
+    <motion.div
+      className="h-full"
+      variants={{
+        hidden: { opacity: 0, y: 12, scale: 0.98 },
+        visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.18, ease: [0, 0, 0.2, 1] } },
+      }}
+      initial="hidden"
+      animate="visible"
+      transition={{ delay: delay / 1000 }}
+      whileHover={{ y: -2, transition: { duration: 0.2, ease: [0, 0, 0.2, 1] } }}
+      whileTap={{ scale: 0.995, transition: { duration: 0.1 } }}
     >
-      <CardHeader className="pb-1">
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-sm text-muted-foreground">{label}</span>
-          <Badge
-            className="rounded-md text-xs font-medium"
-            variant={trend === "up" ? "success" : "destructive"}
-          >
-            <ArrowUpRight className="mr-0.5 size-3" weight="bold" />
-            {change}
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <p className="text-2xl font-semibold tracking-tight tabular-nums lg:text-3xl">{value}</p>
-        <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+      <Card className="group/card h-full min-w-0 rounded-xl border-border/70 bg-card shadow-none transition-all duration-200 hover:border-primary/25 hover:shadow-sm hover:shadow-primary/5">
+        <CardHeader className="min-w-0 pb-2">
+          <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+            <span className="min-w-0 text-sm leading-5 text-muted-foreground transition-colors duration-200 group-hover/card:text-foreground">{label}</span>
+            <Badge
+              className="shrink-0 rounded-md text-xs font-medium transition-transform duration-200 group-hover/card:scale-105"
+              variant={trend === "up" ? "success" : "destructive"}
+            >
+              <ArrowUpRight className="mr-0.5 size-3 transition-transform duration-200 group-hover/card:translate-x-0.5 group-hover/card:-translate-y-0.5" weight="bold" />
+              {change}
+            </Badge>
+          </div>
+        </CardHeader>
+      <CardContent className="min-w-0">
+        <p className="whitespace-nowrap text-2xl font-semibold tracking-tight tabular-nums transition-colors duration-200 group-hover/card:text-primary lg:text-3xl">{value}</p>
+        <p className="mt-1 min-h-10 text-xs leading-5 text-muted-foreground transition-colors duration-200 group-hover/card:text-foreground/70">{description}</p>
       </CardContent>
     </Card>
+    </motion.div>
   );
 }
 
@@ -188,7 +199,6 @@ function ChartTooltipWrapper({ active, payload, label }: { active?: boolean; pay
 export default function NocPage() {  const [currentTime, setCurrentTime] = useState<Date | null>(null);
 
   useEffect(() => {
-    setCurrentTime(new Date());
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
@@ -261,16 +271,21 @@ export default function NocPage() {  const [currentTime, setCurrentTime] = useSt
         </section>
 
         {/* Metric Cards */}
-        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
           {metrics.map((metric, i) => (
             <NocMetricCard key={metric.label} {...metric} delay={i * 80} />
           ))}
         </section>
 
         {/* Charts Row */}
-        <section className="grid grid-cols-1 gap-6 lg:grid-cols-7">
+        <section className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {/* Lead Flow Area Chart */}
-          <Card className="rounded-xl border-border/70 bg-card shadow-none lg:col-span-4">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, ease: [0, 0, 0.2, 1] }}
+          >
+          <Card className="min-w-0 rounded-xl border-border/70 bg-card shadow-none">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
@@ -315,17 +330,23 @@ export default function NocPage() {  const [currentTime, setCurrentTime] = useSt
                     <XAxis axisLine={false} dataKey="dia" tick={{ fill: "var(--muted-foreground)", fontSize: 12 }} tickLine={false} />
                     <YAxis axisLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 12 }} tickLine={false} />
                     <Tooltip content={<ChartTooltipWrapper />} cursor={{ stroke: "var(--border)", strokeDasharray: "3 3" }} />
-                    <Area dataKey="leads" fill="url(#leadsGradient)" stroke="var(--chart-1)" strokeWidth={2} type="monotone" />
-                    <Area dataKey="contatos" fill="url(#contatosGradient)" stroke="var(--chart-3)" strokeWidth={2} type="monotone" />
-                    <Area dataKey="conversoes" fill="url(#conversoesGradient)" stroke="var(--chart-5)" strokeWidth={2} type="monotone" />
+                    <Area dataKey="leads" fill="url(#leadsGradient)" stroke="var(--chart-1)" strokeWidth={2} type="monotone" animationDuration={500} animationEasing="ease-out" />
+                    <Area dataKey="contatos" fill="url(#contatosGradient)" stroke="var(--chart-3)" strokeWidth={2} type="monotone" animationDuration={500} animationEasing="ease-out" animationBegin={100} />
+                    <Area dataKey="conversoes" fill="url(#conversoesGradient)" stroke="var(--chart-5)" strokeWidth={2} type="monotone" animationDuration={500} animationEasing="ease-out" animationBegin={200} />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
             </CardContent>
           </Card>
+          </motion.div>
 
           {/* Status Distribution Pie */}
-          <Card className="rounded-xl border-border/70 bg-card shadow-none lg:col-span-3">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, ease: [0, 0, 0.2, 1], delay: 0.08 }}
+          >
+          <Card className="min-w-0 rounded-xl border-border/70 bg-card shadow-none">
             <CardHeader>
               <CardTitle>Distribuição por Status</CardTitle>
               <CardDescription>Distribuição atual dos leads em cada etapa</CardDescription>
@@ -344,6 +365,8 @@ export default function NocPage() {  const [currentTime, setCurrentTime] = useSt
                       outerRadius={90}
                       paddingAngle={3}
                       strokeWidth={0}
+                      animationDuration={600}
+                      animationEasing="ease-out"
                     >
                       {statusDistribution.map((entry, i) => (
                         <Cell key={i} fill={entry.color} />
@@ -370,12 +393,18 @@ export default function NocPage() {  const [currentTime, setCurrentTime] = useSt
               </div>
             </CardContent>
           </Card>
+          </motion.div>
         </section>
 
         {/* Second Row: Hourly Activity + Team Performance + System Status */}
-        <section className="grid grid-cols-1 gap-6 lg:grid-cols-7">
+        <section className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
           {/* Hourly Activity Bar Chart */}
-          <Card className="rounded-xl border-border/70 bg-card shadow-none lg:col-span-3">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, ease: [0, 0, 0.2, 1] }}
+          >
+          <Card className="min-w-0 rounded-xl border-border/70 bg-card shadow-none">
             <CardHeader>
               <CardTitle>Atividade Hoje</CardTitle>
               <CardDescription>Leads recebidos e contatos realizados por hora</CardDescription>
@@ -394,23 +423,29 @@ export default function NocPage() {  const [currentTime, setCurrentTime] = useSt
                       )}
                       iconSize={8}
                     />
-                    <Bar barSize={16} dataKey="leads" fill="var(--chart-1)" radius={[3, 3, 0, 0]} />
-                    <Bar barSize={16} dataKey="contatos" fill="var(--chart-3)" radius={[3, 3, 0, 0]} />
+                    <Bar barSize={16} dataKey="leads" fill="var(--chart-1)" radius={[3, 3, 0, 0]} animationDuration={400} animationEasing="ease-out" />
+                    <Bar barSize={16} dataKey="contatos" fill="var(--chart-3)" radius={[3, 3, 0, 0]} animationDuration={400} animationEasing="ease-out" animationBegin={100} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </CardContent>
           </Card>
+          </motion.div>
 
           {/* Team Performance */}
-          <Card className="rounded-xl border-border/70 bg-card shadow-none lg:col-span-2">
+          <Card className="min-w-0 rounded-xl border-border/70 bg-card shadow-none">
             <CardHeader>
               <CardTitle>Desempenho da Equipe</CardTitle>
               <CardDescription>Corretores — leads e conversões hoje</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {teamPerformance.map((member) => (
-                <div key={member.nome}>
+              {teamPerformance.map((member, i) => (
+                <motion.div
+                  key={member.nome}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.15, ease: [0, 0, 0.2, 1], delay: Math.min(i * 0.05, 0.25) }}
+                >
                   <div className="mb-1 flex items-center justify-between text-xs">
                     <span className="font-medium">{member.nome}</span>
                     <span className="text-muted-foreground">
@@ -431,23 +466,26 @@ export default function NocPage() {  const [currentTime, setCurrentTime] = useSt
                       }}
                     />
                   </div>
-                </div>
-              ))}
+                </motion.div>
+                ))}
             </CardContent>
           </Card>
 
           {/* System Health */}
-          <Card className="rounded-xl border-border/70 bg-card shadow-none lg:col-span-2">
+          <Card className="min-w-0 rounded-xl border-border/70 bg-card shadow-none">
             <CardHeader>
               <CardTitle>Status dos Serviços</CardTitle>
               <CardDescription>Saúde atual da infraestrutura</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {services.map((service) => {
+              {services.map((service, i) => {
                 const Icon = service.icon;
                 return (
-                  <div
+                  <motion.div
                     key={service.name}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.15, ease: [0, 0, 0.2, 1], delay: Math.min(i * 0.06, 0.3) }}
                     className="flex items-center gap-3 rounded-lg border border-border/40 bg-muted/20 p-2.5 transition-colors hover:bg-muted/40"
                   >
                     <div
@@ -483,7 +521,7 @@ export default function NocPage() {  const [currentTime, setCurrentTime] = useSt
                         <span>{service.latency}</span>
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
             </CardContent>
@@ -508,10 +546,12 @@ export default function NocPage() {  const [currentTime, setCurrentTime] = useSt
             <ScrollArea className="h-72">
               <div className="space-y-0">
                 {recentActivities.map((activity, i) => (
-                  <div
+                  <motion.div
                     key={activity.id}
-                    className="t-timeline-item flex items-start gap-4 border-b border-border/40 px-6 py-3.5 transition-colors last:border-0 hover:bg-muted/20"
-                    style={{ animationDelay: `${i * 30}ms` }}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.15, ease: [0, 0, 0.2, 1], delay: Math.min(i * 0.03, 0.3) }}
+                    className="flex items-start gap-4 border-b border-border/40 px-6 py-3.5 transition-colors last:border-0 hover:bg-muted/20"
                   >
                     <div className="mt-0.5 flex size-6 items-center justify-center rounded-full bg-muted/60">
                       <ActivityIcon type={activity.type} />
@@ -524,7 +564,7 @@ export default function NocPage() {  const [currentTime, setCurrentTime] = useSt
                         <span>{activity.time}</span>
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             </ScrollArea>
@@ -533,35 +573,26 @@ export default function NocPage() {  const [currentTime, setCurrentTime] = useSt
 
         {/* Bottom Stats Bar */}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <div className="rounded-lg border border-border/40 bg-card p-3 text-center shadow-none">
-            <p className="text-2xl font-bold tabular-nums text-chart-1">{totalLeadsToday}</p>
-            <p className="text-xs text-muted-foreground">Leads na semana</p>
-          </div>
-          <div className="rounded-lg border border-border/40 bg-card p-3 text-center shadow-none">
-            <p className="text-2xl font-bold tabular-nums text-chart-5">{totalConversionsToday}</p>
-            <p className="text-xs text-muted-foreground">Conversões na semana</p>
-          </div>
-          <div className="rounded-lg border border-border/40 bg-card p-3 text-center shadow-none">
-            <p className="text-2xl font-bold tabular-nums text-chart-2">{Math.round((totalConversionsToday / totalLeadsToday) * 100)}%</p>
-            <p className="text-xs text-muted-foreground">Taxa de conversão semanal</p>
-          </div>
-          <div className="rounded-lg border border-border/40 bg-card p-3 text-center shadow-none">
-            <p className="text-2xl font-bold tabular-nums text-chart-4">{services.filter((s) => s.status === "operational").length}/{services.length}</p>
-            <p className="text-xs text-muted-foreground">Serviços operacionais</p>
-          </div>
+          {[
+            { label: 'Leads na semana', value: totalLeadsToday, color: 'text-chart-1' },
+            { label: 'Conversões na semana', value: totalConversionsToday, color: 'text-chart-5' },
+            { label: 'Taxa de conversão semanal', value: `${Math.round((totalConversionsToday / totalLeadsToday) * 100)}%`, color: 'text-chart-2' },
+            { label: 'Serviços operacionais', value: `${services.filter((s) => s.status === "operational").length}/${services.length}`, color: 'text-chart-4' },
+          ].map((stat, i) => (
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.15, ease: [0, 0, 0.2, 1], delay: Math.min(i * 0.05, 0.2) }}
+              className="rounded-lg border border-border/40 bg-card p-3 text-center shadow-none"
+            >
+              <p className={`text-2xl font-bold tabular-nums ${stat.color}`}>{stat.value}</p>
+              <p className="text-xs text-muted-foreground">{stat.label}</p>
+            </motion.div>
+          ))}
         </div>
       </main>
 
-      {/* Animations */}
-      <style>{`
-        @keyframes fadeSlideIn {
-          from { opacity: 0; transform: translateY(12px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-in {
-          animation: fadeSlideIn 400ms ease-out both;
-        }
-      `}</style>
     </>
   );
 }

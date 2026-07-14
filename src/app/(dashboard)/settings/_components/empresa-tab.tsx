@@ -10,7 +10,7 @@ import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { SaveIcon } from "@hugeicons/core-free-icons";
-import { Loader2Icon } from "lucide-react";
+import { Loader2Icon } from "@/components/huge-icons";
 
 type Tenant = {
   name: string;

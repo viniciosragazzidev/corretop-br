@@ -1,4 +1,4 @@
-import { CheckCircle } from "@phosphor-icons/react"
+import { CheckCircle } from "@/components/huge-icons"
 
 const BENEFITS = [
   "Organize filiais e equipes",

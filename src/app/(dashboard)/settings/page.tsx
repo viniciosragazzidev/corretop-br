@@ -8,7 +8,7 @@ import { DashboardHeader } from "@/components/dashboard-header";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
 import { Button } from "@/components/ui/button";
-import { WhatsappLogo } from "@phosphor-icons/react/dist/ssr";
+import { WhatsappLogo } from "@/components/huge-icons";
 import { SecurityTab } from "./_components/security-tab";
 
 export default async function SettingsPage() {

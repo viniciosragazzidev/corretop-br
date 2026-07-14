@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { ArrowRight, Key, LockKey } from "@phosphor-icons/react";
+import { ArrowRight, Key, LockKey } from "@/components/huge-icons";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 

@@ -4,6 +4,7 @@ import {
   foreignKey,
   index,
   integer,
+  numeric,
   pgEnum,
   pgTable,
   text,
@@ -47,6 +48,11 @@ export const leadOrigin = pgEnum("lead_origin", leadOriginValues);
 export const leadInteractionType = pgEnum("lead_interaction_type", leadInteractionTypeValues);
 export const webhookCredentialStatus = pgEnum("webhook_credential_status", webhookCredentialStatusValues);
 export const webhookDeliveryStatus = pgEnum("webhook_delivery_status", webhookDeliveryStatusValues);
+
+export const quoteStatusValues = ["draft", "shared", "sent", "accepted", "expired"] as const;
+export const quoteStatus = pgEnum("quote_status", quoteStatusValues);
+export const taskPriorityValues = ["low", "normal", "urgent"] as const;
+export const taskPriority = pgEnum("task_priority", taskPriorityValues);
 
 const createdAt = timestamp("created_at", { withTimezone: true })
   .notNull()
@@ -223,7 +229,7 @@ export const carrierPlans = pgTable(
       .references(() => carriers.id),
     name: text("name").notNull(),
     type: planType("type").notNull().default("individual"),
-    description: text("description"),
+      description: text("description"),
     coverage: text("coverage"),
     ansRegistration: text("ans_registration"),
     maxEntryAge: integer("max_entry_age"),
@@ -340,6 +346,106 @@ export const leadInteractions = pgTable(
     createdAt,
   },
   (table) => [index("lead_interactions_lead_created_idx").on(table.leadId, table.createdAt)],
+);
+
+export const leadTaskAssignees = pgTable(
+  "lead_task_assignees",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    taskId: text("task_id").notNull().references(() => leadTasks.id, { onDelete: "cascade" }),
+    userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+    createdAt,
+  },
+  (table) => [
+    unique("lead_task_assignees_task_user_unique").on(table.taskId, table.userId),
+    index("lead_task_assignees_tenant_user_idx").on(table.tenantId, table.userId),
+  ],
+);
+
+export const leadTasks = pgTable(
+  "lead_tasks",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    leadId: text("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+    assignedTo: text("assigned_to").references(() => user.id, { onDelete: "set null" }),
+    createdBy: text("created_by").notNull().references(() => user.id),
+    title: text("title").notNull(),
+    description: text("description"),
+    priority: taskPriority("priority").notNull().default("normal"),
+    dueAt: timestamp("due_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("lead_tasks_tenant_lead_idx").on(table.tenantId, table.leadId),
+    index("lead_tasks_assigned_due_idx").on(table.assignedTo, table.dueAt),
+  ],
+);
+
+export const quotes = pgTable(
+  "quotes",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    leadId: text("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+    createdBy: text("created_by").notNull().references(() => user.id),
+    status: quoteStatus("status").notNull().default("draft"),
+    lives: jsonb("lives").notNull().default([]),
+    notes: text("notes"),
+    publicToken: text("public_token").notNull().unique(),
+    sharedAt: timestamp("shared_at", { withTimezone: true }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("quotes_tenant_lead_idx").on(table.tenantId, table.leadId),
+    index("quotes_public_token_idx").on(table.publicToken),
+  ],
+);
+
+export const quoteItems = pgTable(
+  "quote_items",
+  {
+    id: text("id").primaryKey(),
+    quoteId: text("quote_id").notNull().references(() => quotes.id, { onDelete: "cascade" }),
+    planId: text("plan_id").notNull().references(() => carrierPlans.id),
+    monthlyPrice: numeric("monthly_price", { precision: 12, scale: 2 }).notNull(),
+    recommended: boolean("recommended").notNull().default(false),
+    snapshot: jsonb("snapshot").notNull().default({}),
+    createdAt,
+  },
+  (table) => [index("quote_items_quote_idx").on(table.quoteId)],
+);
+
+export const carrierPlanPrices = pgTable(
+  "carrier_plan_prices",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    planId: text("plan_id").notNull().references(() => carrierPlans.id, { onDelete: "cascade" }),
+    ageBand: text("age_band").notNull(),
+    monthlyPrice: numeric("monthly_price", { precision: 12, scale: 2 }).notNull(),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [uniqueIndex("carrier_plan_prices_plan_age_unique").on(table.planId, table.ageBand)],
+);
+
+export const carrierPlanNetworks = pgTable(
+  "carrier_plan_networks",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    planId: text("plan_id").notNull().references(() => carrierPlans.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    city: text("city").notNull(),
+    specialty: text("specialty"),
+    createdAt,
+  },
+  (table) => [index("carrier_plan_networks_plan_city_idx").on(table.planId, table.city)],
 );
 
 export const auditLogs = pgTable(
@@ -585,6 +691,54 @@ export const tenantMembershipRelations = relations(
       references: [branches.id],
     }),
   }),
+);
+
+export const documentStatusValues = ["pending", "approved", "rejected"] as const;
+export const documentStatus = pgEnum("document_status", documentStatusValues);
+
+export const documentRequirements = pgTable(
+  "document_requirements",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    carrierId: text("carrier_id").references(() => carriers.id, { onDelete: "set null" }),
+    planId: text("plan_id").references(() => carrierPlans.id, { onDelete: "set null" }),
+    name: text("name").notNull(),
+    description: text("description"),
+    required: boolean("required").notNull().default(true),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("document_requirements_tenant_idx").on(table.tenantId),
+  ]
+);
+
+export const leadDocuments = pgTable(
+  "lead_documents",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    leadId: text("lead_id")
+      .notNull()
+      .references(() => leads.id, { onDelete: "cascade" }),
+    requirementId: text("requirement_id").references(() => documentRequirements.id, { onDelete: "set null" }),
+    filename: text("filename").notNull(),
+    fileUrl: text("file_url").notNull(),
+    status: documentStatus("status").notNull().default("pending"),
+    uploadedBy: text("uploaded_by").notNull().references(() => user.id),
+    reviewedBy: text("reviewed_by").references(() => user.id),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("lead_documents_tenant_lead_idx").on(table.tenantId, table.leadId),
+  ]
 );
 
 export type TenantRole = (typeof tenantRoleValues)[number];

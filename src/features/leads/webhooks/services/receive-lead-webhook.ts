@@ -3,6 +3,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 
 import { getDatabase, schema } from "@/shared/db";
+import { logger } from "@/shared/infra/logger";
 import { leadWebhookPayloadSchema } from "../schemas/lead-webhook-payload.schema";
 import {
   hashNormalizedWebhookPayload,
@@ -24,11 +25,11 @@ export async function receiveLeadWebhook(
   const { requestId, receivedAt } = requestMetadata;
 
   try {
-    // ── Step 1: Authenticate ──────────────────────────────────────────
+    // ?? Step 1: Authenticate ??????????????????????????????????????????
     const credential = await authenticateLeadWebhook(rawToken, pathTenantId);
     const { tenantId, credentialId, createdBy, branchId: credentialBranchId } = credential;
 
-    // ── Step 2: Validate payload with Zod ──────────────────────────────
+    // ?? Step 2: Validate payload with Zod ??????????????????????????????
     const parsed = leadWebhookPayloadSchema.safeParse(payload);
 
     if (!parsed.success) {
@@ -67,15 +68,15 @@ export async function receiveLeadWebhook(
       };
     }
 
-    // ── Step 3: Normalize data ────────────────────────────────────────
+    // ?? Step 3: Normalize data ????????????????????????????????????????
     const normalized = normalizeWebhookLead(parsed.data);
 
-    // ── Step 4: Generate payload hash ──────────────────────────────────
+    // ?? Step 4: Generate payload hash ??????????????????????????????????
     const payloadHash = hashNormalizedWebhookPayload(
       parsed.data as unknown as Record<string, unknown>,
     );
 
-    // ── Step 5: Check idempotency ─────────────────────────────────────
+    // ?? Step 5: Check idempotency ?????????????????????????????????????
     const idempotency = await resolveLeadWebhookIdempotency(
       credentialId,
       idempotencyKey,
@@ -117,7 +118,7 @@ export async function receiveLeadWebhook(
       };
     }
 
-    // ── Step 6: Resolve branch ────────────────────────────────────────
+    // ?? Step 6: Resolve branch ????????????????????????????????????????
     let branchId: string | null = null;
     try {
       branchId = credentialBranchId ?? await resolveWebhookBranch(tenantId, normalized.branchExternalId);
@@ -150,7 +151,7 @@ export async function receiveLeadWebhook(
       throw error;
     }
 
-    // ── Step 7: Create delivery record ────────────────────────────────
+    // ?? Step 7: Create delivery record ????????????????????????????????
     const deliveryId = randomUUID();
     await getDatabase().insert(schema.webhookDeliveries).values({
       id: deliveryId,
@@ -164,7 +165,7 @@ export async function receiveLeadWebhook(
       receivedAt,
     });
 
-    // ── Step 8: Create lead in transaction ────────────────────────────
+    // ?? Step 8: Create lead in transaction ????????????????????????????
     const { leadId } = await createLeadFromWebhook({
       tenantId,
       branchId,
@@ -187,8 +188,11 @@ export async function receiveLeadWebhook(
       };
     }
 
-    // Unexpected error — return generic 500
-    console.error("[receiveLeadWebhook] Unexpected error:", error);
+    // Unexpected error - return generic 500
+    logger.error("lead_webhook_unexpected_error", {
+      requestId,
+      error: error instanceof Error ? error.message : String(error),
+    });
     return {
       success: false,
       code: "INTERNAL_ERROR",

@@ -1,4 +1,4 @@
-import { CircleDashed } from "@phosphor-icons/react/dist/ssr";
+import { CircleDashed } from "@/components/huge-icons";
 import { PlatformAdminHeader } from "@/components/platform-admin-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
