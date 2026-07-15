@@ -1,15 +1,14 @@
 // ─── CorreTop PWA Service Worker ─────────────────────────────────────────────
-// Versão: 1.0.0
+// Versão: 1.0.1
 // Incremente CACHE_VERSION para forçar atualização do cache.
 
-const CACHE_VERSION = 1;
+const CACHE_VERSION = 2;
 const STATIC_CACHE = `corretop-static-v${CACHE_VERSION}`;
 const NAV_CACHE = `corretop-nav-v${CACHE_VERSION}`;
 const ASSET_CACHE = `corretop-assets-v${CACHE_VERSION}`;
 
 const PRECACHE_URLS = [
-  "/",
-  "/manifest.json",
+  "/manifest.webmanifest",
   "/icon.svg",
 ];
 
