@@ -41,15 +41,23 @@ function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
   )
 }
 
-function SelectValue({ className, children, ...props }: SelectPrimitive.Value.Props) {
+function SelectValue({ className, children, placeholder, ...props }: SelectPrimitive.Value.Props & { placeholder?: React.ReactNode }) {
   const context = React.useContext(SelectContext)
   return (
     <SelectPrimitive.Value
       data-slot="select-value"
       className={cn("flex flex-1 text-left", className)}
       {...(children === undefined && context
-        ? { children: (value: string | null) => context.labels.get(value ?? "") ?? value }
+        ? {
+            children: (value: string | null) => {
+              if (value === null || value === undefined || value === "") {
+                return placeholder ?? null
+              }
+              return context.labels.get(value) ?? value
+            }
+          }
         : { children })}
+      placeholder={placeholder}
       {...props}
     />
   )
