@@ -5,57 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1784060000000,
-      "tag": "0028_branches_distribution_flags",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1784116800000,
-      "tag": "0029_team_job_titles",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1784203200000,
-      "tag": "0030_lead_distribution_system",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1784290000000,
-      "tag": "0031_push_subscriptions",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1784376000000,
-      "tag": "0032_repair_team_job_title",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1784462400000,
-      "tag": "0033_system_settings",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1784548800000,
-      "tag": "0034_repair_membership_job_title",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "7",
-      "when": 1784635200000,
-      "tag": "0035_reconcile_recent_schema",
+      "when": 1784721600000,
+      "tag": "0036_reset_baseline",
       "breakpoints": true
     }
   ]
