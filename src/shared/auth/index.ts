@@ -30,11 +30,11 @@ function createAuth() {
       requireEmailVerification: false,
     },
     plugins: [
-      nextCookies(),
       twoFactor({
         issuer: "CorreTop",
         backupCodeOptions: { amount: 10, storeBackupCodes: "encrypted" },
       }),
+      nextCookies(),
     ],
     session: {
       expiresIn: 60 * 60 * 24 * 7,
