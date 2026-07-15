@@ -50,6 +50,13 @@
       "when": 1784548800000,
       "tag": "0034_repair_membership_job_title",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1784635200000,
+      "tag": "0035_reconcile_recent_schema",
+      "breakpoints": true
     }
   ]
 }
