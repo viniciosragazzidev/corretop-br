@@ -6,10 +6,22 @@ import { getDatabase, schema } from "@/shared/db";
 
 const activeStatuses = ["distributed", "in_contact", "quote_sent", "negotiation", "documentation_pending", "under_analysis"] as const;
 
-/** Escolhe o corretor elegível com a menor carteira ativa (desempate por criação). */
+/**
+ * Escolhe o corretor elegível com a menor carteira ativa (desempate por criação).
+ * Retorna null se a filial não permitir distribuição automática (auto_distribute = false).
+ */
 export async function chooseAvailableBroker(tenantId: string, branchId: string | null) {
   if (!branchId) return null;
   const db = getDatabase();
+
+  // Check if branch has auto-distribution enabled (manager toggle)
+  const [branch] = await db
+    .select({ autoDistribute: schema.branches.autoDistribute })
+    .from(schema.branches)
+    .where(and(eq(schema.branches.id, branchId), eq(schema.branches.tenantId, tenantId)))
+    .limit(1);
+  if (!branch || !branch.autoDistribute) return null;
+
   const brokers = await db
     .select({ id: schema.user.id, createdAt: schema.user.createdAt })
     .from(schema.user)

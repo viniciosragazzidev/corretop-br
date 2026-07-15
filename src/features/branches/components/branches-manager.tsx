@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
-import { PencilSimple, Plus, Power } from "@/components/huge-icons";
+import { PencilSimple, Plus, Power, WifiHigh, XCircle } from "@/components/huge-icons";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -12,9 +12,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Table, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { createBranchAction, toggleBranchAction, updateBranchAction, type BranchActionState } from "@/features/branches/actions";
+import { createBranchAction, toggleBranchAction, toggleAcceptingLeadsAction, updateBranchAction, type BranchActionState } from "@/features/branches/actions";
 
-type Branch = { id: string; name: string; externalId: string | null; status: "active" | "inactive"; memberCount: number };
+type Branch = { id: string; name: string; externalId: string | null; status: "active" | "inactive"; memberCount: number; acceptingLeads: boolean };
 
 function ActionFeedback({ state }: { state: BranchActionState }) {
   useEffect(() => {
@@ -49,6 +49,30 @@ function CreateBranchSheet() {
   return <Sheet open={open} onOpenChange={setOpen}><SheetTrigger render={<Button><Plus weight="bold" /> Nova filial</Button>} /><SheetContent><SheetHeader><SheetTitle>Nova filial</SheetTitle><SheetDescription>Crie uma unidade para organizar equipe e leads.</SheetDescription></SheetHeader><SheetBody><CreateBranchForm onSuccess={() => setOpen(false)} /></SheetBody></SheetContent></Sheet>;
 }
 
+function AcceptingLeadsToggle({ branch }: { branch: Branch }) {
+  const [state, action, pending] = useActionState<BranchActionState, FormData>(toggleAcceptingLeadsAction, {});
+  const accepting = branch.acceptingLeads;
+  return (
+    <form action={action} className="flex items-center gap-2">
+      <input type="hidden" name="branchId" value={branch.id} />
+      <button
+        type="submit"
+        disabled={pending}
+        className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-all duration-200 ${
+          accepting
+            ? "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400"
+            : "bg-muted text-muted-foreground hover:bg-muted/80"
+        } disabled:opacity-50`}
+        title={accepting ? "Clique para pausar recebimento de leads" : "Clique para ativar recebimento de leads"}
+      >
+        {accepting ? <WifiHigh className="size-3.5" /> : <XCircle className="size-3.5" />}
+        {accepting ? "Recebendo" : "Pausado"}
+      </button>
+      <ActionFeedback state={state} />
+    </form>
+  );
+}
+
 function BranchRow({ branch, index }: { branch: Branch; index?: number }) {
   const [updateState, updateAction, updatePending] = useActionState<BranchActionState, FormData>(updateBranchAction, {});
   const [toggleState, toggleAction, togglePending] = useActionState<BranchActionState, FormData>(toggleBranchAction, {});
@@ -59,6 +83,7 @@ function BranchRow({ branch, index }: { branch: Branch; index?: number }) {
       <TableCell className="min-w-40"><Input form={updateFormId} aria-label={`Identificador de ${branch.name}`} name="externalId" defaultValue={branch.externalId ?? ""} placeholder="Sem ID" /></TableCell>
       <TableCell><span className="text-sm">{branch.memberCount}</span><span className="ml-1 text-xs text-muted-foreground">membro(s)</span></TableCell>
       <TableCell><Badge variant="outline" className={branch.status === "active" ? "border-emerald-500/40 text-emerald-500" : "text-muted-foreground"}>{branch.status === "active" ? "Ativa" : "Inativa"}</Badge></TableCell>
+      <TableCell><AcceptingLeadsToggle branch={branch} /></TableCell>
       <TableCell className="pr-5 text-right"><form action={toggleAction}><input type="hidden" name="branchId" value={branch.id} /><Button type="submit" size="sm" variant="ghost" disabled={togglePending}><Power size={15} />{branch.status === "active" ? "Desativar" : "Ativar"}</Button></form><ActionFeedback state={toggleState} /></TableCell>
     </>
   );
@@ -86,11 +111,12 @@ function BranchRow({ branch, index }: { branch: Branch; index?: number }) {
 
 export function BranchesManager({ branches }: { branches: Branch[] }) {
   const activeCount = branches.filter((branch) => branch.status === "active").length;
+  const acceptingCount = branches.filter((branch) => branch.acceptingLeads).length;
   const memberCount = branches.reduce((total, branch) => total + branch.memberCount, 0);
   return (
     <>
       <motion.div
-        className="grid gap-3 sm:grid-cols-3"
+        className="grid gap-3 sm:grid-cols-4"
         initial="hidden"
         animate="visible"
         variants={{
@@ -101,6 +127,7 @@ export function BranchesManager({ branches }: { branches: Branch[] }) {
         {[
           { label: "Total de filiais", value: branches.length } as const,
           { label: "Filiais ativas", value: activeCount } as const,
+          { label: "Recebendo leads", value: acceptingCount } as const,
           { label: "Equipe vinculada", value: memberCount } as const,
         ].map((item) => (
           <motion.div
@@ -122,7 +149,7 @@ export function BranchesManager({ branches }: { branches: Branch[] }) {
         ))}
       </motion.div>
       <Card className="border-border bg-card shadow-none">
-        <CardHeader className="flex flex-col gap-3 border-b border-border sm:flex-row sm:items-end sm:justify-between"><div><CardTitle>Filiais da corretora</CardTitle><CardDescription>Edite dados, acompanhe a equipe vinculada e altere o status operacional.</CardDescription></div><CreateBranchSheet /></CardHeader>
+        <CardHeader className="flex flex-col gap-3 border-b border-border sm:flex-row sm:items-end sm:justify-between"><div><CardTitle>Filiais da corretora</CardTitle><CardDescription>Edite dados, acompanhe a equipe vinculada e controle quais filiais recebem leads.</CardDescription></div><CreateBranchSheet /></CardHeader>
         <CardContent className="p-0">
           {branches.length === 0 ? (
             <motion.div
@@ -142,6 +169,7 @@ export function BranchesManager({ branches }: { branches: Branch[] }) {
                   <TableHead>Identificador</TableHead>
                   <TableHead>Equipe</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Receber leads</TableHead>
                   <TableHead className="pr-5 text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>

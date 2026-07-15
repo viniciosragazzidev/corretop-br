@@ -1,9 +1,8 @@
 "use client";
 
-import { MoonStars, SunDim } from "@/components/huge-icons";
 import { useSyncExternalStore } from "react";
 
-import { Button } from "@/components/ui/button";
+import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/theme-provider";
 
@@ -16,42 +15,32 @@ export function ThemeToggle({ className }: { className?: string }) {
     () => false,
   );
 
-  const isDark = isClient && theme === "dark";
+  function toggle(next: "light" | "dark") {
+    setTheme(next);
+  }
 
-  function toggle() {
-    setTheme(isDark ? "light" : "dark");
+  if (!isClient) {
+    return (
+      <div
+        className={cn(
+          "flex size-9 items-center justify-center rounded-md border border-border/80 bg-background",
+          className,
+        )}
+      />
+    );
   }
 
   return (
-    <Button
-      aria-label={isDark ? "Mudar para tema claro" : "Mudar para tema escuro"}
-      aria-pressed={isDark}
+    <AnimatedThemeToggler
+      aria-label={theme === "dark" ? "Mudar para tema claro" : "Mudar para tema escuro"}
+      aria-pressed={theme === "dark"}
       className={cn(
-        "relative overflow-hidden border-border/80 bg-background text-foreground shadow-none transition-colors hover:bg-muted",
+        "flex size-9 cursor-pointer items-center justify-center rounded-md border border-border/80 bg-background text-foreground shadow-none transition-colors hover:bg-muted",
         className,
       )}
-      onClick={toggle}
-      size="icon-sm"
-      variant="outline"
-      type="button"
-    >
-      <SunDim
-        className={cn(
-          "absolute size-4 transition-all duration-200",
-          isDark
-            ? "scale-75 rotate-90 opacity-0"
-            : "scale-100 rotate-0 opacity-100",
-        )}
-      />
-      <MoonStars
-        className={cn(
-          "absolute size-4 transition-all duration-200",
-          isDark
-            ? "scale-100 rotate-0 opacity-100"
-            : "scale-75 -rotate-90 opacity-0",
-        )}
-      />
-      <span className="sr-only">{isDark ? "Tema escuro" : "Tema claro"}</span>
-    </Button>
+      theme={theme}
+      onThemeChange={toggle}
+      variant="circle"
+    />
   );
 }

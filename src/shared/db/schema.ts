@@ -182,6 +182,8 @@ export const branches = pgTable(
     name: text("name").notNull(),
     externalId: text("external_id"),
     status: branchStatus("status").notNull().default("active"),
+    acceptingLeads: boolean("accepting_leads").notNull().default(true),
+    autoDistribute: boolean("auto_distribute").notNull().default(true),
     createdAt,
     updatedAt,
   },

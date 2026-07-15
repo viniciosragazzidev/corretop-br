@@ -29,3 +29,5 @@ Regras inegociáveis:
   `src/components/unlumen-ui/`. Não crie variações locais de
   botões, campos, cards, tipografia, espaçamento ou estados que já tenham equivalente
   compartilhado; primeiro evolua a variante do componente-base.
+- **Controle pelo Super-Admin e Auditabilidade**: Todas as implementações daqui para frente devem ser auditáveis (gerar logs de auditoria apropriados), editáveis (parâmetros configuráveis) e passíveis de serem ativadas/desativadas pelo super-admin a qualquer momento.
+

@@ -55,19 +55,22 @@ export type ManagerDashboardData = {
   unassigned: number;
   unworked: number;
   stalled: number;
+  branchId: string;
+  autoDistribute: boolean;
 };
 
 export async function getManagerDashboardData(): Promise<ManagerDashboardData> {
   const context = await getRequiredTenantContext();
   const db = getDatabase();
-  const [members, leads] = await Promise.all([
+  const [branch, members, leads] = await Promise.all([
+    db.select({ autoDistribute: schema.branches.autoDistribute }).from(schema.branches).where(and(eq(schema.branches.id, context.branchId!), eq(schema.branches.tenantId, context.tenantId))).limit(1),
     db.select({ userId: schema.tenantMemberships.userId, status: schema.tenantMemberships.status }).from(schema.tenantMemberships).where(and(eq(schema.tenantMemberships.tenantId, context.tenantId), eq(schema.tenantMemberships.branchId, context.branchId!), eq(schema.tenantMemberships.role, "broker"))),
     db.select({ status: schema.leads.status, corretorId: schema.leads.corretorId, assignedAt: schema.leads.assignedAt, stageEnteredAt: schema.leads.stageEnteredAt }).from(schema.leads).where(and(eq(schema.leads.tenantId, context.tenantId), eq(schema.leads.branchId, context.branchId!))),
   ]);
   const now = Date.now();
   const unworked = leads.filter((lead) => lead.status === "distributed" && lead.assignedAt && now - lead.assignedAt.getTime() > 15 * 60 * 1000).length;
   const stalled = leads.filter((lead) => (activeLeadStatuses as readonly string[]).includes(lead.status) && now - lead.stageEnteredAt.getTime() > 3 * 24 * 60 * 60 * 1000).length;
-  return { teamSize: members.length, activeMembers: members.filter((member) => member.status === "active").length, leadsTotal: leads.length, newLeads: leads.filter((lead) => lead.status === "new").length, inContact: leads.filter((lead) => lead.status === "in_contact").length, unassigned: leads.filter((lead) => !lead.corretorId).length, unworked, stalled };
+  return { teamSize: members.length, activeMembers: members.filter((member) => member.status === "active").length, leadsTotal: leads.length, newLeads: leads.filter((lead) => lead.status === "new").length, inContact: leads.filter((lead) => lead.status === "in_contact").length, unassigned: leads.filter((lead) => !lead.corretorId).length, unworked, stalled, branchId: context.branchId!, autoDistribute: branch[0]?.autoDistribute ?? true };
 }
 
 export type DirectorDashboardData = {

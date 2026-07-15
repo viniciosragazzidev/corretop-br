@@ -9,19 +9,20 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+
 import { ContextNote } from "@/components/ui/context-note";
 import { Textarea } from "@/components/ui/textarea";
 import { getLeadMessagesAction, sendLeadMessageAction } from "@/features/leads/actions/send-lead-message";
 import { LEAD_STATUS_LABELS } from "@/features/leads/lead-status-constants";
 import {
   ArrowSquareOut,
-  CalendarBlank,
   Calculator,
   ChatCircleText,
   ChevronRightIcon,
   FileText,
   ListChecks,
+  LinkSimple,
   MagnifyingGlass,
   PaperPlaneTilt,
   PanelLeftIcon,
@@ -49,6 +50,7 @@ export type ConversationItem = {
   carrierName: string | null;
   latestMessage: Pick<ConversationMessage, "body" | "direction" | "sentAt"> | null;
   messages: ConversationMessage[];
+  documents: { id: string; filename: string; fileUrl: string; status: string; requirementName: string | null; createdAt: string }[];
 };
 export type PlanSuggestion = { id: string; name: string; carrierName: string };
 
@@ -151,45 +153,26 @@ export function ConversationsWorkspace({
   }
 
   return (
-    <section aria-label="Central de conversas" className={cn("grid h-[calc(100dvh-var(--header-height)-1.5rem)] overflow-hidden rounded-xl border border-border bg-card shadow-[0_18px_50px_-32px_color-mix(in_oklch,var(--foreground)_32%,transparent)] lg:grid-cols-[13.5rem_minmax(17rem,0.8fr)_minmax(0,1.55fr)]", profileOpen ? "2xl:grid-cols-[13.5rem_minmax(18rem,0.82fr)_minmax(0,1.55fr)_19rem]" : "2xl:grid-cols-[13.5rem_minmax(18rem,0.82fr)_minmax(0,1.9fr)]")}>
-      <aside className="hidden min-h-0 border-r border-border bg-muted/20 lg:flex lg:flex-col" aria-label="Pastas da central">
-        <div className="border-b border-border px-4 py-5">
-          <p className="text-sm font-semibold tracking-tight">Inbox</p>
-          <p className="mt-1 text-xs leading-5 text-muted-foreground">Atendimentos do seu escopo</p>
-        </div>
-        <ScrollArea className="min-h-0 flex-1">
-        <nav className="space-y-1 p-2" aria-label="Filtros de conversas">
-          <InboxFilter active={filter === "all"} icon={ChatCircleText} label="Todas" onClick={() => setFilter("all")} />
-          <InboxFilter active={filter === "with_messages"} icon={WhatsappLogo} label="Com mensagens" onClick={() => setFilter("with_messages")} />
-          <InboxFilter active={filter === "without_messages"} icon={CalendarBlank} label="Sem conversa" onClick={() => setFilter("without_messages")} />
-        </nav>
-        <Separator />
-        <div className="p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Canal conectado</p>
-          <div className="mt-3 flex items-center gap-2 text-sm font-medium">
-            <span className={cn("size-2 rounded-full", whatsappReady ? "bg-success" : "bg-muted-foreground")} aria-hidden="true" />
-            <span>{whatsappReady ? "WhatsApp pronto" : "WhatsApp indisponível"}</span>
-          </div>
-          {!whatsappReady ? (
-            <>
-              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">Conecte o WhatsApp em Configurações para responder por aqui.</p>
-              <div className="mt-3">
-                <Button className="w-full text-xs font-semibold h-8 justify-center" render={<Link href="/settings/whatsapp" />} size="sm" variant="outline">
-                  <WhatsappLogo className="mr-1.5 size-3.5" /> Conectar canal
-                </Button>
-              </div>
-            </>
-          ) : null}
-        </div>
-        </ScrollArea>
-        <div className="border-t border-border p-3">
-          <Button className="w-full justify-start" render={<Link href="/leads" />} size="sm" variant="ghost"><UserList /> Abrir leads</Button>
-        </div>
-      </aside>
+    <section aria-label="Central de conversas" className={cn("grid h-[calc(100dvh-var(--header-height)-1.5rem)] overflow-hidden rounded-xl border border-border bg-card shadow-[0_18px_50px_-32px_color-mix(in_oklch,var(--foreground)_32%,transparent)] lg:grid-cols-[minmax(14rem,0.5fr)_minmax(0,1.9fr)]", profileOpen ? "2xl:grid-cols-[minmax(14rem,0.5fr)_minmax(0,1.9fr)_19rem]" : "2xl:grid-cols-[minmax(14rem,0.5fr)_minmax(0,2.35fr)]")}>
 
       <section className={cn("flex min-h-0 flex-col border-r border-border bg-card", selected && "max-[559px]:hidden")} aria-label="Lista de conversas">
-        <div className="space-y-3 border-b border-border px-3 py-4">
-          <div className="flex items-baseline justify-between gap-2"><h2 className="text-sm font-semibold tracking-tight">Mensagens</h2><span className="text-xs tabular-nums text-muted-foreground">{filtered.length} contato{filtered.length === 1 ? "" : "s"}</span></div>
+        <div className="space-y-3 border-b border-border px-3 py-3.5">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold tracking-tight">Mensagens</h2>
+            <div className="flex items-center gap-2">
+              {whatsappReady ? (
+                <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="size-1.5 rounded-full bg-success" aria-hidden="true" />WhatsApp</span>
+              ) : (
+                <Button className="h-5 gap-1 px-1.5 text-[10px]" render={<Link href="/settings/whatsapp" />} size="sm" variant="ghost"><span className="size-1.5 rounded-full bg-muted-foreground" aria-hidden="true" />Conectar</Button>
+              )}
+              <Button className="h-5 gap-1 px-1.5 text-[10px]" render={<Link href="/leads" />} size="sm" variant="ghost"><UserList className="size-3" />Leads</Button>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Tooltip><TooltipTrigger render={<FilterChip active={filter === "all"} label="Todas" count={conversations.length} onClick={() => setFilter("all")} />} /><TooltipContent side="bottom">Todas as conversas do seu escopo</TooltipContent></Tooltip>
+            <Tooltip><TooltipTrigger render={<FilterChip active={filter === "with_messages"} label="Com msgs" count={conversations.filter((c) => c.messages.length > 0).length} onClick={() => setFilter("with_messages")} />} /><TooltipContent side="bottom">Contatos que já possuem histórico de mensagens</TooltipContent></Tooltip>
+            <Tooltip><TooltipTrigger render={<FilterChip active={filter === "without_messages"} label="Sem conversa" count={conversations.filter((c) => c.messages.length === 0).length} onClick={() => setFilter("without_messages")} />} /><TooltipContent side="bottom">Contatos sem nenhuma mensagem trocada ainda</TooltipContent></Tooltip>
+          </div>
           <div className="relative"><MagnifyingGlass aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input aria-label="Buscar conversa por nome, telefone ou e-mail" className="pl-8" onChange={(event) => setQuery(event.target.value)} placeholder="Buscar conversa" value={query} /></div>
         </div>
         <ScrollArea className="min-h-0 flex-1 bg-muted/10">
@@ -228,14 +211,14 @@ export function ConversationsWorkspace({
       </section>
 
       <aside className={cn("hidden min-h-0 border-l border-border bg-muted/10 2xl:flex 2xl:flex-col", !profileOpen && "2xl:hidden")} aria-label="Perfil do cliente">
-        {selected ? <ClientProfile client={selected} /> : null}
+        {selected ? <ClientProfile client={selected} onShowPlans={togglePlans} /> : null}
       </aside>
     </section>
   );
 }
 
-function InboxFilter({ active, icon: Icon, label, onClick }: { active: boolean; icon: typeof ChatCircleText; label: string; onClick: () => void }) {
-  return <Button aria-pressed={active} className="w-full justify-start" onClick={onClick} size="sm" variant={active ? "secondary" : "ghost"}><Icon /> {label}</Button>;
+function FilterChip({ active, count, label, onClick }: { active: boolean; count: number; label: string; onClick: () => void }) {
+  return <button aria-pressed={active} className={cn("inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/40", active ? "border-primary/30 bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted")} onClick={onClick} type="button"><span>{label}</span><span className={cn("tabular-nums", active ? "text-primary/70" : "text-muted-foreground/60")}>{count}</span></button>;
 }
 
 function ConversationRow({ active, conversation, onClick }: { active: boolean; conversation: ConversationItem; onClick: () => void }) {
@@ -248,7 +231,51 @@ function MessageBubble({ message, name }: { message: ConversationMessage; name: 
   return <article className={cn("flex", outgoing ? "justify-end" : "justify-start")}><div className={cn("max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm", outgoing ? "rounded-tr-md bg-primary text-primary-foreground" : "rounded-tl-md border border-border bg-card")}><p className="whitespace-pre-wrap break-words leading-6">{message.body}</p><p className={cn("mt-1.5 text-right text-[11px] tabular-nums", outgoing ? "text-primary-foreground/75" : "text-muted-foreground")}>{outgoing ? "Você" : name} · {formatTime(message.sentAt)}</p></div></article>;
 }
 
-function ClientProfile({ client }: { client: ConversationItem }) {
+function ClientProfile({ client, onShowPlans }: { client: ConversationItem; onShowPlans: () => void }) {
+  const approvedDocuments = client.documents.filter((document) => document.status === "approved").length;
+  const pendingDocuments = client.documents.filter((document) => document.status === "pending").length;
+  const sharedMedia = getSharedMedia(client.messages);
+
+  return <>
+    <div className="border-b border-border bg-card px-5 py-5">
+      <div className="flex items-start gap-3">
+        <ContactAvatar className="size-11 text-sm" name={client.nome} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2"><div className="min-w-0"><h2 className="truncate text-sm font-semibold tracking-tight">{client.nome}</h2><p className="mt-0.5 truncate text-xs text-muted-foreground">{client.telefone}</p></div><Badge className="shrink-0" variant="outline">{LEAD_STATUS_LABELS[client.status] ?? client.status}</Badge></div>
+          <p className="mt-2 text-xs leading-5 text-muted-foreground">{client.corretorNome ? `Responsável: ${client.corretorNome}` : "Aguardando atribuição"}</p>
+        </div>
+      </div>
+      <div className="mt-4 grid grid-cols-3 gap-2">
+        <ProfileAction label="Ligar" render={<a href={`tel:${client.telefone.replace(/\D/g, "")}`} />}><Phone /></ProfileAction>
+        <ProfileAction label="WhatsApp" render={<a href={`https://wa.me/${client.telefone.replace(/\D/g, "")}`} rel="noreferrer" target="_blank" />}><WhatsappLogo /></ProfileAction>
+        <ProfileAction label="Abrir lead" render={<Link href={`/leads/${client.id}`} />}><ArrowSquareOut /></ProfileAction>
+      </div>
+    </div>
+    <ScrollArea className="min-h-0 flex-1">
+      <div className="space-y-5 p-4">
+        <ConversationProfileSection title="Ações rápidas">
+          <div className="grid gap-2"><Button className="w-full justify-start" render={<Link href={`/cotacoes?leadId=${client.id}`} />} size="sm"><Calculator /> Nova cotação</Button><Button className="w-full justify-start" onClick={onShowPlans} size="sm" variant="outline"><ListChecks /> Lista de planos</Button><Button className="w-full justify-start" render={<Link href={`/leads/${client.id}`} />} size="sm" variant="outline"><ListChecks /> Gerenciar tarefas</Button></div>
+        </ConversationProfileSection>
+        <ConversationProfileSection action={<Link className="text-[11px] font-medium text-primary hover:underline" href={`/leads/${client.id}`}>Ver todos</Link>} title="Documentos importados">
+          <div className="grid grid-cols-2 gap-2"><ProfileMetric label="Aprovados" value={approvedDocuments} /><ProfileMetric label="Em análise" tone="warning" value={pendingDocuments} /></div>
+          {client.documents.length ? <div className="mt-3 space-y-1.5">{client.documents.slice(0, 3).map((document) => <a className="group flex items-center gap-2 rounded-lg border border-border/70 px-2.5 py-2 outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring" href={document.fileUrl} key={document.id} rel="noreferrer" target="_blank"><span className="grid size-7 shrink-0 place-items-center rounded-md bg-primary/10 text-primary"><FileText className="size-3.5" /></span><span className="min-w-0 flex-1"><span className="block truncate text-xs font-medium">{document.requirementName ?? document.filename}</span><span className="block truncate text-[11px] text-muted-foreground">{document.requirementName ? document.filename : documentStatusLabel(document.status)}</span></span><ArrowSquareOut className="size-3.5 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" /></a>)}</div> : <p className="mt-3 rounded-lg border border-dashed border-border px-3 py-3 text-xs leading-5 text-muted-foreground">Nenhum documento importado para este cliente.</p>}
+        </ConversationProfileSection>
+        <ConversationProfileSection action={<span className="text-[11px] tabular-nums text-muted-foreground">{sharedMedia.length}</span>} title="Mídias e links">
+          {sharedMedia.length ? <div className="space-y-1.5">{sharedMedia.slice(0, 3).map((media) => <a className="group flex items-center gap-2 rounded-lg border border-border/70 px-2.5 py-2 outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring" href={media.url} key={media.url} rel="noreferrer" target="_blank"><span className="grid size-7 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground"><LinkSimple className="size-3.5" /></span><span className="min-w-0 flex-1"><span className="block truncate text-xs font-medium">{media.label}</span><span className="block truncate text-[11px] text-muted-foreground">Compartilhado {formatRelative(media.sentAt)}</span></span><ArrowSquareOut className="size-3.5 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" /></a>)}</div> : <p className="rounded-lg border border-dashed border-border px-3 py-3 text-xs leading-5 text-muted-foreground">Nenhuma mídia ou link foi identificado nesta conversa.</p>}
+        </ConversationProfileSection>
+        <ConversationProfileSection title="Resumo do atendimento"><dl className="space-y-3"><ProfileLine label="Origem" value={client.origem} /><ProfileLine label="Plano de interesse" value={client.planName ?? "Não informado"} />{client.carrierName ? <ProfileLine label="Operadora" value={client.carrierName} /> : null}<ProfileLine label="Consentimento LGPD" value={client.consentimentoLgpd ? "Registrado" : "Não registrado"} /></dl></ConversationProfileSection>
+      </div>
+    </ScrollArea>
+  </>;
+}
+
+function ConversationProfileSection({ action, children, title }: { action?: React.ReactNode; children: React.ReactNode; title: string }) { return <section><div className="flex items-center justify-between gap-2"><h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{title}</h3>{action}</div><div className="mt-2.5">{children}</div></section>; }
+function ProfileAction({ children, label, render }: { children: React.ReactNode; label: string; render: React.ReactElement }) { return <Button className="h-auto min-h-14 flex-col gap-1.5 px-2 py-2 text-[11px]" render={render} size="sm" variant="outline">{children}<span className="truncate">{label}</span></Button>; }
+function ProfileMetric({ label, tone, value }: { label: string; tone?: "warning"; value: number }) { return <div className={cn("rounded-lg border px-2.5 py-2", tone === "warning" ? "border-warning/20 bg-warning/5" : "border-border bg-muted/30")}><p className="text-[11px] text-muted-foreground">{label}</p><p className={cn("mt-1 text-lg font-semibold tabular-nums", tone === "warning" && "text-warning")}>{value}</p></div>; }
+function documentStatusLabel(status: string) { return status === "approved" ? "Aprovado" : status === "pending" ? "Em análise" : status === "rejected" ? "Rejeitado" : status; }
+function getSharedMedia(messages: ConversationMessage[]) { const found = new Map<string, { url: string; label: string; sentAt: string }>(); for (const message of messages) { for (const match of message.body.matchAll(/https?:\/\/[^\s<]+/g)) { const url = match[0].replace(/[),.!?]+$/, ""); if (found.has(url)) continue; try { const hostname = new URL(url).hostname.replace(/^www\./, ""); found.set(url, { url, label: hostname, sentAt: message.sentAt }); } catch { /* Ignore malformed URLs. */ } } } return [...found.values()]; }
+
+export function LegacyClientProfile({ client }: { client: ConversationItem }) {
   return <><div className="border-b border-border px-5 py-6 text-center"><ContactAvatar className="mx-auto size-14 text-base" name={client.nome} /><h2 className="mt-3 text-sm font-semibold tracking-tight">{client.nome}</h2><p className="mt-1 text-xs leading-5 text-muted-foreground">Lead em atendimento</p><div className="mt-4 flex justify-center gap-2"><Button aria-label="Ligar" render={<a href={`tel:${client.telefone.replace(/\D/g, "")}`} />} size="icon-sm" variant="outline"><Phone /></Button><Button aria-label="Abrir WhatsApp" render={<a href={`https://wa.me/${client.telefone.replace(/\D/g, "")}`} rel="noreferrer" target="_blank" />} size="icon-sm" variant="outline"><WhatsappLogo /></Button><Button aria-label="Abrir lead completo" render={<Link href={`/leads/${client.id}`} />} size="icon-sm" variant="outline"><ArrowSquareOut /></Button></div></div><ScrollArea className="min-h-0 flex-1"><div className="space-y-6 p-5"><ProfileSection title="Contato"><ProfileLine label="Telefone" value={client.telefone} /><ProfileLine label="E-mail" value={client.email ?? "Não informado"} /></ProfileSection><ProfileSection title="Atendimento"><ProfileLine label="Status" value={LEAD_STATUS_LABELS[client.status] ?? client.status} /><ProfileLine label="Responsável" value={client.corretorNome ?? "Aguardando atribuição"} /><ProfileLine label="Origem" value={client.origem} /><ProfileLine label="LGPD" value={client.consentimentoLgpd ? "Consentimento registrado" : "Consentimento não registrado"} /></ProfileSection><ProfileSection title="Plano de interesse"><ProfileLine label="Plano" value={client.planName ?? "Não informado"} />{client.carrierName ? <ProfileLine label="Operadora" value={client.carrierName} /> : null}</ProfileSection><Button className="w-full" render={<Link href={`/leads/${client.id}`} />} size="sm" variant="outline"><ArrowSquareOut /> Ver perfil completo</Button><Button className="w-full" render={<Link href={`/cotacoes?leadId=${client.id}`} />} size="sm"><Calculator /> Criar cotação</Button></div></ScrollArea></>;
 }
 

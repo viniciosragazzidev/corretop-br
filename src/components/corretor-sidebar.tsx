@@ -37,6 +37,7 @@ const workItems = [
   { label: "Minha fila", icon: ListChecks, url: "/minha-fila" },
   { label: "Conversas", icon: ChatCircleText, url: "/conversas" },
   { label: "Tarefas", icon: ClipboardText, url: "/tarefas" },
+  { label: "Checklist", icon: ClipboardText, url: "/checklist" },
   { label: "Cotações", icon: ListChecks, url: "/cotacoes" },
   { label: "Documentos", icon: Note, url: "/documentos" },
   { label: "Clientes", icon: Handshake, url: "/clientes" },

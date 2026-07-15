@@ -1,4 +1,4 @@
-import { and, eq, or } from "drizzle-orm";
+import { and, eq, isNull, lt, or } from "drizzle-orm";
 import Link from "next/link";
 
 import { DashboardHeader } from "@/components/dashboard-header";
@@ -11,8 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
 
-export default async function TasksPage({ searchParams }: { searchParams: Promise<{ leadId?: string }> }) {
-  const { leadId } = await searchParams;
+export default async function TasksPage({ searchParams }: { searchParams: Promise<{ attention?: string; leadId?: string }> }) {
+  const { attention, leadId } = await searchParams;
   const context = await getRequiredTenantContext();
   const db = getDatabase();
   const access = context.role === "broker"
@@ -21,6 +21,9 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
       ? eq(schema.leads.branchId, context.branchId)
       : undefined;
   const leadFilter = leadId ? eq(schema.leadTasks.leadId, leadId) : undefined;
+  const overdueFilter = attention === "overdue"
+    ? and(isNull(schema.leadTasks.completedAt), lt(schema.leadTasks.dueAt, new Date()))
+    : undefined;
   const tasks = await db
     .select({
       id: schema.leadTasks.id,
@@ -42,6 +45,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
       eq(schema.leads.tenantId, context.tenantId),
       ...(access ? [access] : []),
       ...(leadFilter ? [leadFilter] : []),
+      ...(overdueFilter ? [overdueFilter] : []),
     ))
     .orderBy(schema.leadTasks.completedAt, schema.leadTasks.dueAt);
 
@@ -55,6 +59,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
             <h1 className="mt-1 text-2xl font-semibold tracking-tight">Tarefas</h1>
             <p className="mt-1 text-sm text-muted-foreground">Priorize o que precisa acontecer agora e abra o lead para criar ou ajustar responsáveis.</p>
             {leadId ? <ContextNote className="mt-3 max-w-xl" variant="info">Exibindo apenas tarefas do lead selecionado. <Link className="font-medium text-primary underline-offset-4 hover:underline" href={`/leads/${leadId}`}>Voltar ao lead</Link></ContextNote> : null}
+            {attention === "overdue" ? <ContextNote className="mt-3 max-w-xl" variant="warning">Exibindo somente tarefas vencidas e ainda não concluídas no seu escopo.</ContextNote> : null}
           </div>
           <Button render={<Link href="/leads" />} variant="outline">Abrir leads para criar tarefa</Button>
         </section>

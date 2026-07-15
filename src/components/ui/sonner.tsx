@@ -1,13 +1,18 @@
 "use client"
 
 import { Toaster as Sonner, type ToasterProps } from "sonner"
-import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from "@/components/huge-icons"
+import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon, XIcon } from "@/components/huge-icons"
 
 const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
       theme="dark"
-      className="toaster group"
+      position="top-right"
+      closeButton
+      duration={4000}
+      gap={12}
+      visibleToasts={3}
+      className="ct-toaster group"
       icons={{
         success: (
           <CircleCheckIcon className="size-4" />
@@ -24,6 +29,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
         loading: (
           <Loader2Icon className="size-4 animate-spin" />
         ),
+        close: <XIcon className="size-3" />,
       }}
       style={
         {
@@ -35,7 +41,20 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }
       toastOptions={{
         classNames: {
-          toast: "cn-toast",
+          toast: "ct-toast",
+          title: "ct-toast__title",
+          description: "ct-toast__description",
+          icon: "ct-toast__icon",
+          content: "ct-toast__content",
+          closeButton: "ct-toast__close",
+          actionButton: "ct-toast__action",
+          cancelButton: "ct-toast__cancel",
+          success: "ct-toast--accent",
+          error: "ct-toast--error",
+          info: "ct-toast--default",
+          warning: "ct-toast--default",
+          loading: "ct-toast--default",
+          default: "ct-toast--default",
         },
       }}
       {...props}

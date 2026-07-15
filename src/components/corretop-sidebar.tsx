@@ -21,6 +21,7 @@ import {
   SlidersHorizontal,
   Target,
   Users,
+  WifiHigh,
 } from "@/components/huge-icons";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -70,6 +71,7 @@ const managementItems = [
   { label: "Metas", icon: Target, url: "/metas", permission: "gerenciar_metas" as const },
   { label: "Relatórios", icon: ChartBar, url: "/relatorios" },
   { label: "Filiais", icon: Buildings, url: "/filiais", permission: "gerenciar_filiais" as const },
+  { label: "Distribuição", icon: WifiHigh, url: "/leads/distribuicao", permission: "gerenciar_filiais" as const },
   { label: "Comissoes", icon: CurrencyCircleDollar, url: "/configuracoes/comissoes", permission: "gerenciar_comissoes" as const },
 ];
 

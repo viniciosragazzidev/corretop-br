@@ -15,6 +15,7 @@ export default async function BranchesPage() {
       id: schema.branches.id,
       name: schema.branches.name,
       status: schema.branches.status,
+      acceptingLeads: schema.branches.acceptingLeads,
     })
     .from(schema.branches)
     .where(eq(schema.branches.tenantId, context.tenantId));
@@ -37,7 +38,7 @@ export default async function BranchesPage() {
             <p className="mt-1 text-sm text-muted-foreground">Organize a operacao por unidade, mantenha o escopo de equipe isolado e controle quais filiais podem receber novos leads.</p>
           </div>
         </section>
-        <BranchesManager branches={branches.map((branch) => ({ ...branch, externalId: null, memberCount: countsByBranch.get(branch.id) ?? 0 }))} />
+        <BranchesManager branches={branches.map((branch) => ({ ...branch, externalId: null, memberCount: countsByBranch.get(branch.id) ?? 0, acceptingLeads: branch.acceptingLeads }))} />
       </main>
     </>
   );

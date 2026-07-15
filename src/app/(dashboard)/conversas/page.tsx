@@ -55,13 +55,21 @@ export default async function ConversationsPage({ searchParams }: { searchParams
   ]);
 
   const leadIds = leads.map((lead) => lead.id);
-  const messageRows = leadIds.length
-    ? await db
-      .select({ id: schema.whatsappMessages.id, leadId: schema.whatsappMessages.leadId, body: schema.whatsappMessages.body, direction: schema.whatsappMessages.direction, sentAt: schema.whatsappMessages.sentAt })
-      .from(schema.whatsappMessages)
-      .where(and(eq(schema.whatsappMessages.tenantId, context.tenantId), inArray(schema.whatsappMessages.leadId, leadIds)))
-      .orderBy(schema.whatsappMessages.sentAt)
-    : [];
+  const [messageRows, documentRows] = leadIds.length
+    ? await Promise.all([
+      db
+        .select({ id: schema.whatsappMessages.id, leadId: schema.whatsappMessages.leadId, body: schema.whatsappMessages.body, direction: schema.whatsappMessages.direction, sentAt: schema.whatsappMessages.sentAt })
+        .from(schema.whatsappMessages)
+        .where(and(eq(schema.whatsappMessages.tenantId, context.tenantId), inArray(schema.whatsappMessages.leadId, leadIds)))
+        .orderBy(schema.whatsappMessages.sentAt),
+      db
+        .select({ id: schema.leadDocuments.id, leadId: schema.leadDocuments.leadId, filename: schema.leadDocuments.filename, fileUrl: schema.leadDocuments.fileUrl, status: schema.leadDocuments.status, requirementName: schema.documentRequirements.name, createdAt: schema.leadDocuments.createdAt })
+        .from(schema.leadDocuments)
+        .leftJoin(schema.documentRequirements, eq(schema.leadDocuments.requirementId, schema.documentRequirements.id))
+        .where(and(eq(schema.leadDocuments.tenantId, context.tenantId), inArray(schema.leadDocuments.leadId, leadIds)))
+        .orderBy(desc(schema.leadDocuments.createdAt)),
+    ])
+    : [[], []] as const;
 
   const messagesByLead = new Map<string, ConversationMessage[]>();
   for (const message of messageRows) {
@@ -69,6 +77,13 @@ export default async function ConversationsPage({ searchParams }: { searchParams
     const items = messagesByLead.get(message.leadId) ?? [];
     items.push({ ...message, sentAt: message.sentAt.toISOString() });
     messagesByLead.set(message.leadId, items);
+  }
+
+  const documentsByLead = new Map<string, { id: string; filename: string; fileUrl: string; status: string; requirementName: string | null; createdAt: string }[]>();
+  for (const document of documentRows) {
+    const items = documentsByLead.get(document.leadId) ?? [];
+    items.push({ ...document, createdAt: document.createdAt.toISOString() });
+    documentsByLead.set(document.leadId, items);
   }
 
   const conversations: ConversationItem[] = leads.map((lead) => {
@@ -80,6 +95,7 @@ export default async function ConversationsPage({ searchParams }: { searchParams
       stageEnteredAt: lead.stageEnteredAt.toISOString(),
       latestMessage: latest ? { body: latest.body, direction: latest.direction, sentAt: latest.sentAt } : null,
       messages,
+      documents: documentsByLead.get(lead.id) ?? [],
     };
   });
 

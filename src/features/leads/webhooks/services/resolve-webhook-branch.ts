@@ -14,7 +14,13 @@ export async function resolveWebhookBranch(
     const [defaultBranch] = await db
       .select({ id: schema.branches.id })
       .from(schema.branches)
-      .where(and(eq(schema.branches.tenantId, tenantId), eq(schema.branches.status, "active")))
+      .where(
+        and(
+          eq(schema.branches.tenantId, tenantId),
+          eq(schema.branches.status, "active"),
+          eq(schema.branches.acceptingLeads, true),
+        ),
+      )
       .orderBy(schema.branches.createdAt)
       .limit(1);
     return defaultBranch?.id ?? null;
@@ -28,6 +34,7 @@ export async function resolveWebhookBranch(
         eq(schema.branches.tenantId, tenantId),
         eq(schema.branches.externalId, branchExternalId),
         eq(schema.branches.status, "active"),
+        eq(schema.branches.acceptingLeads, true),
       ),
     )
     .limit(1);
@@ -42,7 +49,7 @@ export async function resolveWebhookBranch(
 export class WebhookBranchNotFoundError extends Error {
   readonly code = "BRANCH_NOT_FOUND";
   constructor() {
-    super("A filial informada não está disponível.");
+    super("A filial informada não está disponível ou não está aceitando leads no momento.");
     this.name = "WebhookBranchNotFoundError";
   }
 }

@@ -51,6 +51,7 @@ retenção ou integração externa, registre-a antes de implementar.
   e URLs temporárias/autorizadas para acesso.
 - Registre auditoria imutável para acesso/alteração de dados sensíveis, exportações,
   alterações de permissão, autenticação e ações administrativas relevantes.
+- **Controle e Auditabilidade de Novas Features**: Toda nova implementação deve ser auditável (gerando logs de auditoria correspondentes), configurável/editável e passível de ser ativada ou desativada a qualquer momento sob demanda por um super-admin.
 - Nunca exponha segredos ao cliente. Variáveis `NEXT_PUBLIC_*` só podem conter dados
   conscientemente públicos.
 
@@ -116,6 +117,24 @@ As referências Nexus são apenas direção de composição. Preserve a identida
 - Acessibilidade mínima: HTML semântico, navegação por teclado, foco visível, rótulos
   de formulário e contraste adequado.
 ## 7. UX, clareza e reducao de carga cognitiva
+
+## Governanca obrigatoria das novas implementacoes
+
+- Toda implementacao nova deve ser auditavel: registrar quem ativou, alterou,
+  desativou ou reativou a capacidade, quando isso ocorreu, qual foi o escopo
+  afetado e o resultado da operacao.
+- Toda implementacao nova deve ser editavel por uma superficie administrativa
+  apropriada, com validacao no servidor, autorizacao por papel e feedback claro
+  sobre o que foi alterado.
+- Toda implementacao nova deve possuir estado operacional explicito e reversivel
+  (`active`/`inactive`, ou equivalente), permitindo ao Super-admin desativar e
+  reativar a capacidade sem apagar dados e sem depender de alteracao manual no
+  codigo ou no banco.
+- O controle do Super-admin deve aplicar-se a capacidade real em producao, ser
+  isolado por tenant quando necessario, registrar auditoria imutavel e informar ao
+  usuario quando uma dependencia estiver desativada ou indisponivel.
+- Se uma capacidade ainda nao tiver essa superficie de governanca, ela deve ser
+  registrada como `partial` no roadmap, nunca como `done`.
 
 - Antes de iniciar qualquer fluxo, tela ou alteracao de navegacao, consulte
   `docs/ux-audit-2026-07-13.md` e registre o papel do usuario, seu objetivo, a acao

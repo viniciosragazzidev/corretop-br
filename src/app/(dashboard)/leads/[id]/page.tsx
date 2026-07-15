@@ -25,6 +25,10 @@ import { getRequirementsForLead, getLeadDocuments } from "@/features/documents/a
 import { LeadDocumentsSection } from "@/features/documents/components/lead-documents-section";
 import { LeadActionHub } from "@/features/leads/components/lead-action-hub";
 
+function getCurrentTimestamp() {
+  return Date.now();
+}
+
 export default async function LeadDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const context = await getRequiredTenantContext();
@@ -50,14 +54,14 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
 
   if (!lead) notFound();
   const slaMinutes = Number((await getDatabase().select({ minutes: schema.tenants.slaFirstContactMinutes }).from(schema.tenants).where(eq(schema.tenants.id, context.tenantId)).limit(1))[0]?.minutes ?? 15);
-  const elapsedMinutes = Math.max(0, Math.round((Date.now() - lead.stageEnteredAt.getTime()) / 60000));
+  const elapsedMinutes = Math.max(0, Math.round((getCurrentTimestamp() - lead.stageEnteredAt.getTime()) / 60000));
   const remainingMinutes = Math.max(0, slaMinutes - elapsedMinutes);
   const slaUrgent = remainingMinutes <= Math.max(5, Math.round(slaMinutes * 0.25));
 
   const [interactions, tasks, quotes, plans, requirements, leadDocs] = await Promise.all([
     getLeadTimeline(id),
-    getDatabase().select({ id: schema.leadTasks.id, title: schema.leadTasks.title, description: schema.leadTasks.description, priority: schema.leadTasks.priority, dueAt: schema.leadTasks.dueAt, completedAt: schema.leadTasks.completedAt, createdAt: schema.leadTasks.createdAt })
-      .from(schema.leadTasks).where(and(eq(schema.leadTasks.tenantId, context.tenantId), eq(schema.leadTasks.leadId, id)))
+    getDatabase().select({ id: schema.leadTasks.id, title: schema.leadTasks.title, description: schema.leadTasks.description, priority: schema.leadTasks.priority, dueAt: schema.leadTasks.dueAt, completedAt: schema.leadTasks.completedAt, createdAt: schema.leadTasks.createdAt, assignedTo: schema.leadTasks.assignedTo, assigneeName: schema.user.name })
+      .from(schema.leadTasks).leftJoin(schema.user, eq(schema.leadTasks.assignedTo, schema.user.id)).where(and(eq(schema.leadTasks.tenantId, context.tenantId), eq(schema.leadTasks.leadId, id)))
       .orderBy(schema.leadTasks.completedAt, schema.leadTasks.dueAt, schema.leadTasks.createdAt),
     getLeadQuotes(id),
     getAllActivePlans(),
@@ -90,7 +94,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
               <h1 className="text-2xl font-semibold tracking-tight">{lead.nome}</h1>
               <p className="mt-1 text-sm text-muted-foreground">Criado em {new Intl.DateTimeFormat("pt-BR").format(lead.createdAt)}</p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div id="lead-actions" className="flex flex-wrap items-center gap-2">
               {lead.status !== "distributed" && (
                 <QuoteModalButton leadId={lead.id} plans={plans.map((p) => ({ id: p.id, name: p.name, carrierName: p.carrierName, coverage: p.type }))} />
               )}
@@ -106,7 +110,9 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
           hasPendingDocuments={leadDocs.some((document) => document.status === "pending" || document.status === "rejected")}
           hasQuotes={quotes.length > 0}
           leadId={lead.id}
-          pendingTasks={tasks.filter((task) => !task.completedAt).length}
+          currentOwner={lead.corretorNome}
+          nextTask={(() => { const task = tasks.find((item) => !item.completedAt); return task ? { title: task.title, dueAt: task.dueAt?.toISOString() ?? null, priority: task.priority, assigneeName: task.assigneeName } : null; })()}
+          status={lead.status}
         />
 
         <section className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(24rem,0.85fr)]">

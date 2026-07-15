@@ -113,3 +113,96 @@ export async function toggleBranchAction(
     return actionError(error);
   }
 }
+
+export async function toggleAcceptingLeadsAction(
+  _previous: BranchActionState,
+  formData: FormData,
+): Promise<BranchActionState> {
+  const branchId = branchIdInput.safeParse(formData.get("branchId"));
+  if (!branchId.success) return { error: branchId.error.issues[0]?.message ?? "Filial inválida." };
+
+  try {
+    const context = await getDirectorContext();
+    const [branch] = await getDatabase()
+      .select({ id: schema.branches.id, acceptingLeads: schema.branches.acceptingLeads })
+      .from(schema.branches)
+      .where(and(eq(schema.branches.id, branchId.data), eq(schema.branches.tenantId, context.tenantId)))
+      .limit(1);
+    if (!branch) return { error: "Filial não encontrada." };
+    await getDatabase()
+      .update(schema.branches)
+      .set({ acceptingLeads: !branch.acceptingLeads })
+      .where(eq(schema.branches.id, branch.id));
+    revalidatePath("/filiais");
+    revalidatePath("/equipe");
+    return { success: true };
+  } catch (error) {
+    return actionError(error);
+  }
+}
+
+export async function toggleAutoDistributeAction(
+  _previous: BranchActionState,
+  formData: FormData,
+): Promise<BranchActionState> {
+  const branchId = branchIdInput.safeParse(formData.get("branchId"));
+  if (!branchId.success) return { error: branchId.error.issues[0]?.message ?? "Filial inválida." };
+
+  try {
+    const context = await getRequiredTenantContext();
+    if (context.role !== "manager" && context.role !== "director") {
+      return { error: "Apenas Gestores e Diretores podem alterar esta configuração." };
+    }
+    const db = getDatabase();
+    const [branch] = await db
+      .select({ id: schema.branches.id, autoDistribute: schema.branches.autoDistribute })
+      .from(schema.branches)
+      .where(and(eq(schema.branches.id, branchId.data), eq(schema.branches.tenantId, context.tenantId)))
+      .limit(1);
+    if (!branch) return { error: "Filial não encontrada." };
+    // Manager can only toggle their own branch
+    if (context.role === "manager" && context.branchId !== branch.id) {
+      return { error: "Você só pode alterar a configuração da sua própria filial." };
+    }
+    await db
+      .update(schema.branches)
+      .set({ autoDistribute: !branch.autoDistribute })
+      .where(eq(schema.branches.id, branch.id));
+    revalidatePath("/filiais");
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (error) {
+    return actionError(error);
+  }
+}
+
+export async function toggleBrokerAvailabilityAction(
+  _previous: BranchActionState,
+  formData: FormData,
+): Promise<BranchActionState> {
+  const brokerId = branchIdInput.safeParse(formData.get("brokerId"));
+  if (!brokerId.success) return { error: "Corretor inválido." };
+
+  try {
+    const context = await getRequiredTenantContext();
+    if (context.role !== "manager" && context.role !== "director") return { error: "Apenas Gestores e Diretores podem controlar o recebimento." };
+    const db = getDatabase();
+    const [membership] = await db
+      .select({ id: schema.tenantMemberships.id, userId: schema.tenantMemberships.userId, branchId: schema.tenantMemberships.branchId, availabilityStatus: schema.tenantMemberships.availabilityStatus, role: schema.tenantMemberships.role })
+      .from(schema.tenantMemberships)
+      .where(and(eq(schema.tenantMemberships.tenantId, context.tenantId), eq(schema.tenantMemberships.userId, brokerId.data), eq(schema.tenantMemberships.role, "broker"), eq(schema.tenantMemberships.status, "active")))
+      .limit(1);
+    if (!membership) return { error: "Corretor não encontrado nesta corretora." };
+    if (context.role === "manager" && (!context.branchId || membership.branchId !== context.branchId)) return { error: "Você só pode controlar corretores da sua filial." };
+    const nextStatus = membership.availabilityStatus === "available" ? "paused" : "available";
+    await db.transaction(async (tx) => {
+      await tx.update(schema.tenantMemberships).set({ availabilityStatus: nextStatus, updatedAt: new Date() }).where(eq(schema.tenantMemberships.id, membership.id));
+      await tx.insert(schema.auditLogs).values({ id: randomUUID(), userId: context.userId, entidade: "tenant_membership", entidadeId: membership.id, acao: nextStatus === "paused" ? "pausou_recebimento_de_leads" : "reativou_recebimento_de_leads" });
+    });
+    revalidatePath("/leads/distribuicao");
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (error) {
+    return actionError(error);
+  }
+}

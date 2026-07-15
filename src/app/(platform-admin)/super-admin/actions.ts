@@ -12,10 +12,49 @@ import {
   getTenantAuditLogs,
 } from "@/features/platform-admin/service";
 import { getDatabase, schema } from "@/shared/db";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { runSlaSweep } from "@/features/leads/sla";
 import { sql } from "drizzle-orm";
 import { getRequiredPlatformAdmin } from "@/shared/auth/platform-admin";
+
+export async function updateCentralAtencaoSettingsAction(formData: FormData) {
+  const admin = await getRequiredPlatformAdmin();
+  const db = getDatabase();
+  const enabled = formData.get("centralAtencaoEnabled") === "true" ? "true" : "false";
+  const stagnantDaysRaw = Number(formData.get("stagnantDays"));
+  const stagnantDays = Number.isInteger(stagnantDaysRaw) && stagnantDaysRaw >= 1 && stagnantDaysRaw <= 30 ? String(stagnantDaysRaw) : "3";
+  const now = new Date();
+
+  for (const [key, value] of [
+    ["feature_central_atencao_enabled", enabled],
+    ["feature_central_atencao_stagnant_days", stagnantDays],
+  ] as const) {
+    await db.insert(schema.systemSettings).values({ key, value, updatedAt: now }).onConflictDoUpdate({ target: schema.systemSettings.key, set: { value, updatedAt: now } });
+  }
+
+  await db.insert(schema.platformAuditLogs).values({
+    id: crypto.randomUUID(),
+    actorUserId: admin.userId,
+    action: "update_central_atencao_settings",
+    targetType: "system_settings",
+    targetId: "central_atencao",
+    metadata: { enabled, stagnantDays },
+    createdAt: now,
+  });
+
+  revalidatePath("/roadmap");
+  revalidatePath("/super-admin/settings");
+}
+
+export async function updateGlobalSearchSettingsAction(formData: FormData) {
+  const admin = await getRequiredPlatformAdmin();
+  const db = getDatabase();
+  const enabled = formData.get("globalSearchEnabled") === "true" ? "true" : "false";
+  const now = new Date();
+  await db.insert(schema.systemSettings).values({ key: "feature_global_search_enabled", value: enabled, updatedAt: now }).onConflictDoUpdate({ target: schema.systemSettings.key, set: { value: enabled, updatedAt: now } });
+  await db.insert(schema.platformAuditLogs).values({ id: crypto.randomUUID(), actorUserId: admin.userId, action: "update_global_search_settings", targetType: "system_settings", targetId: "global_search", metadata: { enabled }, createdAt: now });
+  revalidatePath("/super-admin/settings");
+}
 
 export async function createTenantAction(formData: FormData) {
   const tenantId = await createPlatformTenant(Object.fromEntries(formData));
@@ -111,7 +150,7 @@ export async function runDbQueryAction(tableName: string, limit: number = 20) {
   const db = getDatabase();
 
   try {
-    let result: any[] = [];
+    let result: unknown[] = [];
     switch (tableName) {
       case "tenants":
         result = await db.select().from(schema.tenants).limit(limit);
@@ -165,8 +204,8 @@ export async function getSystemMetricsAction() {
     
     return {
       success: true,
-      dbSize: String((dbSizeResult as any)[0]?.size || "N/A"),
-      activeConnections: Number((connectionsResult as any)[0]?.active_connections || 0),
+      dbSize: String(dbSizeResult[0]?.size || "N/A"),
+      activeConnections: Number(connectionsResult[0]?.active_connections || 0),
       env: process.env.NODE_ENV,
       authProvider: "BetterAuth (Local & Postgres Store)",
       neonStatus: "Operacional (Conectado via neon-serverless)"
