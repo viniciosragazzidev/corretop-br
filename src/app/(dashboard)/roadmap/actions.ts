@@ -4,24 +4,10 @@ import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
+import { setSystemSetting } from "@/features/system-settings/queries";
 
 async function setSetting(key: string, value: string) {
-  const db = getDatabase();
-  const existing = await db
-    .select()
-    .from(schema.systemSettings)
-    .where(eq(schema.systemSettings.key, key));
-
-  if (existing.length > 0) {
-    await db
-      .update(schema.systemSettings)
-      .set({ value, updatedAt: new Date() })
-      .where(eq(schema.systemSettings.key, key));
-  } else {
-    await db
-      .insert(schema.systemSettings)
-      .values({ key, value, updatedAt: new Date() });
-  }
+  await setSystemSetting(key, value);
 }
 
 export async function updateSystemSettingsAction(formData: FormData) {

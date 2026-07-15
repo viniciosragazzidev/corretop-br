@@ -1,6 +1,6 @@
 import "server-only";
 
-import { eq, inArray } from "drizzle-orm";
+import { inArray, sql } from "drizzle-orm";
 
 import { getDatabase, schema } from "@/shared/db";
 
@@ -14,15 +14,21 @@ function isMissingSystemSettingsTable(error: unknown) {
 
 export async function getSystemSettings(keys?: readonly string[]) {
   try {
-    const db = getDatabase();
     return keys?.length
-      ? await db
+      ? await getDatabase()
           .select({ key: schema.systemSettings.key, value: schema.systemSettings.value })
           .from(schema.systemSettings)
           .where(inArray(schema.systemSettings.key, [...keys]))
-      : await db.select({ key: schema.systemSettings.key, value: schema.systemSettings.value }).from(schema.systemSettings);
+      : await getDatabase().select({ key: schema.systemSettings.key, value: schema.systemSettings.value }).from(schema.systemSettings);
   } catch (error) {
-    if (isMissingSystemSettingsTable(error)) return [];
+    if (isMissingSystemSettingsTable(error)) {
+      try {
+        await ensureSystemSettingsTable();
+      } catch {
+        // Reads remain available with defaults even when the DB user cannot run DDL.
+      }
+      return [];
+    }
     throw error;
   }
 }
@@ -30,4 +36,25 @@ export async function getSystemSettings(keys?: readonly string[]) {
 export async function getSystemSetting(key: string) {
   const [setting] = await getSystemSettings([key]);
   return setting?.value;
+}
+
+async function ensureSystemSettingsTable() {
+  await getDatabase().execute(sql`
+    CREATE TABLE IF NOT EXISTS "system_settings" (
+      "key" text PRIMARY KEY NOT NULL,
+      "value" text NOT NULL,
+      "updated_at" timestamptz NOT NULL DEFAULT now()
+    )
+  `);
+}
+
+export async function setSystemSetting(key: string, value: string, updatedAt = new Date()) {
+  await ensureSystemSettingsTable();
+  await getDatabase()
+    .insert(schema.systemSettings)
+    .values({ key, value, updatedAt })
+    .onConflictDoUpdate({
+      target: schema.systemSettings.key,
+      set: { value, updatedAt },
+    });
 }

@@ -16,6 +16,7 @@ import { eq } from "drizzle-orm";
 import { runSlaSweep } from "@/features/leads/sla";
 import { sql } from "drizzle-orm";
 import { getRequiredPlatformAdmin } from "@/shared/auth/platform-admin";
+import { setSystemSetting } from "@/features/system-settings/queries";
 
 export async function updateCentralAtencaoSettingsAction(formData: FormData) {
   const admin = await getRequiredPlatformAdmin();
@@ -29,7 +30,7 @@ export async function updateCentralAtencaoSettingsAction(formData: FormData) {
     ["feature_central_atencao_enabled", enabled],
     ["feature_central_atencao_stagnant_days", stagnantDays],
   ] as const) {
-    await db.insert(schema.systemSettings).values({ key, value, updatedAt: now }).onConflictDoUpdate({ target: schema.systemSettings.key, set: { value, updatedAt: now } });
+    await setSystemSetting(key, value, now);
   }
 
   await db.insert(schema.platformAuditLogs).values({
@@ -51,7 +52,7 @@ export async function updateGlobalSearchSettingsAction(formData: FormData) {
   const db = getDatabase();
   const enabled = formData.get("globalSearchEnabled") === "true" ? "true" : "false";
   const now = new Date();
-  await db.insert(schema.systemSettings).values({ key: "feature_global_search_enabled", value: enabled, updatedAt: now }).onConflictDoUpdate({ target: schema.systemSettings.key, set: { value: enabled, updatedAt: now } });
+  await setSystemSetting("feature_global_search_enabled", enabled, now);
   await db.insert(schema.platformAuditLogs).values({ id: crypto.randomUUID(), actorUserId: admin.userId, action: "update_global_search_settings", targetType: "system_settings", targetId: "global_search", metadata: { enabled }, createdAt: now });
   revalidatePath("/super-admin/settings");
 }
