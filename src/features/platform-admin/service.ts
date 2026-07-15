@@ -12,10 +12,16 @@ const cnpjPattern = /^\d{14}$/;
 
 const tenantInput = z.object({
   name: z.string().trim().min(2).max(120),
-  legalName: z.string().trim().min(2).max(160),
-  cnpj: z.string().trim().transform((value) => value.replace(/\D/g, "")).refine((value) => cnpjPattern.test(value), "CNPJ deve conter 14 dígitos."),
+  legalName: z.string().trim().max(160).optional(),
+  cnpj: z.preprocess(
+    (value) => typeof value === "string" ? value : "",
+    z.string().trim().transform((value) => value.replace(/\D/g, "")).refine((value) => cnpjPattern.test(value), "CNPJ deve conter 14 dígitos."),
+  ),
   subscriptionPlan: z.string().trim().min(2).max(60),
-});
+}).transform((input) => ({
+  ...input,
+  legalName: input.legalName && input.legalName.length >= 2 ? input.legalName : input.name,
+}));
 
 const accessInput = z.object({
   tenantId: z.string().uuid(),

@@ -103,8 +103,12 @@ export default async function SuperAdminTenantsPage() {
                   <Input name="name" id="name" required className="h-8 text-xs" />
                 </div>
                 <div className="space-y-1">
+                  <Label htmlFor="legalName" className="text-xs">Razão social</Label>
+                  <Input name="legalName" id="legalName" required className="h-8 text-xs" />
+                </div>
+                <div className="space-y-1">
                   <Label htmlFor="cnpj" className="text-xs">CNPJ</Label>
-                  <Input name="cnpj" id="cnpj" required className="h-8 text-xs" />
+                  <Input name="cnpj" id="cnpj" inputMode="numeric" placeholder="00.000.000/0000-00" required className="h-8 text-xs" />
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor="slug" className="text-xs">Subdomínio / Slug único</Label>
