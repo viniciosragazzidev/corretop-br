@@ -28,6 +28,10 @@ export default function LoginPage() {
         new Promise<never>((_, reject) => window.setTimeout(() => reject(new Error("A autenticação demorou mais que o esperado. Verifique sua conexão e tente novamente.")), 15000)),
       ]);
       if (result.error) { const message = result.error.message || "Credenciais inválidas"; setError(message); toast.error(message); return; }
+      if (result.data && "twoFactorRedirect" in result.data && result.data.twoFactorRedirect) {
+        window.location.replace("/2fa");
+        return;
+      }
       toast.success("Login realizado. Abrindo seu painel...");
       // Navigate only after Better Auth has persisted the session cookie.
       // A server action here can race that cookie store and return

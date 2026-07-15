@@ -419,12 +419,12 @@ export default async function RoadmapPage() {
               {newRoadmapItems.map((roadmapItem, index) => (
                 <Card key={roadmapItem.id} size="sm" className="border-border bg-card shadow-none transition-colors hover:bg-muted/30">
                   <CardContent className="flex items-start gap-3 py-4">
-                    <span className="grid size-7 shrink-0 place-items-center rounded-full border border-border bg-muted/40 font-mono text-xs font-semibold text-muted-foreground">{index + 1}</span>
+                    {roadmapItem.status === "done" ? <CheckCircle aria-label="Implementado" className="mt-0.5 size-7 shrink-0 rounded-full bg-emerald-500/10 p-1 text-emerald-500" weight="fill" /> : <span className="grid size-7 shrink-0 place-items-center rounded-full border border-border bg-muted/40 font-mono text-xs font-semibold text-muted-foreground">{index + 1}</span>}
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="font-mono text-xs text-muted-foreground">{roadmapItem.id}</span>
                         <p className="text-sm font-medium">{roadmapItem.title}</p>
-                        {roadmapItem.status === "done" && <Badge className="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/10 border-none text-[9px] px-1 py-0 h-4">Live</Badge>}
+                        {roadmapItem.status === "done" && <Badge className="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/10 border-none text-[9px] px-1 py-0 h-4">Feito</Badge>}
                       </div>
                       <p className="mt-1 text-xs leading-5 text-muted-foreground">{roadmapItem.description}</p>
                       <p className="mt-1 text-[11px] leading-5 text-muted-foreground/70"><span className="font-medium text-muted-foreground">Resumo:</span> {roadmapItem.summary}</p>
