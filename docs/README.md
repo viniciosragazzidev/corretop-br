@@ -18,6 +18,7 @@
 | `setup-tutorial-pattern.md` | Padrão reutilizável para tutoriais de configuração em etapas | Norma de composição de onboarding |
 | `lead-distribution-implementation-status.md` | Estado, regras operacionais e pendências da distribuição de leads | Plano executado parcialmente |
 | `plugin-first-architecture.md` | Direção arquitetural modular, contratos de domínio, plugins, eventos e hosts | Norma arquitetural vigente |
+| `features-log.md` | Histórico de funcionalidades adicionadas ao sistema por versão/etapa | Histórico de controle vigente |
 | `adr/` | Decisões de arquitetura imutáveis | Criar quando houver decisão relevante |
 
 ## Processo de mudança

@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { toast } from "sonner";
 
-import { Bell, BookOpen, Buildings, ChartBar, ChatCircleText, ClipboardText, CreditCard, CurrencyCircleDollar, FolderSimple, Handshake, House, ListChecks, Monitor, Note, RoadHorizon, ShieldCheck, SignOut, SlidersHorizontal, Target, Users, WifiHigh } from "@/components/huge-icons";
+import { Bell, BookOpen, Buildings, ChartBar, ChatCircleText, ClipboardText, CreditCard, CurrencyCircleDollar, FolderSimple, Handshake, House, ListChecks, Monitor, Note, ShieldCheck, SignOut, SlidersHorizontal, Target, Users, WifiHigh } from "@/components/huge-icons";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
 import { getUserDisplayInfo, type UserDisplayInfo } from "@/shared/auth/actions";
@@ -43,7 +43,6 @@ const systemItems: SidebarItem[] = [
   { label: "Comissões", icon: CurrencyCircleDollar, url: "/configuracoes/comissoes", permission: "gerenciar_comissoes" },
   { label: "Assinatura", icon: CreditCard, url: "/assinatura", permission: "configurar_white_label" },
   { label: "Configurações", icon: SlidersHorizontal, url: "/settings", permission: "acessar_configuracoes_pessoais" },
-  { label: "Roadmap", icon: RoadHorizon, url: "/roadmap", permission: "acessar_roadmap" },
 ];
 const supportItems: SidebarItem[] = [{ label: "Guia do sistema", icon: BookOpen, url: "/guia", permission: "acessar_guia" }];
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Buildings, Gear, House, ShieldStar, SignOut, Clock, ShieldWarning } from "@/components/huge-icons";
+import { Buildings, Gear, House, RoadHorizon, ShieldStar, SignOut, Clock, ShieldWarning } from "@/components/huge-icons";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -86,6 +86,17 @@ export function PlatformAdminSidebar() {
                 >
                   <Buildings className="size-4" />
                   <span>Empresas (Tenants)</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={pathname === "/roadmap"}
+                  render={<Link href="/roadmap" prefetch />}
+                  tooltip="Roadmap"
+                  className="px-3.5 py-2 text-xs font-medium"
+                >
+                  <RoadHorizon className="size-4" />
+                  <span>Roadmap</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>

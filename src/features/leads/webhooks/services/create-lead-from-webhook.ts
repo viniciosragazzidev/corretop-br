@@ -7,6 +7,8 @@ import { getDatabase, schema } from "@/shared/db";
 import type { NormalizedLeadData } from "../types/lead-webhook.types";
 import { chooseAvailableBroker } from "@/features/leads/assignment";
 
+import { notifyNewLead } from "@/features/notifications/send-push-helper";
+
 export type CreateLeadFromWebhookInput = {
   tenantId: string;
   branchId: string | null;
@@ -75,6 +77,9 @@ export async function createLeadFromWebhook(
       })
       .where(eq(schema.webhookDeliveries.id, deliveryId));
   });
+
+  // Trigger push notifications in background
+  void notifyNewLead(leadId, tenantId, branchId, corretorId, normalized.name).catch(console.error);
 
   return { leadId };
 }

@@ -6,6 +6,7 @@ import { AppShell } from "@/components/app-shell";
 import { getDatabase, schema } from "@/shared/db";
 import { TenantOnboardingDialogLoader } from "@/features/onboarding/components/tenant-onboarding-dialog-loader";
 import { DirectorWizardLoader } from "@/features/onboarding/components/director-wizard-loader";
+import { RealtimeSyncProvider } from "@/components/providers/realtime-sync-provider";
 
 export default async function DashboardLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   let context;
@@ -37,7 +38,14 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
     >
       <TenantOnboardingDialogLoader />
       <DirectorWizardLoader />
-      {children}
+      <RealtimeSyncProvider
+        tenantId={context.tenantId}
+        userId={context.userId}
+        role={context.role}
+        branchId={context.branchId}
+      >
+        {children}
+      </RealtimeSyncProvider>
     </AppShell>
   );
 }

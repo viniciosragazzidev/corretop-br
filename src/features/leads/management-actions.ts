@@ -9,6 +9,8 @@ import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { AuthorizationError } from "@/shared/auth/errors";
 import { getDatabase, schema } from "@/shared/db";
 
+import { notifyNewLead } from "@/features/notifications/send-push-helper";
+
 const inputSchema = z.object({ leadId: z.string().uuid(), brokerId: z.string().uuid().nullable() });
 export type ManagementActionState = { success?: boolean; error?: string };
 
@@ -16,7 +18,7 @@ async function getManagedLead(leadId: string) {
   const context = await getRequiredTenantContext();
   if (context.role !== "manager" && context.role !== "director") throw new AuthorizationError("Apenas Gestores e Diretores podem gerenciar leads.");
   const db = getDatabase();
-  const [lead] = await db.select({ id: schema.leads.id, tenantId: schema.leads.tenantId, branchId: schema.leads.branchId, status: schema.leads.status, corretorId: schema.leads.corretorId })
+  const [lead] = await db.select({ id: schema.leads.id, nome: schema.leads.nome, tenantId: schema.leads.tenantId, branchId: schema.leads.branchId, status: schema.leads.status, corretorId: schema.leads.corretorId })
     .from(schema.leads).where(and(eq(schema.leads.id, leadId), eq(schema.leads.tenantId, context.tenantId))).limit(1);
   if (!lead) throw new Error("Lead não encontrado.");
   if (context.role === "manager" && context.branchId !== lead.branchId) throw new AuthorizationError("Este lead está fora da sua filial.");
@@ -39,6 +41,10 @@ export async function reassignLeadAction(_prev: ManagementActionState, formData:
       await tx.insert(schema.leadInteractions).values({ id: randomUUID(), leadId: lead.id, userId: context.userId, tipo: "system_alert", conteudo: `Lead reatribuído por ${context.role === "director" ? "Diretor" : "Gestor"}; SLA reiniciado.` });
       await tx.insert(schema.auditLogs).values({ id: randomUUID(), userId: context.userId, entidade: "lead", entidadeId: lead.id, acao: "reatribuiu_lead" });
     });
+
+    // Trigger push notifications in background
+    void notifyNewLead(lead.id, lead.tenantId, lead.branchId, input.brokerId, lead.nome).catch(console.error);
+
     revalidatePath(`/leads/${lead.id}`); revalidatePath("/leads"); revalidatePath("/dashboard");
     return { success: true };
   } catch (error) { return { error: error instanceof Error ? error.message : "Não foi possível reatribuir o lead." }; }
