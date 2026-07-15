@@ -1,5 +1,6 @@
 "use client"
 
+import { CorreTopLogo } from "@/components/corretop-logo"
 import { ArrowRight, Compass } from "@/components/huge-icons"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -28,10 +29,7 @@ export function OnboardingHero({ steps, onDismiss, onNavigate }: OnboardingHeroP
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-2">
-        <span className="flex size-6 items-center justify-center rounded-md bg-primary text-[11px] font-bold text-primary-foreground">
-          C
-        </span>
-        <span className="text-sm font-semibold tracking-tight">CorreTop</span>
+        <CorreTopLogo className="h-7 w-28 object-contain object-left" />
         <Badge variant="outline" className="ml-auto text-[10px]">
           Configuração inicial
         </Badge>

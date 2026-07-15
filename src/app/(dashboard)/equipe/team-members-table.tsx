@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import { UsersThree } from "@/components/huge-icons";
 
 import { Badge } from "@/components/ui/badge";
+import { MemberStatusBadge, RoleBadge } from "@/components/status-badges";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -105,18 +106,20 @@ export function TeamMembersTable({ members, branches, currentRole, currentBranch
                       transition: { duration: 0.15, ease: [0, 0, 0.2, 1], delay: Math.min(index * 0.03, 0.25) },
                     }),
                   }}
-                  whileHover={{ backgroundColor: "var(--sidebar-accent)" }}
-                  className="group/card cursor-default transition-colors"
+                  className="group/card cursor-default transition-colors duration-200 hover:bg-[var(--sidebar-accent)]"
                 >
                   <TableCell className="pl-5">
                     <p className="font-medium">{member.name ?? "Sem nome"}</p>
                     {member.userId === currentUserId ? <p className="text-xs text-muted-foreground">Você</p> : null}
                   </TableCell>
                   <TableCell className="text-muted-foreground transition-colors duration-200 group-hover/card:text-foreground">{member.email}</TableCell>
-                  <TableCell><div>{jobTitleLabel[member.jobTitle] ?? member.jobTitle}</div><div className="text-xs text-muted-foreground">{roleLabel[member.role]}</div></TableCell>
+                  <TableCell>
+                    <div className="font-medium text-xs text-zinc-900 dark:text-zinc-100 mb-1">{jobTitleLabel[member.jobTitle] ?? member.jobTitle}</div>
+                    <RoleBadge role={member.role} />
+                  </TableCell>
                   <TableCell className="text-muted-foreground transition-colors duration-200 group-hover/card:text-foreground">{member.branchName ?? "Sem filial"}</TableCell>
                   <TableCell>
-                    <Badge variant={member.status === "active" ? "default" : member.status === "pending" ? "secondary" : "outline"} className="transition-transform duration-200 group-hover/card:scale-105">{statusLabel[member.status]}</Badge>
+                    <MemberStatusBadge status={member.status} />
                   </TableCell>
                   <TableCell className="pr-5">
                     <TeamMemberActions

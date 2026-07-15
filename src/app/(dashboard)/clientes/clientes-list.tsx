@@ -43,8 +43,7 @@ export function ClientesList({ clients }: { clients: ClientItem[] }) {
             hidden: { opacity: 0, y: 8 },
             visible: { opacity: 1, y: 0, transition: { duration: 0.18, ease: [0, 0, 0.2, 1] } },
           }}
-          whileHover={{ x: 4, backgroundColor: "var(--sidebar-accent)", transition: { duration: 0.2, ease: [0, 0, 0.2, 1] } }}
-          className="group/card flex cursor-default flex-col gap-2 px-5 py-4 transition-colors sm:flex-row sm:items-center sm:justify-between"
+          className="group/card flex cursor-default flex-col gap-2 px-5 py-4 transition-colors duration-200 hover:bg-[var(--sidebar-accent)] sm:flex-row sm:items-center sm:justify-between"
         >
           <div>
             <p className="font-medium transition-colors duration-200 group-hover/card:text-foreground">{client.name}</p>

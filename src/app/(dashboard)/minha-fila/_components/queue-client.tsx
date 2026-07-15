@@ -8,7 +8,7 @@ import {
   MagnifyingGlass,
 } from "@/components/huge-icons";
 
-import { Badge } from "@/components/ui/badge";
+import { LeadStatusBadge } from "@/components/status-badges";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -59,54 +59,39 @@ export function BrokerQueueClient({
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
   const filteredLeads = useMemo(() => {
-    const query = search.trim().toLocaleLowerCase("pt-BR");
     return leads.filter((lead) => {
-      if (query && !`${lead.name} ${lead.phone}`.toLocaleLowerCase("pt-BR").includes(query)) {
-        return false;
-      }
-      if (statusFilter !== "all" && lead.status !== statusFilter) {
-        return false;
-      }
-      return true;
+      const matchesSearch =
+        lead.name.toLowerCase().includes(search.toLowerCase()) ||
+        lead.phone.includes(search);
+      const matchesStatus =
+        statusFilter === "all" || lead.status === statusFilter;
+      return matchesSearch && matchesStatus;
     });
   }, [leads, search, statusFilter]);
 
-  const statusOptions = [
-    { value: "all", label: "Todos" },
-    { value: "new", label: "Novos" },
-    { value: "distributed", label: "Distribuídos" },
-    { value: "in_contact", label: "Em contato" },
-    { value: "quote_sent", label: "Cotação" },
-    { value: "negotiation", label: "Negociação" },
-    { value: "documentation_pending", label: "Documentação" },
-    { value: "under_analysis", label: "Em análise" },
-    { value: "converted", label: "Convertidos" },
-    { value: "lost", label: "Perdidos" },
-  ];
-
   return (
-    <div>
-      {/* Toolbar */}
-      <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-4">
+      {/* Filters */}
+      <div className="flex flex-col gap-3 px-4 sm:flex-row sm:items-center sm:px-0">
         <div className="relative flex-1">
-          <MagnifyingGlass className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <MagnifyingGlass className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            aria-label="Buscar lead"
-            className="h-9 bg-muted pl-8 text-sm"
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por nome ou telefone..."
+            placeholder="Buscar leads por nome ou telefone..."
             value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
           />
         </div>
         <div className="flex items-center gap-2">
           <select
-            className="h-9 rounded-md border border-input bg-background px-2 text-xs font-medium text-foreground outline-none focus:ring-1 focus:ring-ring"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
+            className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           >
-            {statusOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
+            <option value="all">Todos os status</option>
+            {Object.entries(statusLabels).map(([key, value]) => (
+              <option key={key} value={key}>
+                {value.label}
               </option>
             ))}
           </select>
@@ -123,10 +108,6 @@ export function BrokerQueueClient({
       {/* Mobile List */}
       <div className="divide-y divide-border sm:hidden">
         {filteredLeads.map((lead, i) => {
-          const statusInfo = statusLabels[lead.status] ?? {
-            label: lead.status,
-            color: "bg-muted-foreground text-muted-foreground",
-          };
           return (
             <motion.div
               key={lead.id}
@@ -144,12 +125,7 @@ export function BrokerQueueClient({
                     {lead.maskPhone}
                   </p>
                   <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                    <span
-                      className={`inline-block size-1.5 rounded-full ${statusInfo.color.split(" ")[0]}`}
-                    />
-                    <span className="text-xs text-muted-foreground">
-                      {statusInfo.label}
-                    </span>
+                    <LeadStatusBadge status={lead.status} />
                     <span className="text-xs text-muted-foreground">·</span>
                     <span className="text-xs text-muted-foreground">
                       {sourceLabels[lead.source] ?? lead.source}
@@ -192,10 +168,6 @@ export function BrokerQueueClient({
         </TableHeader>
         <TableBody>
           {filteredLeads.map((lead, i) => {
-            const statusInfo = statusLabels[lead.status] ?? {
-              label: lead.status,
-              color: "bg-muted-foreground text-muted-foreground",
-            };
             return (
               <motion.tr
                 key={lead.id}
@@ -216,15 +188,7 @@ export function BrokerQueueClient({
                   </p>
                 </TableCell>
                 <TableCell>
-                  <Badge
-                    variant="outline"
-                    className="gap-1.5 rounded-md text-xs font-normal"
-                  >
-                    <span
-                      className={`inline-block size-1.5 rounded-full ${statusInfo.color.split(" ")[0]}`}
-                    />
-                    {statusInfo.label}
-                  </Badge>
+                  <LeadStatusBadge status={lead.status} />
                 </TableCell>
                 <TableCell className="text-xs text-muted-foreground">
                   {sourceLabels[lead.source] ?? lead.source}

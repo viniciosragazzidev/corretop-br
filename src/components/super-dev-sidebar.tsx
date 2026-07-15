@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useSession, signOut } from "@/shared/auth/client";
 import { toast } from "sonner";
+import { CorreTopLogo } from "@/components/corretop-logo";
 
 const superItems = [
   { label: "Visão geral", icon: House, url: "/super-dev" },
@@ -129,10 +130,7 @@ export function SuperDevSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton className="h-10" size="lg" render={<Link href="/super-dev" prefetch />}>
-              <span className="grid size-7 place-items-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
-                S
-              </span>
-              <span className="truncate font-semibold tracking-tight">CorreTop Admin</span>
+              <CorreTopLogo className="h-7 w-28 object-contain object-left" />
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

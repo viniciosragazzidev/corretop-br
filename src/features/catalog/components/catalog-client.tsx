@@ -427,7 +427,7 @@ export function CarrierSheet({ carrier: initialCarrier }: { carrier: CarrierReco
         }
       />
 
-      <SheetContent className="w-full gap-0 overflow-hidden p-0 sm:max-w-3xl">
+      <SheetContent className="w-full gap-0 overflow-hidden p-0 sm:w-[min(100vw-2rem,50rem)]">
         <SheetHeader className="border-b px-6 py-5 pr-14 sm:px-8">
           <div className="flex items-start gap-3">
             <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">

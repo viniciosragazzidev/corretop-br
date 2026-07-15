@@ -5,6 +5,7 @@ import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { AppShell } from "@/components/app-shell";
 import { getDatabase, schema } from "@/shared/db";
 import { TenantOnboardingDialogLoader } from "@/features/onboarding/components/tenant-onboarding-dialog-loader";
+import { DirectorWizardLoader } from "@/features/onboarding/components/director-wizard-loader";
 
 export default async function DashboardLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   let context;
@@ -35,6 +36,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
       }}
     >
       <TenantOnboardingDialogLoader />
+      <DirectorWizardLoader />
       {children}
     </AppShell>
   );

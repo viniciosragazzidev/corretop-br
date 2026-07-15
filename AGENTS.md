@@ -12,6 +12,7 @@ engenharia ficam em `docs/`; o índice e a ordem de precedência estão em
 
 Regras inegociáveis:
 
+- Antes de qualquer implementação, leia integralmente `.agents/skills/grill-with-docs/SKILL.md` e siga suas orientações para validar o plano, o domínio e as decisões documentais antes de escrever código.
 - Não instale, atualize ou remova dependências sem solicitação explícita.
 - Antes de escrever código Next.js, leia a documentação correspondente em
   `node_modules/next/dist/docs/`.

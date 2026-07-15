@@ -167,6 +167,7 @@ export const tenants = pgTable("tenants", {
   cnpj: text("cnpj").unique(),
   logoUrl: text("logo_url"),
   brandColor: text("brand_color"),
+  initialSetupCompletedAt: timestamp("initial_setup_completed_at", { withTimezone: true }),
   subscriptionPlan: text("subscription_plan").notNull().default("Essencial"),
   slaFirstContactMinutes: text("sla_first_contact_minutes").notNull().default("15"),
   slaStagnantDays: text("sla_stagnant_days").notNull().default("3"),

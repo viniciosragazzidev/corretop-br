@@ -17,6 +17,8 @@ export type LeadRow = {
   corretorNome: string | null;
 };
 
+import { LeadStatusBadge } from "@/components/status-badges";
+
 export function LeadsTableBody({ leads, contextRole }: { leads: LeadRow[]; contextRole: string }) {
   return (
     <motion.tbody initial="hidden" animate="visible">
@@ -39,8 +41,8 @@ export function LeadsTableBody({ leads, contextRole }: { leads: LeadRow[]; conte
           </TableCell>
           <TableCell>
             <div className="flex flex-wrap items-center gap-1.5">
-              <Badge variant={lead.status === "lost" ? "destructive" : "outline"}>{statusLabel(lead.status)}</Badge>
-              {isActiveServiceStatus(lead.status) ? <Badge className="border-emerald-300/30 bg-emerald-300/10 text-emerald-200" variant="outline">Atendimento ativo</Badge> : null}
+              <LeadStatusBadge status={lead.status} />
+              {isActiveServiceStatus(lead.status) ? <Badge className="border-emerald-500/15 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400 dark:bg-emerald-500/15" variant="outline">Atendimento ativo</Badge> : null}
             </div>
           </TableCell>
           <TableCell>{lead.origem === "manual" ? "Manual" : "Webhook"}</TableCell>

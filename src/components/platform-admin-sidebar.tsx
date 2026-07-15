@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useSession, signOut } from "@/shared/auth/client";
 import { toast } from "sonner";
+import { CorreTopLogo } from "@/components/corretop-logo";
 
 export function PlatformAdminSidebar() {
   const router = useRouter();
@@ -51,7 +52,7 @@ export function PlatformAdminSidebar() {
               </span>
               <div className="flex flex-col text-left">
                 <span className="font-semibold tracking-tight text-sm text-foreground">Super Admin</span>
-                <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">CorreTop Platform</span>
+                <CorreTopLogo className="h-4 w-24 object-contain object-left" />
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>

@@ -26,6 +26,7 @@ import { QuoteModalButton } from "./quote-modal-button";
 import { getRequirementsForLead, getLeadDocuments } from "@/features/documents/actions";
 import { LeadDocumentsSection } from "@/features/documents/components/lead-documents-section";
 import { LeadActionHub } from "@/features/leads/components/lead-action-hub";
+import { LeadReminder } from "@/features/leads/components/lead-reminder";
 
 function getCurrentTimestamp() {
   return Date.now();

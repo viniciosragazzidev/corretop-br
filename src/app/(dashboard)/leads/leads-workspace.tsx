@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 
 import { ArrowUpRight, Phone, SquaresFour, UserList } from "@/components/huge-icons";
 import { Badge } from "@/components/ui/badge";
+import { LeadStatusBadge } from "@/components/status-badges";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -350,11 +351,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  return (
-    <Badge variant={status === "lost" ? "destructive" : "outline"} className="max-w-full truncate">
-      {statusLabel(status)}
-    </Badge>
-  );
+  return <LeadStatusBadge status={status} />;
 }
 
 function statusLabel(status: string) {

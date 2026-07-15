@@ -8,6 +8,7 @@ type CompatIconProps = Omit<HugeIconProps, "icon"> & { weight?: string };
 
 const aliases: Record<string, string> = {
   ArrowDownRight: "ArrowDownRight01Icon",
+  ArrowLeft: "ArrowLeft01Icon",
   ArrowRight: "ArrowRight01Icon",
   ArrowsDownUp: "ArrowUpDownIcon",
   ArrowUpRight: "ArrowUpRight01Icon",
@@ -121,6 +122,7 @@ function createCompatIcon(name: string) {
 
 export const ArrowDownRight = createCompatIcon("ArrowDownRight");
 export const ArrowSquareOut = createCompatIcon("ArrowSquareOut");
+export const ArrowLeft = createCompatIcon("ArrowLeft");
 export const ArrowRight = createCompatIcon("ArrowRight");
 export const ArrowsDownUp = createCompatIcon("ArrowsDownUp");
 export const ArrowUpRight = createCompatIcon("ArrowUpRight");

@@ -20,19 +20,6 @@ export async function proxy(request: NextRequest) {
     ?? request.cookies.get("__Secure-better-auth.session_token")
     ?? request.cookies.get("better-auth.session_token.value");
 
-  if (pathname === "/") {
-    if (session) {
-      const response = NextResponse.redirect(new URL("/dashboard", request.url));
-      copyCookies(supabaseResponse, response);
-      response.headers.set("x-request-id", requestId);
-      return response;
-    }
-    const response = NextResponse.redirect(new URL("/login", request.url));
-    copyCookies(supabaseResponse, response);
-    response.headers.set("x-request-id", requestId);
-    return response;
-  }
-
   if (authPaths.some((p) => pathname.startsWith(p))) {
     if (session) {
       const response = NextResponse.redirect(new URL(pathname.startsWith("/admin") ? "/super-admin" : "/dashboard", request.url));
