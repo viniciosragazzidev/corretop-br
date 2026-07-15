@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
 import { markAllNotificationsReadAction, markNotificationReadAction } from "./actions";
+import { PushNotificationManager } from "@/features/notifications/components/push-notification-manager";
 
 export default async function NotificationsPage() {
   const context = await getRequiredTenantContext();
@@ -42,6 +43,8 @@ export default async function NotificationsPage() {
             </form>
           ) : null}
         </section>
+
+        <PushNotificationManager />
 
         <Card className="border-border bg-card shadow-none">
           <CardHeader>
