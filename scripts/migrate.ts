@@ -5,7 +5,11 @@ import path from "node:path";
 import { loadEnvConfig } from "@next/env";
 import postgres from "postgres";
 
-loadEnvConfig(process.cwd());
+// Preserve variables injected by Vercel/CI. Only load local env files when the
+// process was started without a database connection configured.
+if (!process.env.SUPABASE_DB_URL && !process.env.DATABASE_URL) {
+  loadEnvConfig(process.cwd());
+}
 
 type Journal = {
   entries: Array<{ tag: string; when: number }>;

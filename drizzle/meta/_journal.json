@@ -36,6 +36,20 @@
       "when": 1784376000000,
       "tag": "0032_repair_team_job_title",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1784462400000,
+      "tag": "0033_system_settings",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1784548800000,
+      "tag": "0034_repair_membership_job_title",
+      "breakpoints": true
     }
   ]
 }
