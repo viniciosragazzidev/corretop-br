@@ -210,6 +210,9 @@ export function DistributionDashboard({
             <Buildings />
             Gerenciar filiais
           </Button>
+          <Button render={<Link href="/leads/distribuicao/plantao" />} size="sm" variant="outline">
+            Plantões
+          </Button>
         </CardHeader>
         <CardContent className="p-0">
           {branches.length === 0 ? (

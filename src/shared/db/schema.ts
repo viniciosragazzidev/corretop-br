@@ -19,9 +19,12 @@ export const branchStatusValues = ["active", "inactive"] as const;
 export const membershipStatusValues = ["active", "inactive"] as const;
 export const availabilityStatusValues = ["available", "paused"] as const;
 export const tenantRoleValues = ["director", "manager", "broker"] as const;
+export const teamJobTitleValues = ["director", "manager", "broker", "marketing", "finance", "operations", "support"] as const;
 export const userStatusValues = ["pending", "active", "disabled"] as const;
 export const leadStatusValues = ["new", "distributed", "in_contact", "quote_sent", "negotiation", "documentation_pending", "under_analysis", "converted", "lost"] as const;
 export const leadOriginValues = ["manual", "webhook"] as const;
+export const leadDistributionStatusValues = ["unassigned", "awaiting_unit", "queued", "assigning", "assigned", "distribution_failed", "returned_to_queue"] as const;
+export const assignmentSourceValues = ["manual_director", "manual_manager", "automatic", "duty_schedule", "redistribution", "system_recovery"] as const;
 export const leadInteractionTypeValues = [
   "status_change",
   "note",
@@ -296,6 +299,12 @@ export const leads = pgTable(
     email: text("email"),
     origem: leadOrigin("origem").notNull().default("manual"),
     status: leadStatus("status").notNull().default("new"),
+    distributionStatus: text("distribution_status").notNull().default("unassigned"),
+    queueId: text("queue_id"),
+    unitAssignedAt: timestamp("unit_assigned_at", { withTimezone: true }),
+    assignmentSource: text("assignment_source"),
+    assignmentStrategy: text("assignment_strategy"),
+    distributionUpdatedAt: timestamp("distribution_updated_at", { withTimezone: true }),
     assignedAt: timestamp("assigned_at", { withTimezone: true }),
     firstContactAt: timestamp("first_contact_at", { withTimezone: true }),
     serviceStartedAt: timestamp("service_started_at", { withTimezone: true }),
@@ -309,10 +318,104 @@ export const leads = pgTable(
   },
   (table) => [
     index("leads_tenant_branch_status_idx").on(table.tenantId, table.branchId, table.status),
+    index("leads_tenant_distribution_status_idx").on(table.tenantId, table.distributionStatus),
+    index("leads_branch_queue_distribution_idx").on(table.branchId, table.queueId, table.distributionStatus),
     index("leads_corretor_status_idx").on(table.corretorId, table.status),
     index("leads_webhook_credential_idx").on(table.webhookCredentialId),
     uniqueIndex("leads_credential_external_id_unique").on(table.webhookCredentialId, table.externalId).where(sql`${table.externalId} IS NOT NULL`),
   ],
+);
+
+export const leadQueues = pgTable(
+  "lead_queues",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    branchId: text("branch_id").notNull().references(() => branches.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
+    status: text("status").notNull().default("active"),
+    assignmentMode: text("assignment_mode").notNull().default("automatic"),
+    assignmentStrategy: text("assignment_strategy").notNull().default("capacity"),
+    capacityEnabled: boolean("capacity_enabled").notNull().default(false),
+    capacityPerBroker: integer("capacity_per_broker"),
+    isDefault: boolean("is_default").notNull().default(false),
+    createdAt,
+    updatedAt,
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("lead_queues_tenant_branch_idx").on(table.tenantId, table.branchId),
+    uniqueIndex("lead_queues_tenant_branch_slug_unique").on(table.tenantId, table.branchId, table.slug),
+  ],
+);
+
+export const leadDistributionEvents = pgTable(
+  "lead_distribution_events",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    leadId: text("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+    fromBranchId: text("from_branch_id"),
+    toBranchId: text("to_branch_id"),
+    fromQueueId: text("from_queue_id"),
+    toQueueId: text("to_queue_id"),
+    previousOwnerId: text("previous_owner_id"),
+    newOwnerId: text("new_owner_id"),
+    action: text("action").notNull(),
+    source: text("source").notNull(),
+    strategy: text("strategy"),
+    reason: text("reason"),
+    actorId: text("actor_id").notNull().references(() => user.id),
+    metadata: jsonb("metadata").notNull().default({}),
+    createdAt,
+  },
+  (table) => [index("lead_distribution_events_tenant_lead_idx").on(table.tenantId, table.leadId, table.createdAt)],
+);
+
+export const leadDistributionSettings = pgTable(
+  "lead_distribution_settings",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    branchId: text("branch_id").references(() => branches.id, { onDelete: "cascade" }),
+    queueId: text("queue_id").references(() => leadQueues.id, { onDelete: "cascade" }),
+    automaticRoutingEnabled: boolean("automatic_routing_enabled").notNull().default(true),
+    automaticAssignmentEnabled: boolean("automatic_assignment_enabled").notNull().default(true),
+    defaultQueueId: text("default_queue_id"),
+    fallbackQueueId: text("fallback_queue_id"),
+    allowManagerManualAssignment: boolean("allow_manager_manual_assignment").notNull().default(true),
+    allowDirectorManualAssignment: boolean("allow_director_manual_assignment").notNull().default(true),
+    dutyScheduleEnabled: boolean("duty_schedule_enabled").notNull().default(false),
+    active: boolean("active").notNull().default(true),
+    updatedBy: text("updated_by").references(() => user.id),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [index("lead_distribution_settings_tenant_idx").on(table.tenantId, table.branchId, table.queueId)],
+);
+
+export const unitDutySchedules = pgTable(
+  "unit_duty_schedules",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    branchId: text("branch_id").notNull().references(() => branches.id, { onDelete: "cascade" }),
+    queueId: text("queue_id").notNull().references(() => leadQueues.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    dayOfWeek: integer("day_of_week").notNull(),
+    startsAt: text("starts_at").notNull(),
+    endsAt: text("ends_at").notNull(),
+    priority: integer("priority").notNull().default(100),
+    status: text("status").notNull().default("active"),
+    timezone: text("timezone").notNull().default("America/Sao_Paulo"),
+    validFrom: timestamp("valid_from", { withTimezone: true }).notNull(),
+    validUntil: timestamp("valid_until", { withTimezone: true }),
+    createdBy: text("created_by").notNull().references(() => user.id),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [index("unit_duty_schedules_tenant_status_idx").on(table.tenantId, table.status, table.dayOfWeek, table.startsAt)],
 );
 
 export const clients = pgTable(
@@ -578,6 +681,7 @@ export const tenantMemberships = pgTable(
       .references(() => user.id),
     branchId: text("branch_id"),
     role: tenantRole("role").notNull(),
+    jobTitle: text("job_title").notNull().default("broker"),
     status: membershipStatus("status").notNull().default("active"),
     availabilityStatus: availabilityStatus("availability_status").notNull().default("available"),
     onboardingDismissedAt: timestamp("onboarding_dismissed_at", { withTimezone: true }),
@@ -995,6 +1099,42 @@ export const goalProgressRelations = relations(goalProgress, ({ one }) => ({
   goal: one(goals, {
     fields: [goalProgress.goalId],
     references: [goals.id],
+  }),
+}));
+
+/* ─── Push Subscriptions ─── */
+
+export const pushSubscriptions = pgTable(
+  "push_subscriptions",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    tenantId: text("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    endpoint: text("endpoint").notNull().unique(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    userAgent: text("user_agent"),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("push_subscriptions_user_idx").on(table.userId),
+    index("push_subscriptions_tenant_idx").on(table.tenantId),
+  ]
+);
+
+export const pushSubscriptionRelations = relations(pushSubscriptions, ({ one }) => ({
+  user: one(user, {
+    fields: [pushSubscriptions.userId],
+    references: [user.id],
+  }),
+  tenant: one(tenants, {
+    fields: [pushSubscriptions.tenantId],
+    references: [tenants.id],
   }),
 }));
 

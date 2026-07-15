@@ -206,55 +206,59 @@ export function LeadsWorkspace({
             <SheetBody>
               <div className="space-y-5">
                 <SheetSection>
-                  <div className="p-4">
-                    <p className="text-lg font-semibold">{selectedLead.nome}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {contextRole === "broker" && selectedLead.status === "distributed"
-                        ? maskPhone(selectedLead.telefone)
-                        : selectedLead.telefone}
-                    </p>
-                    <div className="mt-4">
+                  <div className="space-y-4 p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="truncate text-lg font-semibold tracking-tight">{selectedLead.nome}</p>
+                        <p className="mt-1 truncate text-sm text-muted-foreground">
+                          {contextRole === "broker" && selectedLead.status === "distributed" ? maskPhone(selectedLead.telefone) : selectedLead.telefone}
+                        </p>
+                      </div>
                       <StatusBadge status={selectedLead.status} />
-                    </div>
-                    <div className="mt-5 grid gap-2 sm:grid-cols-2">
-                      <Button render={<Link href={`/cotacoes?leadId=${selectedLead.id}`} />}>
-                        <ArrowUpRight />
-                        Nova cotação
-                      </Button>
-                      <Button
-                        render={<Link href={`/leads/${selectedLead.id}`} />}
-                        variant="outline"
-                      >
-                        Ver completo
-                      </Button>
                     </div>
                   </div>
                 </SheetSection>
-                <SheetSection className="p-4">
-                  <DetailRow
-                    label="Responsável"
-                    value={selectedLead.corretorNome ?? "Aguardando distribuição"}
-                  />
-                  <DetailRow
-                    label="Origem"
-                    value={selectedLead.origem === "manual" ? "Manual" : "Webhook"}
-                  />
-                  <DetailRow label="Entrada" value={formatDate(selectedLead.createdAt)} />
-                </SheetSection>
-                {canCall ? (
-                  <Button
-                    className="w-full"
-                    render={<a href={`tel:${selectedLead.telefone}`} />}
-                    variant="outline"
-                  >
-                    <Phone />
-                    Ligar para o lead
-                  </Button>
-                ) : (
-                  <p className="rounded-lg border border-amber-300/30 bg-amber-300/10 p-3 text-sm text-muted-foreground">
-                    Os dados de contato serão liberados quando você iniciar este atendimento.
-                  </p>
-                )}
+                <Tabs defaultValue="summary" className="min-h-0">
+                  <TabsList aria-label="Informações do lead no drawer" className="w-full justify-start" variant="line">
+                    <TabsTrigger value="summary">Resumo</TabsTrigger>
+                    <TabsTrigger value="actions">Ações</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="summary" className="mt-4 space-y-4">
+                    <SheetSection className="p-4">
+                      <div>
+                        <div>
+                          <p className="text-sm font-semibold">Dados do atendimento</p>
+                          <p className="mt-1 text-xs text-muted-foreground">Contexto essencial para continuar o lead.</p>
+                        </div>
+                      </div>
+                      <dl className="mt-4 space-y-3">
+                        <DetailRow label="Responsável" value={selectedLead.corretorNome ?? "Aguardando distribuição"} />
+                        <DetailRow label="Origem" value={selectedLead.origem === "manual" ? "Manual" : "Webhook"} />
+                        <DetailRow label="Entrada" value={formatDate(selectedLead.createdAt)} />
+                      </dl>
+                    </SheetSection>
+                    <Button className="w-full" render={<Link href={`/leads/${selectedLead.id}`} />} variant="outline">
+                      Ver detalhe completo
+                      <ArrowUpRight />
+                    </Button>
+                  </TabsContent>
+                  <TabsContent value="actions" className="mt-4 space-y-3">
+                    <Button className="w-full" render={<Link href={`/cotacoes?leadId=${selectedLead.id}`} />}>
+                      <ArrowUpRight />
+                      Nova cotação
+                    </Button>
+                    {canCall ? (
+                      <Button className="w-full" render={<a href={`tel:${selectedLead.telefone}`} />} variant="outline">
+                        <Phone />
+                        Ligar para o lead
+                      </Button>
+                    ) : (
+                      <p className="rounded-lg border border-amber-300/30 bg-amber-300/10 p-3 text-sm text-muted-foreground">
+                        Os dados de contato serão liberados quando você iniciar este atendimento.
+                      </p>
+                    )}
+                  </TabsContent>
+                </Tabs>
               </div>
             </SheetBody>
           ) : null}

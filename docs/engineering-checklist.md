@@ -2,6 +2,10 @@
 
 ## Antes de iniciar uma feature
 
+- [ ] Domínio, use cases, services e repository escopado definidos; a interface não possui regra de negócio própria.
+- [ ] Foi decidido como a capacidade funciona em modo completo e modo contextual/plugin.
+- [ ] Eventos publicados/escutados, feature flag e superfície de governança do Super-admin definidos.
+- [ ] A feature responde às perguntas do pre-flight Plugin First em `docs/plugin-first-architecture.md`.
 - [ ] Requisito/RF e regras de negocio afetadas identificados.
 - [ ] Nao ha decisao bloqueante pendente para o comportamento proposto.
 - [ ] Rota, dominio e contrato de dados definidos sem misturar UI e regra de negocio.

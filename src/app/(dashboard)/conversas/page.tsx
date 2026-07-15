@@ -5,8 +5,8 @@ import { ConversationsWorkspace, type ConversationItem, type ConversationMessage
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
 
-export default async function ConversationsPage({ searchParams }: { searchParams: Promise<{ leadId?: string }> }) {
-  const { leadId } = await searchParams;
+export default async function ConversationsPage({ searchParams }: { searchParams: Promise<{ leadId?: string; setup?: string }> }) {
+  const { leadId, setup } = await searchParams;
   const context = await getRequiredTenantContext();
   const db = getDatabase();
 
@@ -100,6 +100,7 @@ export default async function ConversationsPage({ searchParams }: { searchParams
   });
 
   const plans: PlanSuggestion[] = availablePlans;
+  const whatsappSessionReady = connection[0]?.status === "ready";
   const whatsappReady = connection[0]?.active === true && connection[0]?.status === "ready";
 
   return (
@@ -112,6 +113,8 @@ export default async function ConversationsPage({ searchParams }: { searchParams
           initialLeadId={leadId}
           plans={plans}
           whatsappReady={whatsappReady}
+          whatsappSessionReady={whatsappSessionReady}
+          setupOpen={setup === "whatsapp"}
         />
       </main>
     </>

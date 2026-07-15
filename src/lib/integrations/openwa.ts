@@ -3,6 +3,15 @@ import "server-only";
 const openWaBase = () => { const value = (process.env.OPENWA_BASE_URL ?? "http://localhost:2785").replace(/\/$/, ""); return value.endsWith("/api") ? value : `${value}/api`; };
 const openWaHeaders = () => ({ "Content-Type": "application/json", "X-API-Key": process.env.OPENWA_API_KEY ?? "" });
 
+export function normalizeOpenWaStatus(value: unknown) {
+  const status = String(value ?? "").trim().toLowerCase();
+  if (["ready", "connected", "authenticated", "open", "online"].includes(status)) return "ready";
+  if (["qr", "qr_ready", "waiting_qr", "waiting-for-qr", "scan_qr"].includes(status)) return "qr_ready";
+  if (["created", "starting", "initializing", "connecting", "loading"].includes(status)) return "initializing";
+  if (["disconnected", "closed", "logged_out", "logout", "offline", "stopped"].includes(status)) return "disconnected";
+  return status || "disconnected";
+}
+
 export async function createOpenWaSession(name: string) {
   const response = await fetch(`${openWaBase()}/sessions`, { method: "POST", headers: openWaHeaders(), body: JSON.stringify({ name }), cache: "no-store" });
   if (!response.ok) throw new Error(`OpenWA create session failed: ${response.status}`);

@@ -12,8 +12,12 @@
 | `business-rules.md` | Regras de domínio consolidadas e rastreáveis | Norma de comportamento vigente |
 | `product/resume-dashboard-plan.md` | Conteúdo e prioridades da home executiva `/resume` | Plano de produto vigente |
 | `product/corretor-resume-dashboard-plan.md` | Conteúdo e prioridades da home pessoal do Corretor | Plano de produto vigente |
+| `product/financeiro-role-based-plan.md` | Plano do Financeiro por papel, com governança, auditoria e controle do Super-admin | Plano de produto vigente |
 | `decision-log.md` | Decisões tomadas e pendências | Controle de decisão vigente |
 | `engineering-checklist.md` | Critérios para iniciar e concluir trabalho | Norma de qualidade vigente |
+| `setup-tutorial-pattern.md` | Padrão reutilizável para tutoriais de configuração em etapas | Norma de composição de onboarding |
+| `lead-distribution-implementation-status.md` | Estado, regras operacionais e pendências da distribuição de leads | Plano executado parcialmente |
+| `plugin-first-architecture.md` | Direção arquitetural modular, contratos de domínio, plugins, eventos e hosts | Norma arquitetural vigente |
 | `adr/` | Decisões de arquitetura imutáveis | Criar quando houver decisão relevante |
 
 ## Processo de mudança

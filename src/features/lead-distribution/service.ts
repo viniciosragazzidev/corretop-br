@@ -1,0 +1,88 @@
+import "server-only";
+
+import { randomUUID } from "node:crypto";
+import { and, asc, count, eq, inArray, isNull } from "drizzle-orm";
+import { getDatabase, schema } from "@/shared/db";
+import { AuthorizationError } from "@/shared/auth/errors";
+import type { TenantContext } from "@/shared/auth/types";
+import { chooseBroker } from "./domain";
+import type { AssignmentSource, AssignmentStrategy, LeadAssignmentResult, LeadRoutingResult } from "./types";
+
+const activeCommercialStatuses = ["distributed", "in_contact", "quote_sent", "negotiation", "documentation_pending", "under_analysis"] as const;
+
+function canManage(context: TenantContext) {
+  return context.role === "director" || context.role === "manager";
+}
+
+function assertBranchScope(context: TenantContext, branchId: string) {
+  if (context.role === "manager" && context.branchId !== branchId) throw new AuthorizationError("Você só pode operar leads da sua unidade.");
+}
+
+async function ensureDefaultQueue(tenantId: string, branchId: string, actorId: string) {
+  const db = getDatabase();
+  await db.insert(schema.leadQueues).values({ id: randomUUID(), tenantId, branchId, name: "Fila geral", slug: "geral", isDefault: true, createdAt: new Date(), updatedAt: new Date() }).onConflictDoNothing();
+  const [queue] = await db.select({ id: schema.leadQueues.id }).from(schema.leadQueues).where(and(eq(schema.leadQueues.tenantId, tenantId), eq(schema.leadQueues.branchId, branchId), eq(schema.leadQueues.isDefault, true), eq(schema.leadQueues.status, "active"))).orderBy(asc(schema.leadQueues.createdAt)).limit(1);
+  if (!queue) throw new Error("A unidade não possui uma fila ativa.");
+  void actorId;
+  return queue.id;
+}
+
+export async function routeLeadToBranch(context: TenantContext, leadId: string, branchId: string, reason = "Distribuição manual para unidade"): Promise<LeadRoutingResult> {
+  if (!canManage(context)) throw new AuthorizationError("Apenas Gestores e Diretores podem distribuir leads.");
+  assertBranchScope(context, branchId);
+  const db = getDatabase();
+  const [branch] = await db.select({ id: schema.branches.id, acceptingLeads: schema.branches.acceptingLeads, status: schema.branches.status }).from(schema.branches).where(and(eq(schema.branches.id, branchId), eq(schema.branches.tenantId, context.tenantId))).limit(1);
+  if (!branch || branch.status !== "active" || !branch.acceptingLeads) return { status: "failed", code: "BRANCH_NOT_ACCEPTING_LEADS" };
+  const queueId = await ensureDefaultQueue(context.tenantId, branchId, context.userId);
+  const [lead] = await db.select({ id: schema.leads.id, branchId: schema.leads.branchId, corretorId: schema.leads.corretorId }).from(schema.leads).where(and(eq(schema.leads.id, leadId), eq(schema.leads.tenantId, context.tenantId))).limit(1);
+  if (!lead) return { status: "failed", code: "LEAD_NOT_FOUND" };
+  const updated = await db.transaction(async (tx) => {
+    const result = await tx.update(schema.leads).set({ branchId, queueId, corretorId: null, distributionStatus: "queued", unitAssignedAt: new Date(), assignmentSource: context.role === "director" ? "manual_director" : "manual_manager", assignmentStrategy: "manual", distributionUpdatedAt: new Date() }).where(and(eq(schema.leads.id, leadId), eq(schema.leads.tenantId, context.tenantId), isNull(schema.leads.corretorId))).returning({ id: schema.leads.id });
+    if (!result.length) return false;
+    await tx.insert(schema.leadDistributionEvents).values({ id: randomUUID(), tenantId: context.tenantId, leadId, fromBranchId: lead.branchId, toBranchId: branchId, previousOwnerId: lead.corretorId, toQueueId: queueId, action: "routed_to_unit", source: context.role === "director" ? "manual_director" : "manual_manager", strategy: "manual", reason, actorId: context.userId, createdAt: new Date() });
+    await tx.insert(schema.auditLogs).values({ id: randomUUID(), userId: context.userId, entidade: "lead_distribution", entidadeId: leadId, acao: "lead.routed_to_unit" });
+    return true;
+  });
+  return updated ? { status: "routed", branchId, queueId, strategy: "manual" } : { status: "conflict", code: "LEAD_ALREADY_ASSIGNED" };
+}
+
+export async function assignLeadToBroker(context: TenantContext, leadId: string, brokerId: string, source?: AssignmentSource, reason = "Atribuição manual"): Promise<LeadAssignmentResult> {
+  if (!canManage(context)) throw new AuthorizationError("Apenas Gestores e Diretores podem atribuir leads.");
+  const db = getDatabase();
+  const [lead] = await db.select({ id: schema.leads.id, branchId: schema.leads.branchId, queueId: schema.leads.queueId, corretorId: schema.leads.corretorId }).from(schema.leads).where(and(eq(schema.leads.id, leadId), eq(schema.leads.tenantId, context.tenantId))).limit(1);
+  if (!lead) return { status: "conflict", leadId, reason: "Lead não encontrado." };
+  if (!lead.branchId) return { status: "conflict", leadId, reason: "Envie o lead para uma unidade antes de atribuir um corretor." };
+  assertBranchScope(context, lead.branchId);
+  const [broker] = await db.select({ id: schema.user.id, branchId: schema.tenantMemberships.branchId }).from(schema.tenantMemberships).innerJoin(schema.user, eq(schema.tenantMemberships.userId, schema.user.id)).where(and(eq(schema.tenantMemberships.tenantId, context.tenantId), eq(schema.tenantMemberships.userId, brokerId), eq(schema.tenantMemberships.branchId, lead.branchId), eq(schema.tenantMemberships.role, "broker"), eq(schema.tenantMemberships.status, "active"), eq(schema.tenantMemberships.availabilityStatus, "available"), eq(schema.user.active, true), eq(schema.user.status, "active"))).limit(1);
+  if (!broker) return { status: "conflict", leadId, reason: "O corretor não está elegível nesta unidade." };
+  const assigned = await db.transaction(async (tx) => {
+    const result = await tx.update(schema.leads).set({ corretorId: brokerId, status: "distributed", distributionStatus: "assigned", assignedAt: new Date(), assignmentSource: source ?? (context.role === "director" ? "manual_director" : "manual_manager"), assignmentStrategy: "manual", distributionUpdatedAt: new Date() }).where(and(eq(schema.leads.id, leadId), eq(schema.leads.tenantId, context.tenantId), isNull(schema.leads.corretorId))).returning({ id: schema.leads.id });
+    if (!result.length) return false;
+    await tx.insert(schema.leadDistributionEvents).values({ id: randomUUID(), tenantId: context.tenantId, leadId, fromBranchId: lead.branchId, toBranchId: lead.branchId, fromQueueId: lead.queueId, toQueueId: lead.queueId, previousOwnerId: lead.corretorId, newOwnerId: brokerId, action: "assigned", source: source ?? "manual_manager", strategy: "manual", reason, actorId: context.userId, createdAt: new Date() });
+    await tx.insert(schema.notifications).values({ id: randomUUID(), tenantId: context.tenantId, recipientUserId: brokerId, leadId, type: "agent.lead_assigned", title: "Novo lead atribuído", message: "Você recebeu um novo lead para atender.", createdAt: new Date() });
+    await tx.insert(schema.auditLogs).values({ id: randomUUID(), userId: context.userId, entidade: "lead_distribution", entidadeId: leadId, acao: "lead.assigned" });
+    return true;
+  });
+  return assigned ? { status: "assigned", leadId, brokerId, strategy: "manual" } : { status: "conflict", leadId, reason: "Este lead já foi atribuído. Atualize a fila." };
+}
+
+export async function processQueuedLead(context: TenantContext, leadId: string): Promise<LeadAssignmentResult> {
+  if (!canManage(context)) throw new AuthorizationError("Você não pode executar a distribuição automática.");
+  const db = getDatabase();
+  const [lead] = await db.select({ id: schema.leads.id, branchId: schema.leads.branchId, queueId: schema.leads.queueId }).from(schema.leads).where(and(eq(schema.leads.id, leadId), eq(schema.leads.tenantId, context.tenantId), eq(schema.leads.distributionStatus, "queued"))).limit(1);
+  if (!lead || !lead.branchId) return { status: "queued", leadId, reason: "Lead ainda aguarda uma unidade." };
+  assertBranchScope(context, lead.branchId);
+  const [branch] = await db.select({ autoDistribute: schema.branches.autoDistribute, acceptingLeads: schema.branches.acceptingLeads, status: schema.branches.status }).from(schema.branches).where(and(eq(schema.branches.id, lead.branchId), eq(schema.branches.tenantId, context.tenantId))).limit(1);
+  if (!branch || branch.status !== "active" || !branch.acceptingLeads) return { status: "queued", leadId, reason: "A unidade está pausada para recebimento." };
+  if (!branch.autoDistribute) return { status: "queued", leadId, reason: "A distribuição automática está desativada nesta unidade." };
+  const [queue] = lead.queueId ? await db.select({ strategy: schema.leadQueues.assignmentStrategy, mode: schema.leadQueues.assignmentMode, capacityEnabled: schema.leadQueues.capacityEnabled, capacity: schema.leadQueues.capacityPerBroker }).from(schema.leadQueues).where(and(eq(schema.leadQueues.id, lead.queueId), eq(schema.leadQueues.tenantId, context.tenantId), eq(schema.leadQueues.status, "active"))).limit(1) : [];
+  if (queue?.mode === "manual") return { status: "queued", leadId, reason: "A fila está em modo manual." };
+  const brokers = await db.select({ id: schema.user.id, createdAt: schema.user.createdAt }).from(schema.tenantMemberships).innerJoin(schema.user, eq(schema.tenantMemberships.userId, schema.user.id)).where(and(eq(schema.tenantMemberships.tenantId, context.tenantId), eq(schema.tenantMemberships.branchId, lead.branchId), eq(schema.tenantMemberships.role, "broker"), eq(schema.tenantMemberships.status, "active"), eq(schema.tenantMemberships.availabilityStatus, "available"), eq(schema.user.active, true), eq(schema.user.status, "active"))).orderBy(asc(schema.user.createdAt));
+  const ids = brokers.map((broker) => broker.id);
+  if (!ids.length) return { status: "queued", leadId, reason: "Nenhum corretor elegível nesta unidade." };
+  const loads = await db.select({ brokerId: schema.leads.corretorId, total: count(schema.leads.id) }).from(schema.leads).where(and(eq(schema.leads.tenantId, context.tenantId), inArray(schema.leads.corretorId, ids), inArray(schema.leads.status, activeCommercialStatuses))).groupBy(schema.leads.corretorId);
+  const loadMap = new Map(loads.map((item) => [item.brokerId, Number(item.total)]));
+  const chosen = chooseBroker(brokers.map((broker) => ({ id: broker.id, createdAt: broker.createdAt, activeLeads: loadMap.get(broker.id) ?? 0, capacity: queue?.capacityEnabled ? queue.capacity ?? null : null })), queue?.strategy === "round_robin" ? "round_robin" : "capacity");
+  if (!chosen) return { status: "queued", leadId, reason: "Todos os corretores elegíveis atingiram a capacidade." };
+  return assignLeadToBroker(context, leadId, chosen.id, "automatic", "Distribuição automática da fila");
+}

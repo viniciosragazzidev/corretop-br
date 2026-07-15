@@ -1,10 +1,12 @@
 import { and, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 
 import { DashboardHeader } from "@/components/dashboard-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LeadStatusSelector } from "@/features/leads/components/lead-status-selector";
 import { LeadTimeline } from "@/features/leads/components/lead-timeline";
 import { LeadTasks } from "@/features/leads/components/lead-tasks";
@@ -87,9 +89,9 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
     <>
       <DashboardHeader breadcrumb="Operacao comercial" title="Detalhe do lead" />
       <main className="flex min-h-full flex-col gap-6 bg-background p-4 lg:p-6">
-        <div>
-          <p className="text-xs font-medium text-primary">LEAD / DETALHE</p>
-          <div className="mt-1 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <header className="rounded-xl border border-border bg-card px-4 py-4 shadow-none lg:px-5">
+          <Link className="text-xs font-medium text-muted-foreground transition-colors hover:text-foreground" href="/leads">Leads / Detalhe</Link>
+          <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 className="text-2xl font-semibold tracking-tight">{lead.nome}</h1>
               <p className="mt-1 text-sm text-muted-foreground">Criado em {new Intl.DateTimeFormat("pt-BR").format(lead.createdAt)}</p>
@@ -104,7 +106,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
               {(lead.status !== "distributed" || context.role !== "broker") ? <LeadStatusSelector leadId={lead.id} currentStatus={lead.status} role={context.role} isOwner={context.userId === lead.corretorId} isSameBranch={context.branchId === lead.branchId} /> : null}
             </div>
           </div>
-        </div>
+        </header>
 
         <LeadActionHub
           hasPendingDocuments={leadDocs.some((document) => document.status === "pending" || document.status === "rejected")}
@@ -115,6 +117,13 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
           status={lead.status}
         />
 
+        <Tabs defaultValue="summary" className="min-h-0">
+          <TabsList aria-label="Seções do detalhe do lead" className="w-full justify-start overflow-x-auto" variant="line">
+            <TabsTrigger value="summary">Resumo</TabsTrigger>
+            <TabsTrigger value="history">Histórico</TabsTrigger>
+            <TabsTrigger value="tasks">Tarefas</TabsTrigger>
+          </TabsList>
+          <TabsContent value="summary" className="mt-4">
         <section className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(24rem,0.85fr)]">
           <div className="space-y-6">
             <Card className="h-fit border-border bg-card shadow-none">
@@ -154,11 +163,15 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             )}
           </div>
 
-          <LeadTimeline leadId={lead.id} interactions={interactions} />
         </section>
-        <div id="tarefas">
-          <LeadTasks assignees={context.role === "broker" ? [{ id: context.userId, name: lead.corretorNome ?? "Eu" }] : brokers} leadId={lead.id} tasks={tasks.map((task) => ({ ...task, dueAt: task.dueAt?.toISOString() ?? null, completedAt: task.completedAt?.toISOString() ?? null }))} />
-        </div>
+          </TabsContent>
+          <TabsContent value="history" className="mt-4">
+            <LeadTimeline leadId={lead.id} interactions={interactions} />
+          </TabsContent>
+          <TabsContent value="tasks" className="mt-4" id="tarefas">
+            <LeadTasks assignees={context.role === "broker" ? [{ id: context.userId, name: lead.corretorNome ?? "Eu" }] : brokers} leadId={lead.id} tasks={tasks.map((task) => ({ ...task, dueAt: task.dueAt?.toISOString() ?? null, completedAt: task.completedAt?.toISOString() ?? null }))} />
+          </TabsContent>
+        </Tabs>
         <LeadChat active={whatsappConnection?.active ?? false} canAssume={chatCanAssume} canSend={chatCanSend} leadId={lead.id} messages={whatsappMessages} phone={canSeePersonalData ? lead.telefone : null} />
         <LeadManagementActions leadId={lead.id} brokers={brokers} canManage={context.role === "manager" || context.role === "director"} isLost={lead.status === "lost"} currentStatus={lead.status} currentOwner={lead.corretorNome} />
       </main>

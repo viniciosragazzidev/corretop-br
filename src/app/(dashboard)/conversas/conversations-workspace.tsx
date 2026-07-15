@@ -32,6 +32,7 @@ import {
   WhatsappLogo,
 } from "@/components/huge-icons";
 import { cn } from "@/lib/utils";
+import { SetupTutorialDrawer } from "@/components/setup/setup-tutorial-drawer";
 
 export type ConversationMessage = { id: string; leadId: string | null; body: string; direction: string; sentAt: string };
 export type ConversationItem = {
@@ -61,12 +62,16 @@ export function ConversationsWorkspace({
   initialLeadId,
   plans,
   whatsappReady,
+  whatsappSessionReady,
+  setupOpen,
   canSend,
 }: {
   conversations: ConversationItem[];
   initialLeadId?: string;
   plans: PlanSuggestion[];
   whatsappReady: boolean;
+  whatsappSessionReady: boolean;
+  setupOpen?: boolean;
   canSend: boolean;
 }) {
   const [conversations, setConversations] = useState(initialConversations);
@@ -153,10 +158,26 @@ export function ConversationsWorkspace({
   }
 
   return (
-    <section aria-label="Central de conversas" className={cn("grid h-[calc(100dvh-var(--header-height)-1.5rem)] overflow-hidden rounded-xl border border-border bg-card shadow-[0_18px_50px_-32px_color-mix(in_oklch,var(--foreground)_32%,transparent)] lg:grid-cols-[minmax(14rem,0.5fr)_minmax(0,1.9fr)]", profileOpen ? "2xl:grid-cols-[minmax(14rem,0.5fr)_minmax(0,1.9fr)_19rem]" : "2xl:grid-cols-[minmax(14rem,0.5fr)_minmax(0,2.35fr)]")}>
+    <section aria-label="Central de conversas" className="flex h-[calc(100dvh-var(--header-height)-1.5rem)] min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-[0_18px_50px_-32px_color-mix(in_oklch,var(--foreground)_32%,transparent)]">
+      <header className="shrink-0 border-b border-border bg-card px-4 py-3 lg:px-5">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+          <div className="flex items-center gap-2.5">
+            <h2 className="text-sm font-semibold tracking-tight">Mensagens</h2>
+            {whatsappReady ? <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><span className="size-1.5 rounded-full bg-success" aria-hidden="true" />Conectado</span> : <SetupTutorialDrawer description="Vamos conectar o canal de atendimento e liberar o chat interno em poucos passos." openOnMount={setupOpen} steps={[{ id: "connect", title: "Conectar o WhatsApp", description: "Crie a sessão e leia o QR Code com o WhatsApp da operação.", href: `/settings/whatsapp?returnTo=${encodeURIComponent("/conversas?setup=whatsapp")}`, actionLabel: "Iniciar configuração do WhatsApp", icon: WhatsappLogo }, { id: "activate", title: "Ativar o chat interno", description: "Depois que a sessão estiver pronta, confirme que o chat interno está ativo.", href: `/settings/whatsapp?returnTo=${encodeURIComponent("/conversas?setup=whatsapp")}`, actionLabel: "Abrir configurações", icon: ChatCircleText }]} completedStepIds={[...(whatsappSessionReady ? ["connect"] : []), ...(whatsappReady ? ["activate"] : [])]} title="Configure o WhatsApp" triggerIcon={WhatsappLogo} triggerLabel="Iniciar configuração do WhatsApp" />}
+          </div>
+          <div className="flex items-center gap-1.5" role="group" aria-label="Filtrar conversas">
+            <Tooltip><TooltipTrigger render={<FilterChip active={filter === "all"} label="Todas" count={conversations.length} onClick={() => setFilter("all")} />} /><TooltipContent side="bottom">Todas as conversas do seu escopo</TooltipContent></Tooltip>
+            <Tooltip><TooltipTrigger render={<FilterChip active={filter === "with_messages"} label="Com msgs" count={conversations.filter((c) => c.messages.length > 0).length} onClick={() => setFilter("with_messages")} />} /><TooltipContent side="bottom">Contatos com histórico de mensagens</TooltipContent></Tooltip>
+            <Tooltip><TooltipTrigger render={<FilterChip active={filter === "without_messages"} label="Sem conversa" count={conversations.filter((c) => c.messages.length === 0).length} onClick={() => setFilter("without_messages")} />} /><TooltipContent side="bottom">Contatos sem nenhuma mensagem trocada</TooltipContent></Tooltip>
+          </div>
+          <div className="relative min-w-[14rem] flex-1 lg:max-w-sm"><MagnifyingGlass aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input aria-label="Buscar conversa por nome, telefone ou e-mail" className="h-9 pl-8" onChange={(event) => setQuery(event.target.value)} placeholder="Buscar conversa" value={query} /></div>
+          <Button className="ml-auto gap-1.5" render={<Link href="/leads" />} size="sm" variant="outline"><UserList className="size-3.5" />Leads</Button>
+        </div>
+      </header>
+      <div className={cn("grid min-h-0 flex-1 lg:grid-cols-[minmax(14rem,0.5fr)_minmax(0,1.9fr)]", profileOpen ? "2xl:grid-cols-[minmax(14rem,0.5fr)_minmax(0,1.9fr)_19rem]" : "2xl:grid-cols-[minmax(14rem,0.5fr)_minmax(0,2.35fr)]")}>
 
       <section className={cn("flex min-h-0 flex-col border-r border-border bg-card", selected && "max-[559px]:hidden")} aria-label="Lista de conversas">
-        <div className="space-y-3 border-b border-border px-3 py-3.5">
+        <div className="hidden">
           <div className="flex items-center justify-between gap-2">
             <h2 className="text-sm font-semibold tracking-tight">Mensagens</h2>
             <div className="flex items-center gap-2">
@@ -213,17 +234,18 @@ export function ConversationsWorkspace({
       <aside className={cn("hidden min-h-0 border-l border-border bg-muted/10 2xl:flex 2xl:flex-col", !profileOpen && "2xl:hidden")} aria-label="Perfil do cliente">
         {selected ? <ClientProfile client={selected} onShowPlans={togglePlans} /> : null}
       </aside>
+      </div>
     </section>
   );
 }
 
 function FilterChip({ active, count, label, onClick }: { active: boolean; count: number; label: string; onClick: () => void }) {
-  return <button aria-pressed={active} className={cn("inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/40", active ? "border-primary/30 bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted")} onClick={onClick} type="button"><span>{label}</span><span className={cn("tabular-nums", active ? "text-primary/70" : "text-muted-foreground/60")}>{count}</span></button>;
+  return <button aria-pressed={active} className={cn("inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/40", active ? "border-primary/20 bg-primary/5 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted")} onClick={onClick} type="button"><span>{label}</span><span className={cn("tabular-nums", active ? "text-primary/70" : "text-muted-foreground/60")}>{count}</span></button>;
 }
 
 function ConversationRow({ active, conversation, onClick }: { active: boolean; conversation: ConversationItem; onClick: () => void }) {
   const preview = conversation.latestMessage?.body ?? "Ainda não há uma conversa iniciada.";
-  return <button aria-current={active ? "page" : undefined} className={cn("group relative flex w-full items-center gap-3 rounded-xl border border-transparent px-3 py-3 text-left outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50", active ? "border-primary/15 bg-primary/5 text-foreground" : "hover:bg-muted/60")} onClick={onClick} type="button"><ContactAvatar className={cn("shrink-0", active && "ring-2 ring-primary/10 ring-offset-2 ring-offset-background")} name={conversation.nome} /><span className="grid min-w-0 flex-1 gap-1"><span className="flex min-w-0 items-center justify-between gap-3"><span className="truncate text-sm font-semibold tracking-tight">{conversation.nome}</span><span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">{formatRelative(conversation.latestMessage?.sentAt ?? conversation.stageEnteredAt)}</span></span><span className="truncate text-xs leading-5 text-muted-foreground">{conversation.latestMessage?.direction === "outgoing" ? "Você: " : ""}{preview}</span><span className="flex items-center gap-1.5"><Badge className="h-4 rounded-md bg-muted px-1.5 text-[10px] text-muted-foreground group-hover:bg-background" variant="ghost">{LEAD_STATUS_LABELS[conversation.status] ?? conversation.status}</Badge>{active ? <span aria-label="Conversa selecionada" className="size-1.5 rounded-full bg-success" /> : null}</span></span></button>;
+  return <button aria-current={active ? "page" : undefined} className={cn("group relative flex w-full items-center gap-3 rounded-xl border border-transparent px-3 py-3 text-left outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50", active ? "border-primary/10 bg-primary/[0.03] text-foreground" : "hover:bg-muted/60")} onClick={onClick} type="button"><ContactAvatar className={cn("shrink-0", active && "ring-2 ring-primary/10 ring-offset-2 ring-offset-background")} name={conversation.nome} /><span className="grid min-w-0 flex-1 gap-1"><span className="flex min-w-0 items-center justify-between gap-3"><span className="truncate text-sm font-semibold tracking-tight">{conversation.nome}</span><span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">{formatRelative(conversation.latestMessage?.sentAt ?? conversation.stageEnteredAt)}</span></span><span className="truncate text-xs leading-5 text-muted-foreground">{conversation.latestMessage?.direction === "outgoing" ? "Você: " : ""}{preview}</span><span className="flex items-center gap-1.5"><Badge className="h-4 rounded-md bg-muted px-1.5 text-[10px] text-muted-foreground group-hover:bg-background" variant="ghost">{LEAD_STATUS_LABELS[conversation.status] ?? conversation.status}</Badge>{active ? <span aria-label="Conversa selecionada" className="size-1.5 rounded-full bg-success" /> : null}</span></span></button>;
 }
 
 function MessageBubble({ message, name }: { message: ConversationMessage; name: string }) {
@@ -258,12 +280,12 @@ function ClientProfile({ client, onShowPlans }: { client: ConversationItem; onSh
         </ConversationProfileSection>
         <ConversationProfileSection action={<Link className="text-[11px] font-medium text-primary hover:underline" href={`/leads/${client.id}`}>Ver todos</Link>} title="Documentos importados">
           <div className="grid grid-cols-2 gap-2"><ProfileMetric label="Aprovados" value={approvedDocuments} /><ProfileMetric label="Em análise" tone="warning" value={pendingDocuments} /></div>
-          {client.documents.length ? <div className="mt-3 space-y-1.5">{client.documents.slice(0, 3).map((document) => <a className="group flex items-center gap-2 rounded-lg border border-border/70 px-2.5 py-2 outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring" href={document.fileUrl} key={document.id} rel="noreferrer" target="_blank"><span className="grid size-7 shrink-0 place-items-center rounded-md bg-primary/10 text-primary"><FileText className="size-3.5" /></span><span className="min-w-0 flex-1"><span className="block truncate text-xs font-medium">{document.requirementName ?? document.filename}</span><span className="block truncate text-[11px] text-muted-foreground">{document.requirementName ? document.filename : documentStatusLabel(document.status)}</span></span><ArrowSquareOut className="size-3.5 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" /></a>)}</div> : <p className="mt-3 rounded-lg border border-dashed border-border px-3 py-3 text-xs leading-5 text-muted-foreground">Nenhum documento importado para este cliente.</p>}
+          {client.documents.length ? <div className="mt-3 space-y-1.5">{client.documents.slice(0, 3).map((document) => <a className="group flex items-center gap-2 rounded-lg border border-border/70 px-2.5 py-2 outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring" href={document.fileUrl} key={document.id} rel="noreferrer" target="_blank"><span className="grid size-7 shrink-0 place-items-center rounded-md bg-primary/5 text-primary"><FileText className="size-3.5" /></span><span className="min-w-0 flex-1"><span className="block truncate text-xs font-medium">{document.requirementName ?? document.filename}</span><span className="block truncate text-[11px] text-muted-foreground">{document.requirementName ? document.filename : documentStatusLabel(document.status)}</span></span><ArrowSquareOut className="size-3.5 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" /></a>)}</div> : <p className="mt-3 rounded-lg border border-dashed border-border px-3 py-3 text-xs leading-5 text-muted-foreground">Nenhum documento importado para este cliente.</p>}
         </ConversationProfileSection>
         <ConversationProfileSection action={<span className="text-[11px] tabular-nums text-muted-foreground">{sharedMedia.length}</span>} title="Mídias e links">
           {sharedMedia.length ? <div className="space-y-1.5">{sharedMedia.slice(0, 3).map((media) => <a className="group flex items-center gap-2 rounded-lg border border-border/70 px-2.5 py-2 outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring" href={media.url} key={media.url} rel="noreferrer" target="_blank"><span className="grid size-7 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground"><LinkSimple className="size-3.5" /></span><span className="min-w-0 flex-1"><span className="block truncate text-xs font-medium">{media.label}</span><span className="block truncate text-[11px] text-muted-foreground">Compartilhado {formatRelative(media.sentAt)}</span></span><ArrowSquareOut className="size-3.5 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" /></a>)}</div> : <p className="rounded-lg border border-dashed border-border px-3 py-3 text-xs leading-5 text-muted-foreground">Nenhuma mídia ou link foi identificado nesta conversa.</p>}
         </ConversationProfileSection>
-        <ConversationProfileSection title="Resumo do atendimento"><dl className="space-y-3"><ProfileLine label="Origem" value={client.origem} /><ProfileLine label="Plano de interesse" value={client.planName ?? "Não informado"} />{client.carrierName ? <ProfileLine label="Operadora" value={client.carrierName} /> : null}<ProfileLine label="Consentimento LGPD" value={client.consentimentoLgpd ? "Registrado" : "Não registrado"} /></dl></ConversationProfileSection>
+        <ConversationProfileSection title="Resumo do atendimento"><dl className="grid grid-cols-2 gap-2"><ProfileTag label="Origem" value={client.origem} /><ProfileTag label="Plano de interesse" value={client.planName ?? "Não informado"} />{client.carrierName ? <ProfileTag label="Operadora" value={client.carrierName} /> : null}<ProfileTag label="Consentimento LGPD" value={client.consentimentoLgpd ? "Registrado" : "Não registrado"} tone={client.consentimentoLgpd ? "success" : "warning"} /></dl></ConversationProfileSection>
       </div>
     </ScrollArea>
   </>;
@@ -281,6 +303,7 @@ export function LegacyClientProfile({ client }: { client: ConversationItem }) {
 
 function ProfileSection({ children, title }: { children: React.ReactNode; title: string }) { return <section><h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{title}</h3><dl className="mt-2.5 space-y-3.5">{children}</dl></section>; }
 function ProfileLine({ label, value }: { label: string; value: string }) { return <div><dt className="text-xs leading-5 text-muted-foreground">{label}</dt><dd className="mt-0.5 break-words text-sm font-medium leading-5">{value}</dd></div>; }
+function ProfileTag({ label, tone, value }: { label: string; tone?: "success" | "warning"; value: string }) { return <div className="min-w-0 rounded-lg border border-border/70 bg-muted/20 px-2.5 py-2"><dt className="truncate text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground">{label}</dt><dd className="mt-1 min-w-0"><Badge className="max-w-full px-1.5 text-[11px]" variant={tone ?? "outline"}><span className="truncate">{value}</span></Badge></dd></div>; }
 function ContactAvatar({ className, name }: { className?: string; name: string }) { return <Avatar className={className}><AvatarFallback>{initials(name)}</AvatarFallback><AvatarBadge className="bg-success" /></Avatar>; }
 function EmptyConversation() { return <div className="flex flex-1 flex-col items-center justify-center p-6 text-center"><div className="grid size-14 place-items-center rounded-full border border-border bg-muted/60"><ChatCircleText className="size-5 text-muted-foreground" /></div><h2 className="mt-4 text-sm font-semibold tracking-tight">Selecione uma conversa</h2><p className="mt-1 max-w-sm text-sm leading-6 text-muted-foreground">Escolha um contato na lista para visualizar o histórico e enviar uma mensagem.</p></div>; }
 function initials(name: string) { return name.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase(); }

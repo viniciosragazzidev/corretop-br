@@ -21,6 +21,7 @@ type TeamMember = {
   name: string | null;
   email: string;
   role: "director" | "manager" | "broker";
+  jobTitle: string;
   status: "pending" | "active" | "disabled";
   branchId: string | null;
   branchName: string | null;
@@ -46,6 +47,18 @@ const statusLabel: Record<TeamMember["status"], string> = {
   pending: "Pendente",
   disabled: "Desativado",
 };
+
+const jobTitleLabel: Record<string, string> = {
+  director: "Diretor",
+  manager: "Gestor",
+  broker: "Corretor",
+  marketing: "Marketing",
+  finance: "Financeiro",
+  operations: "Operações",
+  support: "Suporte",
+};
+
+const jobTitles = ["manager", "broker", "marketing", "finance", "operations", "support"] as const;
 
 function EditMemberDialog({
   member,
@@ -118,7 +131,14 @@ function EditMemberDialog({
             />
           </Field>
           <Field>
-            <FieldLabel>Papel</FieldLabel>
+            <FieldLabel>Cargo</FieldLabel>
+            <Select defaultValue={member.jobTitle} disabled={pending} name="jobTitle">
+              <SelectTrigger className="w-full"><SelectValue placeholder="Selecione o cargo">{(value: string | null) => jobTitleLabel[value ?? ""] ?? "Selecione o cargo"}</SelectValue></SelectTrigger>
+              <SelectContent>{jobTitles.filter((role) => currentRole === "director" || role !== "manager").map((role) => <SelectItem key={role} value={role}>{jobTitleLabel[role]}</SelectItem>)}</SelectContent>
+            </Select>
+          </Field>
+          <Field>
+            <FieldLabel>Perfil de acesso</FieldLabel>
             <Select
               defaultValue={
                 currentRole === "director" && member.role === "manager"
@@ -143,7 +163,7 @@ function EditMemberDialog({
           <Field>
             <FieldLabel>Filial</FieldLabel>
             <Select
-              defaultValue={member.branchId ?? allowedBranches[0]?.id ?? ""}
+              defaultValue={member.branchId ?? ""}
               disabled={pending || allowedBranches.length === 1}
               name="branchId"
             >

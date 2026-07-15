@@ -9,11 +9,14 @@ import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { requireCanCreateRole } from "@/shared/auth/team-permissions";
 import { getDatabase, schema } from "@/shared/db";
 
+const jobTitleInput = z.enum(schema.teamJobTitleValues);
+
 const createUserInput = z.object({
   name: z.string().trim().min(2).max(120),
   email: z.string().trim().email().max(254).transform((v) => v.toLowerCase()),
   password: z.string().min(8).max(128),
   role: z.enum(["manager", "broker"]),
+  jobTitle: jobTitleInput,
   branchId: z.string().uuid(),
 });
 
@@ -44,6 +47,7 @@ export async function createTeamUser(rawInput: unknown) {
   if (existing) throw new Error("Já existe uma identidade com este e-mail.");
 
   const userId = randomUUID();
+  const membershipId = randomUUID();
   await db.transaction(async (tx) => {
     await tx.insert(schema.user).values({
       id: userId,
@@ -61,12 +65,14 @@ export async function createTeamUser(rawInput: unknown) {
       password: await hashPassword(input.password),
     });
     await tx.insert(schema.tenantMemberships).values({
-      id: randomUUID(),
+      id: membershipId,
       tenantId: context.tenantId,
       userId,
       branchId: input.branchId,
       role: input.role,
+      jobTitle: input.jobTitle,
       status: "active",
     });
+    await tx.insert(schema.auditLogs).values({ id: randomUUID(), userId: context.userId, entidade: "tenant_membership", entidadeId: membershipId, acao: "criou_membro" });
   });
 }

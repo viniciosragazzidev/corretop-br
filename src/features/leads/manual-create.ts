@@ -38,7 +38,7 @@ export async function createManualLead(rawInput: unknown) {
   const corretorId = context.role === "broker" ? context.userId : await chooseAvailableBroker(context.tenantId, context.branchId);
   const leadId = randomUUID();
   const assigned = Boolean(corretorId);
-  await db.insert(schema.leads).values({ id: leadId, tenantId: context.tenantId, branchId: context.branchId, corretorId, planId: input.planoInteresseId || null, nome: input.nome, telefone, email: input.email || null, origem: "manual", status: assigned ? "distributed" : "new", assignedAt: assigned ? new Date() : null, consentimentoLgpd: true });
+  await db.insert(schema.leads).values({ id: leadId, tenantId: context.tenantId, branchId: context.branchId, corretorId, planId: input.planoInteresseId || null, nome: input.nome, telefone, email: input.email || null, origem: "manual", status: assigned ? "distributed" : "new", distributionStatus: assigned ? "assigned" : "queued", assignmentSource: assigned ? "automatic" : null, assignmentStrategy: assigned ? "capacity" : null, distributionUpdatedAt: new Date(), assignedAt: assigned ? new Date() : null, consentimentoLgpd: true });
   await db.insert(schema.leadInteractions).values({ id: randomUUID(), leadId, userId: context.userId, tipo: assigned ? "system_alert" : "note", conteudo: assigned ? "Lead criado e distribuído automaticamente para um corretor disponível." : "Lead criado manualmente; aguardando corretor disponível." });
   await db.insert(schema.auditLogs).values({ id: randomUUID(), userId: context.userId, entidade: "lead", entidadeId: leadId, acao: "criou" });
   return { leadId };

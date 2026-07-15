@@ -1,10 +1,12 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { UsersThree } from "@/components/huge-icons";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TeamMemberActions } from "./member-actions";
 
@@ -15,6 +17,7 @@ type TeamMember = {
   name: string | null;
   email: string;
   role: "director" | "manager" | "broker";
+  jobTitle: string;
   status: "pending" | "active" | "disabled";
   branchId: string | null;
   branchName: string | null;
@@ -40,7 +43,22 @@ const statusLabel: Record<TeamMember["status"], string> = {
   disabled: "Desativado",
 };
 
+const jobTitleLabel: Record<string, string> = {
+  director: "Diretor",
+  manager: "Gestor",
+  broker: "Corretor",
+  marketing: "Marketing",
+  finance: "Financeiro",
+  operations: "Operações",
+  support: "Suporte",
+};
+
 export function TeamMembersTable({ members, branches, currentRole, currentBranchId, currentUserId }: Props) {
+  const [branchFilter, setBranchFilter] = useState("all");
+  const visibleMembers = useMemo(
+    () => branchFilter === "all" ? members : members.filter((member) => member.branchId === branchFilter),
+    [branchFilter, members],
+  );
   const activeCount = members.filter((member) => member.status === "active").length;
 
   return (
@@ -50,6 +68,7 @@ export function TeamMembersTable({ members, branches, currentRole, currentBranch
           <UsersThree size={17} />
           Acessos vinculados
         </CardTitle>
+        {currentRole === "director" ? <Select value={branchFilter} onValueChange={(value) => setBranchFilter(value ?? "all")} labels={{ all: "Todas as unidades", ...Object.fromEntries(branches.map((b) => [b.id, b.name])) }}><SelectTrigger aria-label="Filtrar colaboradores por unidade" className="w-full sm:w-56"><SelectValue placeholder="Todas as unidades" /></SelectTrigger><SelectContent><SelectItem value="all">Todas as unidades</SelectItem>{branches.map((branch) => <SelectItem key={branch.id} value={branch.id}>{branch.name}</SelectItem>)}</SelectContent></Select> : null}
         <CardDescription>{activeCount} acesso(s) ativo(s) · convites pendentes ficam sinalizados ate o primeiro login.</CardDescription>
       </CardHeader>
       <CardContent className="p-0">
@@ -59,7 +78,7 @@ export function TeamMembersTable({ members, branches, currentRole, currentBranch
             <p className="text-xs text-muted-foreground">Convide o primeiro gestor ou corretor para comecar a montar sua equipe.</p>
           </div>
         ) : (
-          <Table>
+          visibleMembers.length === 0 ? <div className="p-10 text-center text-sm text-muted-foreground">Nenhum colaborador nesta unidade.</div> : <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="pl-5">Membro</TableHead>
@@ -74,7 +93,7 @@ export function TeamMembersTable({ members, branches, currentRole, currentBranch
               initial="hidden"
               animate="visible"
             >
-              {members.map((member, i) => (
+              {visibleMembers.map((member, i) => (
                 <motion.tr
                   key={member.id}
                   custom={i}
@@ -94,7 +113,7 @@ export function TeamMembersTable({ members, branches, currentRole, currentBranch
                     {member.userId === currentUserId ? <p className="text-xs text-muted-foreground">Você</p> : null}
                   </TableCell>
                   <TableCell className="text-muted-foreground transition-colors duration-200 group-hover/card:text-foreground">{member.email}</TableCell>
-                  <TableCell>{roleLabel[member.role]}</TableCell>
+                  <TableCell><div>{jobTitleLabel[member.jobTitle] ?? member.jobTitle}</div><div className="text-xs text-muted-foreground">{roleLabel[member.role]}</div></TableCell>
                   <TableCell className="text-muted-foreground transition-colors duration-200 group-hover/card:text-foreground">{member.branchName ?? "Sem filial"}</TableCell>
                   <TableCell>
                     <Badge variant={member.status === "active" ? "default" : member.status === "pending" ? "secondary" : "outline"} className="transition-transform duration-200 group-hover/card:scale-105">{statusLabel[member.status]}</Badge>

@@ -1,3 +1,19 @@
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
-  return <main className="min-h-[100dvh] bg-[#0b0b0c] p-3 text-[#f4f4f5] sm:p-6"><div className="mx-auto grid min-h-[calc(100dvh-1.5rem)] w-full max-w-5xl overflow-hidden rounded-2xl border border-white/10 bg-[#111112] shadow-[0_24px_80px_rgba(0,0,0,0.38)] sm:min-h-[calc(100dvh-3rem)] lg:grid-cols-[0.92fr_1.08fr]"><aside className="relative hidden overflow-hidden border-r border-white/10 bg-[#151516] p-10 lg:flex lg:flex-col lg:justify-between"><div className="absolute -right-28 -top-28 size-72 rounded-full bg-white/[0.04] blur-3xl" /><div className="absolute -bottom-24 -left-20 size-64 rounded-full bg-white/[0.03] blur-3xl" /><div className="relative"><div className="flex items-center gap-3"><span className="grid size-9 place-items-center rounded-xl bg-[#f4f4f5] text-sm font-bold text-[#111112]">C</span><span className="font-semibold tracking-tight">CorreTop</span></div><div className="mt-20 max-w-xs"><p className="text-xs font-medium uppercase tracking-[0.2em] text-[#a1a1aa]">Operação comercial</p><h2 className="mt-4 text-4xl font-semibold leading-[1.05] tracking-[-0.04em]">Mais clareza para cada oportunidade.</h2><p className="mt-5 text-sm leading-6 text-[#a1a1aa]">Receba, distribua e acompanhe seus leads com segurança em um só lugar.</p></div></div><div className="relative flex items-center gap-2 text-xs text-[#71717a]"><span className="size-1.5 rounded-full bg-emerald-400" /> Ambiente seguro para sua equipe</div></aside><section className="flex items-center justify-center p-5 sm:p-10"><div className="w-full max-w-sm">{children}<p className="mt-8 text-center text-xs text-[#71717a]">CorreTop · Gestão para corretoras</p></div></section></div></main>;
+  return (
+    <main className="min-h-[100dvh] flex items-center justify-center bg-zinc-50 p-4 sm:p-6 dark:bg-zinc-950">
+      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl sm:p-8 dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="flex flex-col items-center gap-2 mb-6">
+          <div className="flex items-center gap-2.5">
+            <span className="grid size-9 place-items-center rounded-xl bg-zinc-900 text-sm font-bold text-white dark:bg-white dark:text-zinc-950">C</span>
+            <span className="font-semibold tracking-tight text-xl text-zinc-900 dark:text-white">CorreTop</span>
+          </div>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">Ambiente seguro de acesso</p>
+        </div>
+        {children}
+        <div className="mt-6 text-center text-xs text-zinc-400 dark:text-zinc-500">
+          CorreTop &middot; Gestão para corretoras
+        </div>
+      </div>
+    </main>
+  );
 }

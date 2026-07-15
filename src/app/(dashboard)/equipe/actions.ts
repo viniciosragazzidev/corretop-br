@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { and, eq, inArray, ne } from "drizzle-orm";
 import { z } from "zod";
@@ -12,12 +13,14 @@ import { getDatabase, schema } from "@/shared/db";
 export type TeamActionState = { success?: boolean; error?: string };
 
 const memberRole = z.enum(["manager", "broker"]);
+const memberJobTitle = z.enum(schema.teamJobTitleValues);
 
 const updateMemberInput = z.object({
   memberId: z.string().uuid(),
   name: z.string().trim().min(2).max(120),
   email: z.string().trim().email().max(254).transform((value) => value.toLowerCase()),
   role: memberRole,
+  jobTitle: memberJobTitle,
   branchId: z.string().uuid(),
 });
 
@@ -54,6 +57,7 @@ export async function updateTeamMemberAction(
         membershipId: schema.tenantMemberships.id,
         userId: schema.user.id,
         role: schema.tenantMemberships.role,
+        jobTitle: schema.tenantMemberships.jobTitle,
         branchId: schema.tenantMemberships.branchId,
         status: schema.user.status,
       })
@@ -118,9 +122,11 @@ export async function updateTeamMemberAction(
 
       await tx.update(schema.tenantMemberships).set({
         role: input.role,
+        jobTitle: input.jobTitle,
         branchId: input.branchId,
         updatedAt: new Date(),
       }).where(eq(schema.tenantMemberships.id, member.membershipId));
+      await tx.insert(schema.auditLogs).values({ id: randomUUID(), userId: context.userId, entidade: "tenant_membership", entidadeId: member.membershipId, acao: "atualizou_membro" });
     });
 
     revalidatePath("/equipe");
@@ -181,6 +187,7 @@ export async function toggleTeamMemberStatusAction(
         status: nextActive ? "active" : "inactive",
         updatedAt: new Date(),
       }).where(eq(schema.tenantMemberships.id, member.membershipId));
+      await tx.insert(schema.auditLogs).values({ id: randomUUID(), userId: context.userId, entidade: "tenant_membership", entidadeId: member.membershipId, acao: nextActive ? "reativou_membro" : "desativou_membro" });
     });
 
     revalidatePath("/equipe");

@@ -14,7 +14,10 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").then(
+      navigator.serviceWorker.register("/sw.js", {
+        scope: "/",
+        updateViaCache: "none",
+      }).then(
         (reg) => console.log("SW registrado com sucesso:", reg.scope),
         (err) => console.error("Falha no SW:", err)
       );

@@ -6,7 +6,6 @@ import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon
 const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
-      theme="dark"
       position="top-right"
       closeButton
       duration={4000}
@@ -51,9 +50,9 @@ const Toaster = ({ ...props }: ToasterProps) => {
           cancelButton: "ct-toast__cancel",
           success: "ct-toast--accent",
           error: "ct-toast--error",
-          info: "ct-toast--default",
-          warning: "ct-toast--default",
-          loading: "ct-toast--default",
+          info: "ct-toast--info",
+          warning: "ct-toast--warning",
+          loading: "ct-toast--loading",
           default: "ct-toast--default",
         },
       }}

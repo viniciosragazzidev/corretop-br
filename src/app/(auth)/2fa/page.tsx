@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { ArrowRight, Key, LockKey } from "@/components/huge-icons";
+import { ArrowRight, Key } from "@/components/huge-icons";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -9,6 +9,7 @@ import { authClient } from "@/shared/auth/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function TwoFactorPage() {
   const router = useRouter();
@@ -35,18 +36,63 @@ export default function TwoFactorPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="space-y-3">
-        <div className="flex size-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-[#d4d4d8]"><LockKey size={19} /></div>
-        <div><p className="text-xs font-medium uppercase tracking-[0.18em] text-[#a1a1aa]">Acesso protegido</p><h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-[#f5f5f5] sm:text-4xl">Confirme sua identidade</h1><p className="mt-2 text-sm leading-6 text-[#a1a1aa]">Digite o código exibido no seu aplicativo autenticador.</p></div>
+    <div className="space-y-6">
+      <div className="text-center space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">Confirme sua identidade</h1>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">Digite o código do seu aplicativo autenticador.</p>
       </div>
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <div className="space-y-2"><Label className="text-xs font-medium text-[#d4d4d8]" htmlFor="two-factor-code">{useBackup ? "Código de recuperação" : "Código de 6 dígitos"}</Label><Input autoFocus autoComplete="one-time-code" className="h-12 border-white/10 bg-white/[0.045] text-center font-mono text-lg tracking-[0.35em] text-[#f5f5f5] placeholder:text-[#52525b] focus-visible:border-white/30 focus-visible:ring-white/10" id="two-factor-code" inputMode={useBackup ? "text" : "numeric"} maxLength={useBackup ? 32 : 6} onChange={(event) => setCode(event.target.value)} placeholder={useBackup ? "ABCD-EFGH" : "000000"} value={code} required /></div>
-        <label className="flex items-center gap-2 text-xs text-[#a1a1aa]"><input type="checkbox" checked={trustDevice} onChange={(event) => setTrustDevice(event.target.checked)} className="size-3.5 accent-white" /> Confiar neste dispositivo por 30 dias</label>
-        {error ? <p aria-live="polite" className="rounded-lg border border-red-400/20 bg-red-400/[0.08] px-3 py-2.5 text-sm leading-5 text-red-300" role="alert">{error}</p> : null}
-        <Button className="h-11 w-full justify-between bg-[#f5f5f5] px-4 text-[#111112] hover:bg-white" disabled={busy || !code.trim()} type="submit"><span>{busy ? "Verificando..." : "Continuar"}</span><ArrowRight size={17} /></Button>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="two-factor-code" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+            {useBackup ? "Código de recuperação" : "Código de 6 dígitos"}
+          </Label>
+          <Input
+            id="two-factor-code"
+            autoFocus
+            autoComplete="one-time-code"
+            inputMode={useBackup ? "text" : "numeric"}
+            maxLength={useBackup ? 32 : 6}
+            placeholder={useBackup ? "ABCD-EFGH" : "000000"}
+            value={code}
+            onChange={(event) => setCode(event.target.value)}
+            className="text-center font-mono text-lg tracking-[0.2em]"
+            required
+            disabled={busy}
+          />
+        </div>
+
+        <div className="flex items-center gap-2 py-1">
+          <Checkbox
+            id="trust-device"
+            checked={trustDevice}
+            onCheckedChange={(checked) => setTrustDevice(Boolean(checked))}
+            disabled={busy}
+          />
+          <Label htmlFor="trust-device" className="text-xs font-normal text-zinc-500 dark:text-zinc-400 cursor-pointer">
+            Confiar neste dispositivo por 30 dias
+          </Label>
+        </div>
+
+        {error && (
+          <p className="rounded-lg border border-red-400/20 bg-red-400/[0.08] px-3 py-2 text-xs font-medium text-red-500" role="alert">
+            {error}
+          </p>
+        )}
+
+        <Button className="w-full justify-center h-10" disabled={busy || !code.trim()} type="submit">
+          <span>{busy ? "Verificando..." : "Confirmar e entrar"}</span>
+        </Button>
       </form>
-      <button type="button" onClick={() => { setUseBackup((current) => !current); setCode(""); setError(""); }} className="flex w-full items-center justify-center gap-2 text-xs text-[#a1a1aa] transition-colors hover:text-[#f5f5f5]"><Key size={14} /> {useBackup ? "Usar código do autenticador" : "Usar código de recuperação"}</button>
+
+      <button
+        type="button"
+        onClick={() => { setUseBackup((current) => !current); setCode(""); setError(""); }}
+        className="flex w-full items-center justify-center gap-2 text-xs text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+      >
+        <Key size={14} />
+        {useBackup ? "Usar código do autenticador" : "Usar código de recuperação"}
+      </button>
     </div>
   );
 }

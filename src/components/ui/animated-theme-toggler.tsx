@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Moon, Sun } from "lucide-react"
+import { SunDim, MoonStars } from "@/components/huge-icons"
 import { flushSync } from "react-dom"
 
 import { cn } from "@/lib/utils"
@@ -267,7 +267,7 @@ export const AnimatedThemeToggler = ({
       className={cn(className)}
       {...props}
     >
-      {isDark ? <Sun /> : <Moon />}
+      {isDark ? <SunDim className="size-4" /> : <MoonStars className="size-4" />}
       <span className="sr-only">Toggle theme</span>
     </button>
   )

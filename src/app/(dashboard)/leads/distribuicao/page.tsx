@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { DashboardHeader } from "@/components/dashboard-header";
 import { DistributionDashboard } from "./_components/distribution-dashboard";
+import { DistributionInbox } from "./_components/distribution-inbox";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
 
@@ -49,6 +50,12 @@ export default async function LeadDistributionPage() {
     .from(schema.tenantMemberships)
     .innerJoin(schema.user, eq(schema.tenantMemberships.userId, schema.user.id))
     .where(and(eq(schema.tenantMemberships.tenantId, context.tenantId), inArray(schema.tenantMemberships.branchId, branchIds), eq(schema.tenantMemberships.role, "broker"), eq(schema.tenantMemberships.status, "active"), eq(schema.user.active, true)));
+  const unassignedLeads = await db
+    .select({ id: schema.leads.id, name: schema.leads.nome, phone: schema.leads.telefone, branchId: schema.leads.branchId, distributionStatus: schema.leads.distributionStatus, createdAt: schema.leads.createdAt })
+    .from(schema.leads)
+    .where(and(eq(schema.leads.tenantId, context.tenantId), inArray(schema.leads.distributionStatus, ["unassigned", "queued"]), context.role === "manager" && context.branchId ? eq(schema.leads.branchId, context.branchId) : undefined))
+    .orderBy(schema.leads.createdAt)
+    .limit(100);
   const activeBrokerLeads = await db
     .select({ brokerId: schema.leads.corretorId, count: count(schema.leads.id) })
     .from(schema.leads)
@@ -160,6 +167,11 @@ export default async function LeadDistributionPage() {
             totalAvailable,
             totalNewLeads,
           }}
+        />
+        <DistributionInbox
+          branches={branches.map((branch) => ({ id: branch.id, name: branch.name }))}
+          brokers={brokers.map((broker) => ({ id: broker.id, name: broker.name, branchId: broker.branchId, availabilityStatus: broker.availabilityStatus, activeLeads: activeBrokerLeadsMap.get(broker.id) ?? 0 }))}
+          leads={unassignedLeads.map((lead) => ({ ...lead, createdAt: lead.createdAt.toISOString() }))}
         />
       </main>
     </>

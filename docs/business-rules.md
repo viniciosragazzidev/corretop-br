@@ -24,6 +24,8 @@ rastreabilidade. Pendências que impedem uma implementação definitiva ficam no
 | BR-012 | Diretor pode criar Gestores e Corretores; Gestor pode criar somente Corretores; Corretor não administra equipe. | Tentativa de criar papel acima do escopo → negada no servidor. | RF003–005, prompt 2.3 |
 | BR-013 | Usuários operacionais pertencem a uma filial. | Criação/alteração → filial válida no mesmo tenant é obrigatória. | RF100–101 |
 | BR-014 | Corretor disponível pode pausar o recebimento; Gestor pode fazê-lo pela equipe. | Pausa → corretor deixa de ser elegível à distribuição. | RF110–112 |
+| BR-015 | Cargo organizacional e perfil de acesso são conceitos separados. | Criação/edição → cargo descritivo pode variar sem ampliar permissões; o perfil continua autorizado pelo servidor. | Gestão de equipe |
+| BR-016 | Todo membro operacional deve estar vinculado a uma filial ativa. | Criação/edição → unidade selecionada pertence ao tenant e é registrada na associação. | RF100–101 |
 
 ## Leads, funil e distribuição
 

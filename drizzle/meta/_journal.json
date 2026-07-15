@@ -1,0 +1,34 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1784060000000,
+      "tag": "0028_branches_distribution_flags",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1784116800000,
+      "tag": "0029_team_job_titles",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784203200000,
+      "tag": "0030_lead_distribution_system",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1784290000000,
+      "tag": "0031_push_subscriptions",
+      "breakpoints": true
+    }
+  ]
+}

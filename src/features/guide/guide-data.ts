@@ -140,6 +140,23 @@ export const guideSections: GuideSection[] = [
     tip: "Permissão e responsabilidade andam juntas: cada pessoa deve enxergar apenas o que precisa para trabalhar bem.",
   },
   {
+    id: "distribuicao-leads",
+    title: "Distribuição de leads",
+    eyebrow: "Gestão",
+    description: "Entenda como um lead sai da Inbox geral, chega à unidade e é atribuído a um corretor elegível.",
+    icon: "Users",
+    audience: ["director", "manager"],
+    links: [{ label: "Abrir distribuição", href: "/leads/distribuicao" }, { label: "Abrir Leads", href: "/leads" }],
+    steps: [
+      { title: "Revise a Inbox geral", description: "Leads aguardando unidade ou corretor aparecem na área de distribuição. Selecione um ou vários para operar em lote." },
+      { title: "Envie para uma unidade", description: "O Diretor pode escolher qualquer unidade ativa que aceite leads. O Gestor opera somente na própria unidade." },
+      { title: "Escolha a fila e o modo", description: "A fila geral é criada para a unidade quando necessário. Filas automáticas procuram corretores disponíveis; filas manuais aguardam ação do Gestor." },
+      { title: "Atribua ou distribua automaticamente", description: "Use Atribuir para escolher um corretor elegível ou Auto para aplicar capacidade e carga ativa. Corretores pausados não recebem novos leads." },
+      { title: "Acompanhe o histórico", description: "Cada envio, atribuição, conflito e alteração fica registrado no histórico de distribuição e na auditoria do tenant." },
+    ],
+    tip: "Se nenhum corretor aparecer, confira se ele está ativo, vinculado à unidade, disponível e dentro da capacidade configurada.",
+  },
+  {
     id: "comissoes-metas",
     title: "Comissões e metas",
     eyebrow: "Gestão",

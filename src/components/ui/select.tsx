@@ -13,16 +13,25 @@ type SelectContextValue = {
 
 const SelectContext = React.createContext<SelectContextValue | null>(null)
 
-function Select<Value, Multiple extends boolean | undefined = false>({ children, ...props }: SelectPrimitive.Root.Props<Value, Multiple>) {
-  const [labels, setLabels] = React.useState<Map<string, React.ReactNode>>(new Map())
+function Select<Value, Multiple extends boolean | undefined = false>({ children, labels: predefinedLabels, ...props }: SelectPrimitive.Root.Props<Value, Multiple> & { labels?: Record<string, React.ReactNode> }) {
+  const [registeredLabels, setRegisteredLabels] = React.useState<Map<string, React.ReactNode>>(new Map())
   const register = React.useCallback((value: string, label: React.ReactNode) => {
-    setLabels((current) => {
+    setRegisteredLabels((current) => {
       if (current.get(value) === label) return current
       const next = new Map(current)
       next.set(value, label)
       return next
     })
   }, [])
+
+  const labels = React.useMemo(() => {
+    if (!predefinedLabels) return registeredLabels
+    const merged = new Map(registeredLabels)
+    for (const [key, value] of Object.entries(predefinedLabels)) {
+      if (!merged.has(key)) merged.set(key, value)
+    }
+    return merged
+  }, [registeredLabels, predefinedLabels])
 
   return (
     <SelectContext.Provider value={{ labels, register }}>

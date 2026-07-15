@@ -30,6 +30,7 @@ export default async function TeamPage() {
         name: schema.user.name,
         email: schema.user.email,
         role: schema.tenantMemberships.role,
+        jobTitle: schema.tenantMemberships.jobTitle,
         status: schema.user.status,
         branchId: schema.tenantMemberships.branchId,
         branchName: schema.branches.name,
