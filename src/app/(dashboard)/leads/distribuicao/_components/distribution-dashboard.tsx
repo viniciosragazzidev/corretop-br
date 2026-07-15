@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import {
   Buildings,
@@ -11,6 +11,8 @@ import {
   TrendUp,
   Power,
   Pause,
+  MagnifyingGlass,
+  ArrowRight,
 } from "@/components/huge-icons";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -51,6 +53,8 @@ type BrokerItem = {
   id: string;
   name: string;
   email: string;
+  branchId: string | null;
+  branchName: string | null;
   availabilityStatus: "available" | "paused";
   activeLeads: number;
 };
@@ -99,7 +103,93 @@ function ToggleCell({
 function BrokerAvailabilityToggle({ broker }: { broker: BrokerItem }) {
   const [state, formAction, pending] = useActionState<BranchActionState, FormData>(toggleBrokerAvailabilityAction, {});
   const available = broker.availabilityStatus === "available";
-  return <form action={formAction}><input name="brokerId" type="hidden" value={broker.id} /><Button disabled={pending} size="sm" type="submit" variant={available ? "outline" : "secondary"}>{available ? <Pause /> : <CheckCircle />}{available ? "Bloquear novos leads" : "Liberar recebimento"}</Button><ActionFeedback state={state} /></form>;
+  return <form action={formAction}><input name="brokerId" type="hidden" value={broker.id} /><Button aria-label={available ? `Pausar recebimento de ${broker.name}` : `Retomar recebimento de ${broker.name}`} disabled={pending} size="xs" type="submit" variant={available ? "outline" : "secondary"}>{available ? <Pause /> : <CheckCircle />}{available ? "Pausar" : "Retomar"}</Button><ActionFeedback state={state} /></form>;
+}
+
+function BrokerDirectory({ brokers }: { brokers: BrokerItem[] }) {
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState<"all" | "available" | "paused">("all");
+  const [branch, setBranch] = useState("all");
+  const [page, setPage] = useState(1);
+  const pageSize = 25;
+  const branches = useMemo(() => [...new Set(brokers.map((broker) => broker.branchName))].filter((item): item is string => Boolean(item)).sort() as string[], [brokers]);
+  const filtered = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase();
+    return brokers.filter((broker) => {
+      const matchesSearch = !query || [broker.id, broker.name, broker.email].some((value) => value.toLocaleLowerCase().includes(query));
+      const matchesStatus = status === "all" || broker.availabilityStatus === status;
+      const matchesBranch = branch === "all" || broker.branchName === branch;
+      return matchesSearch && matchesStatus && matchesBranch;
+    });
+  }, [branch, brokers, search, status]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const visible = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  return (
+    <Card className="border-border bg-card shadow-none">
+      <CardHeader className="gap-4 border-b border-border">
+        <div>
+          <CardTitle>Corretores da unidade</CardTitle>
+          <CardDescription>Pause o recebimento de novos leads sem remover o corretor da equipe. Leads já atribuídos continuam na carteira dele.</CardDescription>
+        </div>
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
+          <div className="relative min-w-0 flex-1 lg:max-w-md">
+            <MagnifyingGlass className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <input aria-label="Buscar corretor" className="h-9 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/15" onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="Buscar por nome, ID ou e-mail..." value={search} />
+          </div>
+          <select aria-label="Filtrar por filial" className="h-9 rounded-lg border border-input bg-background px-3 text-sm" onChange={(event) => { setBranch(event.target.value); setPage(1); }} value={branch}>
+            <option value="all">Todas as filiais</option>
+            {branches.map((item) => <option key={item} value={item}>{item}</option>)}
+          </select>
+          <select aria-label="Filtrar por status" className="h-9 rounded-lg border border-input bg-background px-3 text-sm" onChange={(event) => { setStatus(event.target.value as typeof status); setPage(1); }} value={status}>
+            <option value="all">Todos os status</option>
+            <option value="available">Recebendo leads</option>
+            <option value="paused">Pausados</option>
+          </select>
+        </div>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className="flex items-center justify-between border-b border-border bg-muted/20 px-4 py-2.5 text-xs text-muted-foreground">
+          <span><strong className="font-semibold text-foreground">{filtered.length}</strong> corretor{filtered.length === 1 ? "" : "es"} encontrado{filtered.length === 1 ? "" : "s"}</span>
+          <span>Até 25 por página</span>
+        </div>
+        {visible.length ? (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="pl-4">Corretor</TableHead>
+                  <TableHead>Filial</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Leads ativos</TableHead>
+                  <TableHead className="pr-4 text-right">Ação</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {visible.map((broker) => (
+                  <TableRow key={broker.id}>
+                    <TableCell className="max-w-[280px] pl-4">
+                      <p className="truncate text-sm font-medium">{broker.name}</p>
+                      <p className="truncate font-mono text-[11px] text-muted-foreground">{broker.email}</p>
+                      <p className="truncate font-mono text-[10px] text-muted-foreground/70" title={broker.id}>ID {broker.id.slice(0, 12)}…</p>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-xs text-muted-foreground">{broker.branchName ?? "Sem filial"}</TableCell>
+                    <TableCell><Badge variant={broker.availabilityStatus === "available" ? "outline" : "secondary"} className={broker.availabilityStatus === "available" ? "border-emerald-500/35 text-emerald-600 dark:text-emerald-400" : ""}>{broker.availabilityStatus === "available" ? "Recebendo" : "Pausado"}</Badge></TableCell>
+                    <TableCell className="text-right font-mono text-sm tabular-nums">{broker.activeLeads}</TableCell>
+                    <TableCell className="pr-4 text-right"><BrokerAvailabilityToggle broker={broker} /></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-2 px-4 py-12 text-center"><Users className="size-7 text-muted-foreground" /><p className="text-sm font-medium">Nenhum corretor encontrado</p><p className="text-xs text-muted-foreground">Ajuste a busca ou remova os filtros.</p></div>
+        )}
+        {filtered.length > pageSize ? <div className="flex items-center justify-between border-t border-border px-4 py-3"><p className="text-xs text-muted-foreground">Página {currentPage} de {totalPages}</p><div className="flex items-center gap-2"><Button aria-label="Página anterior" disabled={currentPage === 1} onClick={() => setPage((value) => Math.max(1, value - 1))} size="xs" type="button" variant="outline"><ArrowRight className="rotate-180" /> Anterior</Button><Button aria-label="Próxima página" disabled={currentPage === totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))} size="xs" type="button" variant="outline">Próxima <ArrowRight /></Button></div></div> : null}
+      </CardContent>
+    </Card>
+  );
 }
 
 export function DistributionDashboard({
@@ -304,6 +394,8 @@ export function DistributionDashboard({
         </CardContent>
       </Card>
 
+      <BrokerDirectory brokers={brokers} />
+      {/*
       <Card className="border-border bg-card shadow-none">
         <CardHeader>
           <CardTitle>Corretores da unidade</CardTitle>
@@ -313,6 +405,8 @@ export function DistributionDashboard({
           {brokers.length ? brokers.map((broker) => <div className="flex items-center justify-between gap-3 rounded-xl border border-border p-3" key={broker.id}><div className="min-w-0"><p className="truncate text-sm font-medium">{broker.name}</p><p className="truncate text-xs text-muted-foreground">{broker.email}</p><p className="mt-1 text-xs text-muted-foreground">{broker.activeLeads} lead{broker.activeLeads === 1 ? "" : "s"} ativo{broker.activeLeads === 1 ? "" : "s"}</p></div><div className="flex shrink-0 flex-col items-end gap-2"><Badge variant={broker.availabilityStatus === "available" ? "outline" : "secondary"}>{broker.availabilityStatus === "available" ? "Recebendo" : "Pausado"}</Badge><BrokerAvailabilityToggle broker={broker} /></div></div>) : <p className="text-sm text-muted-foreground">Nenhum corretor ativo nesta unidade.</p>}
         </CardContent>
       </Card>
+
+      </Card> */}
 
       {/* Summary / Legend */}
       <div className="flex flex-wrap items-center gap-4 rounded-lg border border-border/60 bg-muted/20 px-4 py-3 text-xs text-muted-foreground">

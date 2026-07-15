@@ -46,9 +46,10 @@ export default async function LeadDistributionPage() {
   }
 
   const brokers = await db
-    .select({ id: schema.user.id, name: schema.user.name, email: schema.user.email, branchId: schema.tenantMemberships.branchId, availabilityStatus: schema.tenantMemberships.availabilityStatus })
+    .select({ id: schema.user.id, name: schema.user.name, email: schema.user.email, branchId: schema.tenantMemberships.branchId, branchName: schema.branches.name, availabilityStatus: schema.tenantMemberships.availabilityStatus })
     .from(schema.tenantMemberships)
     .innerJoin(schema.user, eq(schema.tenantMemberships.userId, schema.user.id))
+    .leftJoin(schema.branches, eq(schema.tenantMemberships.branchId, schema.branches.id))
     .where(and(eq(schema.tenantMemberships.tenantId, context.tenantId), inArray(schema.tenantMemberships.branchId, branchIds), eq(schema.tenantMemberships.role, "broker"), eq(schema.tenantMemberships.status, "active"), eq(schema.user.active, true)));
   const unassignedLeads = await db
     .select({ id: schema.leads.id, name: schema.leads.nome, phone: schema.leads.telefone, branchId: schema.leads.branchId, distributionStatus: schema.leads.distributionStatus, createdAt: schema.leads.createdAt })
@@ -157,7 +158,7 @@ export default async function LeadDistributionPage() {
         </section>
         <DistributionDashboard
           branches={enrichedBranches}
-          brokers={brokers.map((broker) => ({ id: broker.id, name: broker.name, email: broker.email, availabilityStatus: broker.availabilityStatus, activeLeads: activeBrokerLeadsMap.get(broker.id) ?? 0 }))}
+          brokers={brokers.map((broker) => ({ id: broker.id, name: broker.name, email: broker.email, branchId: broker.branchId, branchName: broker.branchName, availabilityStatus: broker.availabilityStatus, activeLeads: activeBrokerLeadsMap.get(broker.id) ?? 0 }))}
           canManageAcceptingLeads={context.role === "director"}
           metrics={{
             totalBranches,
