@@ -8,10 +8,11 @@ import { getDatabase, schema } from "../src/shared/db/client";
 
 loadEnvConfig(process.cwd());
 
-const defaultPassword = process.env.BOOTSTRAP_DEFAULT_PASSWORD?.trim();
-if (!defaultPassword || defaultPassword.length < 8) {
-  throw new Error("BOOTSTRAP_DEFAULT_PASSWORD must have at least 8 characters.");
-}
+const defaultPassword: string = (() => {
+  const value = process.env.BOOTSTRAP_DEFAULT_PASSWORD?.trim();
+  if (!value || value.length < 8) throw new Error("BOOTSTRAP_DEFAULT_PASSWORD must have at least 8 characters.");
+  return value;
+})();
 
 const brokerage = {
   name: "Corretora Vértice Saúde",
