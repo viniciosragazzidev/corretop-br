@@ -173,6 +173,7 @@ export function ConversationsWorkspace({
           <div className="relative min-w-[14rem] flex-1 lg:max-w-sm"><MagnifyingGlass aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input aria-label="Buscar conversa por nome, telefone ou e-mail" className="h-9 pl-8" onChange={(event) => setQuery(event.target.value)} placeholder="Buscar conversa" value={query} /></div>
           <Button className="ml-auto gap-1.5" render={<Link href="/leads" />} size="sm" variant="outline"><UserList className="size-3.5" />Leads</Button>
         </div>
+        {!whatsappReady ? <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2.5 text-xs"><div><p className="font-medium text-foreground">WhatsApp ainda não conectado</p><p className="mt-0.5 text-muted-foreground">Você pode consultar os atendimentos, mas o envio fica bloqueado até conectar seu número.</p></div><Button render={<Link href="/settings?tab=whatsapp" />} size="xs" variant="outline"><WhatsappLogo /> Conectar agora</Button></div> : null}
       </header>
       <div className={cn("grid min-h-0 flex-1 lg:grid-cols-[minmax(14rem,0.5fr)_minmax(0,1.9fr)]", profileOpen ? "2xl:grid-cols-[minmax(14rem,0.5fr)_minmax(0,1.9fr)_19rem]" : "2xl:grid-cols-[minmax(14rem,0.5fr)_minmax(0,2.35fr)]")}>
 

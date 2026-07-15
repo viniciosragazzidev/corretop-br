@@ -42,7 +42,7 @@ const systemItems: SidebarItem[] = [
   { label: "Catálogo", icon: FolderSimple, url: "/catalogo", permission: "acessar_catalogo" },
   { label: "Comissões", icon: CurrencyCircleDollar, url: "/configuracoes/comissoes", permission: "gerenciar_comissoes" },
   { label: "Assinatura", icon: CreditCard, url: "/assinatura", permission: "configurar_white_label" },
-  { label: "Configurações", icon: SlidersHorizontal, url: "/settings", permission: "acessar_configuracoes" },
+  { label: "Configurações", icon: SlidersHorizontal, url: "/settings", permission: "acessar_configuracoes_pessoais" },
   { label: "Roadmap", icon: RoadHorizon, url: "/roadmap", permission: "acessar_roadmap" },
 ];
 const supportItems: SidebarItem[] = [{ label: "Guia do sistema", icon: BookOpen, url: "/guia", permission: "acessar_guia" }];

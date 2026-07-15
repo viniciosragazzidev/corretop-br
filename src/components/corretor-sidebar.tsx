@@ -11,6 +11,7 @@ import {
   Note,
   Pause,
   RoadHorizon,
+  SlidersHorizontal,
   SignOut,
 } from "@/components/huge-icons";
 import { useRouter, usePathname } from "next/navigation";
@@ -32,41 +33,47 @@ import {
 import { signOut } from "@/shared/auth/client";
 import { toast } from "sonner";
 import { getUserDisplayInfo, type UserDisplayInfo } from "@/shared/auth/actions";
+import { hasPermission, type PermissionKey } from "@/shared/auth/permissions";
 
-const workItems = [
-  { label: "Minha fila", icon: ListChecks, url: "/minha-fila" },
-  { label: "Conversas", icon: ChatCircleText, url: "/conversas" },
-  { label: "Tarefas", icon: ClipboardText, url: "/tarefas" },
-  { label: "Checklist", icon: ClipboardText, url: "/checklist" },
-  { label: "Cotações", icon: ListChecks, url: "/cotacoes" },
-  { label: "Documentos", icon: Note, url: "/documentos" },
-  { label: "Clientes", icon: Handshake, url: "/clientes" },
+type BrokerSidebarItem = { label: string; icon: typeof ListChecks; url: string; permission: PermissionKey };
+const workItems: BrokerSidebarItem[] = [
+  { label: "Minha fila", icon: ListChecks, url: "/minha-fila", permission: "acessar_leads" },
+  { label: "Conversas", icon: ChatCircleText, url: "/conversas", permission: "acessar_conversas" },
+  { label: "Tarefas", icon: ClipboardText, url: "/tarefas", permission: "acessar_tarefas" },
+  { label: "Checklist", icon: ClipboardText, url: "/checklist", permission: "acessar_documentos" },
+  { label: "Cotações", icon: ListChecks, url: "/cotacoes", permission: "acessar_cotacoes" },
+  { label: "Documentos", icon: Note, url: "/documentos", permission: "acessar_documentos" },
+  { label: "Clientes", icon: Handshake, url: "/clientes", permission: "acessar_clientes" },
 ];
 
-const performanceItems = [
-  { label: "Resumo", icon: House, url: "/corretor/resumo" },
-  { label: "Minha meta", icon: ChartLineUp, url: "/minha-meta" },
-  { label: "Notificações", icon: Bell, url: "/notificacoes" },
+const performanceItems: BrokerSidebarItem[] = [
+  { label: "Resumo", icon: House, url: "/corretor/resumo", permission: "acessar_dashboard" },
+  { label: "Minha meta", icon: ChartLineUp, url: "/minha-meta", permission: "ver_meta_propria" },
+  { label: "Notificações", icon: Bell, url: "/notificacoes", permission: "acessar_notificacoes" },
 ];
 
-const systemItems = [
-  { label: "Roadmap", icon: RoadHorizon, url: "/roadmap" },
+const systemItems: BrokerSidebarItem[] = [
+  { label: "Configurações", icon: SlidersHorizontal, url: "/settings", permission: "acessar_configuracoes_pessoais" },
+  { label: "Roadmap", icon: RoadHorizon, url: "/roadmap", permission: "acessar_roadmap" },
 ];
 
 function NavigationGroup({
   label,
   items,
+  role,
 }: {
   label: string;
-  items: typeof workItems;
+  items: BrokerSidebarItem[];
+  role: UserDisplayInfo["roleKey"];
 }) {
   const pathname = usePathname();
+  const visibleItems = items.filter((item) => hasPermission(role, item.permission));
   return (
     <SidebarGroup>
       <SidebarGroupLabel>{label}</SidebarGroupLabel>
       <SidebarGroupContent>
         <SidebarMenu>
-          {items.map((item) => {
+          {visibleItems.map((item) => {
             const Icon = item.icon;
             return (
               <SidebarMenuItem key={item.label}>
@@ -124,9 +131,9 @@ export function CorretorSidebar() {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavigationGroup items={workItems} label="Atendimento" />
-        <NavigationGroup items={performanceItems} label="Desempenho" />
-        <NavigationGroup items={systemItems} label="Sistema" />
+        <NavigationGroup items={workItems} label="Atendimento" role={user?.roleKey ?? null} />
+        <NavigationGroup items={performanceItems} label="Desempenho" role={user?.roleKey ?? null} />
+        <NavigationGroup items={systemItems} label="Sistema" role={user?.roleKey ?? null} />
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>

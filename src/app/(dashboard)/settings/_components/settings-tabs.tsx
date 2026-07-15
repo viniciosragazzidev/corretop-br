@@ -3,57 +3,32 @@
 import { type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Building06Icon, LinkSquare01Icon, SecurityCheckIcon } from "@hugeicons/core-free-icons";
+import { Building06Icon, LinkSquare01Icon, SecurityCheckIcon, UserIcon, Store01Icon } from "@hugeicons/core-free-icons";
 
-const tabs = [
-  { id: "empresa", label: "Empresa", icon: Building06Icon },
-  { id: "integracoes", label: "Integrações", icon: LinkSquare01Icon },
-  { id: "seguranca", label: "Segurança", icon: SecurityCheckIcon },
-] as const;
+export type TabId = "conta" | "empresa" | "unidade" | "whatsapp" | "integracoes" | "seguranca";
+type Tab = { id: TabId; label: string; icon: typeof UserIcon };
 
-export function SettingsTabs({ children, integrations, security, integrationsLocked = false }: { children: ReactNode; integrations?: ReactNode; security?: ReactNode; integrationsLocked?: boolean }) {
+export function SettingsTabs({ account, company, unit, whatsapp, integrations, security, tabIds }: { account: ReactNode; company?: ReactNode; unit?: ReactNode; whatsapp: ReactNode; integrations?: ReactNode; security: ReactNode; tabIds: TabId[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const requestedTab = searchParams.get("tab");
-  const visibleTabs = integrations || integrationsLocked ? tabs : tabs.filter((tab) => tab.id !== "integracoes");
-  const active = visibleTabs.some((tab) => tab.id === requestedTab) ? requestedTab ?? "empresa" : "empresa";
+  const allTabs: Tab[] = [
+    { id: "conta", label: "Minha conta", icon: UserIcon },
+    { id: "empresa", label: "Empresa", icon: Building06Icon },
+    { id: "unidade", label: "Unidade", icon: Store01Icon },
+    { id: "whatsapp", label: "WhatsApp", icon: LinkSquare01Icon },
+    { id: "integracoes", label: "Integrações", icon: LinkSquare01Icon },
+    { id: "seguranca", label: "Segurança", icon: SecurityCheckIcon },
+  ];
+  const tabs = allTabs.filter((tab) => tabIds.includes(tab.id));
+  const requested = searchParams.get("tab") as TabId | null;
+  const active = tabs.some((tab) => tab.id === requested) ? requested! : tabs[0]?.id ?? "conta";
 
-  function selectTab(tabId: string) {
+  function selectTab(tabId: TabId) {
     const params = new URLSearchParams(searchParams.toString());
     params.set("tab", tabId);
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   }
 
-  return (
-    <div className="grid gap-4 lg:grid-cols-[12rem_1fr]">
-      <nav className="flex gap-1 lg:flex-col">
-        {visibleTabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => selectTab(tab.id)}
-            className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-              active === tab.id
-                ? "bg-primary/10 text-primary"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
-            }`}
-          >
-            <HugeiconsIcon icon={tab.icon} size={16} />
-            {tab.label}
-          </button>
-        ))}
-      </nav>
-      <div className="min-w-0">
-        {active === "empresa" && children}
-        {active === "sistema" && (
-          <div className="rounded-lg border border-border p-6 text-sm text-muted-foreground">
-            Configurações do sistema em breve.
-          </div>
-        )}
-        {active === "integracoes" ? integrations ?? <div className="rounded-lg border border-border bg-muted/20 p-6 text-sm text-muted-foreground">As integrações de captura e tokens ficam bloqueadas para este papel. O acesso ao WhatsApp operacional está disponível no botão acima.</div> : null}
-        {active === "seguranca" ? security : null}
-      </div>
-    </div>
-  );
+  return <div className="grid gap-4 lg:grid-cols-[13rem_1fr]"><nav className="flex gap-1 overflow-x-auto lg:flex-col">{tabs.map((tab) => <button key={tab.id} type="button" onClick={() => selectTab(tab.id)} className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${active === tab.id ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}><HugeiconsIcon icon={tab.icon} size={16} />{tab.label}</button>)}</nav><div className="min-w-0">{active === "conta" ? account : null}{active === "empresa" ? company : null}{active === "unidade" ? unit : null}{active === "whatsapp" ? whatsapp : null}{active === "integracoes" ? integrations : null}{active === "seguranca" ? security : null}</div></div>;
 }
