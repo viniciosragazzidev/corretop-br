@@ -8,6 +8,13 @@
       "when": 1784721600000,
       "tag": "0036_reset_baseline",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1784721700000,
+      "tag": "0037_add_tenant_setup_timestamp",
+      "breakpoints": true
     }
   ]
 }
