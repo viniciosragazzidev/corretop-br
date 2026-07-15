@@ -2,18 +2,15 @@
 
 import { useState, type FormEvent } from "react";
 import { Eye, EyeSlash } from "@/components/huge-icons";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { signIn } from "@/shared/auth/client";
-import { checkOnboardingRedirect } from "@/features/onboarding/actions/check-onboarding-redirect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -32,9 +29,10 @@ export default function LoginPage() {
       ]);
       if (result.error) { const message = result.error.message || "Credenciais inválidas"; setError(message); toast.error(message); return; }
       toast.success("Login realizado. Abrindo seu painel...");
-      const { redirectTo } = await checkOnboardingRedirect();
-      router.replace(redirectTo);
-      router.refresh();
+      // Navigate only after Better Auth has persisted the session cookie.
+      // A server action here can race that cookie store and return
+      // "Unexpected response" even though authentication succeeded.
+      window.location.replace("/dashboard");
     } catch (authError) { const message = authError instanceof Error ? authError.message : "Não foi possível concluir o login."; setError(message); toast.error(message); }
     finally { setLoading(false); }
   }

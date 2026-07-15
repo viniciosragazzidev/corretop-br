@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +9,7 @@ import { signIn } from "@/shared/auth/client";
 import { toast } from "sonner";
 
 export default function AdminLoginPage() {
-  const router = useRouter(); const [error, setError] = useState(""); const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(""); const [loading, setLoading] = useState(false);
   async function submit(formData: FormData) {
     setLoading(true);
     setError("");
@@ -29,7 +28,7 @@ export default function AdminLoginPage() {
         return;
       }
       toast.success("Acesso administrativo confirmado.");
-      router.push("/super-admin");
+      window.location.replace("/super-admin");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Não foi possível concluir o login.";
       setError(message);
