@@ -8,6 +8,7 @@ import { WifiHigh } from "@/components/huge-icons";
 import { Button } from "@/components/ui/button";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { ContextNote } from "@/components/ui/context-note";
+import { getSystemSetting } from "@/features/system-settings/queries";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
 
@@ -15,12 +16,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
   const context = await getRequiredTenantContext();
   const filters = await searchParams;
   const db = getDatabase();
-  const [attentionSetting] = await db
-    .select({ value: schema.systemSettings.value })
-    .from(schema.systemSettings)
-    .where(eq(schema.systemSettings.key, "feature_central_atencao_stagnant_days"))
-    .limit(1);
-  const configuredStagnantDays = Number(attentionSetting?.value ?? 3);
+  const configuredStagnantDays = Number(await getSystemSetting("feature_central_atencao_stagnant_days") ?? 3);
   const stagnantDays = Number.isInteger(configuredStagnantDays) && configuredStagnantDays >= 1 && configuredStagnantDays <= 30 ? configuredStagnantDays : 3;
   const attention = filters.attention === "unworked" || filters.attention === "stalled" ? filters.attention : null;
   const stalledSince = sql<Date>`now() - (${stagnantDays} * interval '1 day')`;

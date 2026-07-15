@@ -4,6 +4,7 @@ import { and, eq, inArray, isNull, lt, or, sql } from "drizzle-orm";
 
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
+import { getSystemSettings } from "@/features/system-settings/queries";
 
 const unworkedLeadStatuses = ["new", "distributed"] as const;
 const activeLeadStatuses = ["in_contact", "quote_sent", "negotiation", "documentation_pending", "under_analysis"] as const;
@@ -53,10 +54,7 @@ function toAggregate(row: { count: number | string; oldestAt: Date | string | nu
 export async function getAttentionCenter(): Promise<AttentionCenterData> {
   const context = await getRequiredTenantContext();
   const db = getDatabase();
-  const settings = await db
-    .select({ key: schema.systemSettings.key, value: schema.systemSettings.value })
-    .from(schema.systemSettings)
-    .where(inArray(schema.systemSettings.key, ["feature_central_atencao_enabled", "feature_central_atencao_stagnant_days"]));
+  const settings = await getSystemSettings(["feature_central_atencao_enabled", "feature_central_atencao_stagnant_days"]);
   const settingMap = new Map(settings.map((setting) => [setting.key, setting.value]));
   const enabled = settingMap.get("feature_central_atencao_enabled") !== "false";
   const stagnantDaysValue = Number(settingMap.get("feature_central_atencao_stagnant_days") ?? 3);

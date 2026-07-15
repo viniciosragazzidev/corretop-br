@@ -2,6 +2,7 @@ import { and, eq, ilike, or } from "drizzle-orm";
 import { NextRequest } from "next/server";
 
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
+import { getSystemSetting } from "@/features/system-settings/queries";
 import { getDatabase, schema } from "@/shared/db";
 
 function leadScope(tenantId: string, role: "director" | "manager" | "broker", branchId: string | null, userId: string) {
@@ -18,8 +19,8 @@ export async function GET(request: NextRequest) {
 
   const context = await getRequiredTenantContext();
   const db = getDatabase();
-  const [feature] = await db.select({ value: schema.systemSettings.value }).from(schema.systemSettings).where(eq(schema.systemSettings.key, "feature_global_search_enabled")).limit(1);
-  if (feature?.value === "false") return Response.json({ enabled: false, groups: [] });
+  const feature = await getSystemSetting("feature_global_search_enabled");
+  if (feature === "false") return Response.json({ enabled: false, groups: [] });
 
   const pattern = `%${query.replace(/[%_]/g, "\\$&")} %`.trim();
   const scope = leadScope(context.tenantId, context.role, context.branchId, context.userId);

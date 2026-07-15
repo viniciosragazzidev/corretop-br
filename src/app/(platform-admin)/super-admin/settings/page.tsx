@@ -1,6 +1,4 @@
-import { inArray } from "drizzle-orm";
-
-import { getDatabase, schema } from "@/shared/db";
+import { getSystemSettings } from "@/features/system-settings/queries";
 import { updateCentralAtencaoSettingsAction, updateGlobalSearchSettingsAction } from "@/app/(platform-admin)/super-admin/actions";
 import { PlatformAdminHeader } from "@/components/platform-admin-header";
 import { Button } from "@/components/ui/button";
@@ -9,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 
 export default async function SuperAdminSettingsPage() {
-  const settings = await getDatabase().select({ key: schema.systemSettings.key, value: schema.systemSettings.value }).from(schema.systemSettings).where(inArray(schema.systemSettings.key, ["feature_central_atencao_enabled", "feature_central_atencao_stagnant_days", "feature_global_search_enabled"]));
+  const settings = await getSystemSettings(["feature_central_atencao_enabled", "feature_central_atencao_stagnant_days", "feature_global_search_enabled"]);
   const settingMap = new Map(settings.map((setting) => [setting.key, setting.value]));
   const centralEnabled = settingMap.get("feature_central_atencao_enabled") !== "false";
   const stagnantDays = settingMap.get("feature_central_atencao_stagnant_days") ?? "3";

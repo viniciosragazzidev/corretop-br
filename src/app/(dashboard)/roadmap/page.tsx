@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { newRoadmapItems, roadmapDays, roadmapItems, type RoadmapStatus } from "@/features/roadmap/roadmap-data";
+import { getSystemSettings } from "@/features/system-settings/queries";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
 import { and, eq, inArray, isNull, lt, asc } from "drizzle-orm";
@@ -55,7 +56,7 @@ export default async function RoadmapPage() {
   const isSuperAdmin = dbUser?.isPlatformAdmin ?? false;
 
   // Load system settings
-  const settingsList = await db.select().from(schema.systemSettings);
+  const settingsList = await getSystemSettings();
   const settingsMap = new Map(settingsList.map((s) => [s.key, s.value]));
 
   const centralAtencaoEnabled = settingsMap.get("feature_central_atencao_enabled") !== "false"; // default true
