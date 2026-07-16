@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { LeadReminder } from "@/features/leads/components/lead-reminder";
 
 type NextTask = { title: string; dueAt: string | null; priority: "low" | "normal" | "urgent"; assigneeName: string | null };
-type LeadActionHubProps = { leadId: string; status: string; currentOwner: string | null; hasQuotes: boolean; hasPendingDocuments: boolean; nextTask: NextTask | null };
+type LeadActionHubProps = { leadId: string; status: string; currentOwner: string | null; hasQuotes: boolean; hasPendingDocuments: boolean; nextTask: NextTask | null; isOwner: boolean };
 type Action = { href: string; label: string; icon: typeof FileText };
 
 function getCurrentTimestamp() { return Date.now(); }
@@ -25,7 +25,9 @@ function formatDueAt(value: string | null) {
   return date.getTime() < Date.now() ? "Vencida em " + formatted : "Até " + formatted;
 }
 
-export function LeadActionHub({ leadId, status, currentOwner, hasQuotes, hasPendingDocuments, nextTask }: LeadActionHubProps) {
+export function LeadActionHub({ leadId, status, currentOwner, hasQuotes, hasPendingDocuments, nextTask, isOwner }: LeadActionHubProps) {
+  if (!isOwner) return null;
+
   const fallbackAction = getFallbackAction({ leadId, status, hasQuotes, hasPendingDocuments });
   const primaryAction: Action = nextTask ? { href: "/tarefas?leadId=" + leadId, label: "Abrir tarefa", icon: ListChecks } : fallbackAction;
   const Icon = primaryAction.icon;

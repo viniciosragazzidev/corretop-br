@@ -18,8 +18,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createQuoteAction } from "@/features/quotes/actions";
+import { OwnershipContext } from "@/components/ownership-context";
 
-type Lead = { id: string; nome: string; status: string };
+type Lead = { id: string; nome: string; status: string; brokerName: string | null; branchName: string | null };
 type Plan = { id: string; name: string; carrierName: string; coverage: string | null };
 const ageBands = ["0 a 18", "19 a 23", "24 a 28", "29 a 33", "34 a 38", "39 a 43", "44 a 48", "49 a 53", "54 a 58", "59+"];
 
@@ -262,7 +263,7 @@ export function QuotesWorkspace({ leads, plans }: { leads: Lead[]; plans: Plan[]
               <SelectContent>
                 {leads.map((lead) => (
                   <SelectItem key={lead.id} value={lead.id} className="text-xs">
-                    {lead.nome}
+                    <span className="flex flex-col"><span>{lead.nome}</span><OwnershipContext brokerName={lead.brokerName} branchName={lead.branchName} className="text-[10px]" /></span>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -273,6 +274,7 @@ export function QuotesWorkspace({ leads, plans }: { leads: Lead[]; plans: Plan[]
             <div>
               <p className="text-[10px] text-muted-foreground font-semibold uppercase">Cliente selecionado</p>
               <p className="mt-0.5 text-xs font-bold text-foreground">{currentLead?.nome ?? "Nenhum lead selecionado"}</p>
+              {currentLead ? <OwnershipContext brokerName={currentLead.brokerName} branchName={currentLead.branchName} className="text-xs" /> : null}
             </div>
             <div className="grid grid-cols-2 gap-3 border-t border-border/50 pt-2.5">
               <div>

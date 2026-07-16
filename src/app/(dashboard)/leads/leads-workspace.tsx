@@ -28,6 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { LEAD_STATUS_LABELS } from "@/features/leads/lead-status-constants";
+import { OwnershipContext } from "@/components/ownership-context";
 
 export type LeadWorkspaceItem = {
   id: string;
@@ -37,6 +38,7 @@ export type LeadWorkspaceItem = {
   origem: string;
   createdAt: string;
   corretorNome: string | null;
+  branchName: string | null;
 };
 
 const kanbanStatuses = ["new", "in_contact", "quote_sent", "negotiation", "converted"];
@@ -114,7 +116,7 @@ export function LeadsWorkspace({
                       </span>
                       <span className="mt-2 flex items-center gap-2">
                         <StatusBadge status={lead.status} />
-                        <span className="truncate text-xs text-muted-foreground">{lead.corretorNome ?? "Sem responsável"}</span>
+                        <OwnershipContext brokerName={lead.corretorNome} branchName={lead.branchName} className="truncate text-xs" />
                       </span>
                     </span>
                     <ArrowUpRight aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
@@ -150,7 +152,7 @@ export function LeadsWorkspace({
                         <StatusBadge status={lead.status} />
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
-                        {lead.corretorNome ?? "Aguardando distribuição"}
+                        <OwnershipContext brokerName={lead.corretorNome} branchName={lead.branchName} className="text-sm" />
                       </TableCell>
                       <TableCell className="hidden text-muted-foreground lg:table-cell">
                         {formatDate(lead.createdAt)}
@@ -233,7 +235,7 @@ export function LeadsWorkspace({
                         </div>
                       </div>
                       <dl className="mt-4 space-y-3">
-                        <DetailRow label="Responsável" value={selectedLead.corretorNome ?? "Aguardando distribuição"} />
+                        <DetailRow label="Responsável" value={[selectedLead.corretorNome ?? "Aguardando distribuição", selectedLead.branchName ?? "Sem unidade"].join(" · ")} />
                         <DetailRow label="Origem" value={selectedLead.origem === "manual" ? "Manual" : "Webhook"} />
                         <DetailRow label="Entrada" value={formatDate(selectedLead.createdAt)} />
                       </dl>
@@ -328,7 +330,7 @@ function KanbanLeadCard({
             {lead.nome}
           </p>
           <p className="mt-1 truncate text-xs text-muted-foreground">
-            {lead.corretorNome ?? "Sem responsável"}
+            <OwnershipContext brokerName={lead.corretorNome} branchName={lead.branchName} className="text-xs" />
           </p>
         </div>
         <ArrowUpRight className="mt-0.5 size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />

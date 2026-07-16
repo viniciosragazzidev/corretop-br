@@ -2,6 +2,7 @@
 
 import { motion } from "motion/react";
 import { Badge } from "@/components/ui/badge";
+import { OwnershipContext } from "@/components/ownership-context";
 
 type ClientItem = {
   id: string;
@@ -10,6 +11,7 @@ type ClientItem = {
   email: string | null;
   convertedAt: Date;
   brokerName: string | null;
+  branchName: string | null;
 };
 
 export function ClientesList({ clients }: { clients: ClientItem[] }) {
@@ -53,8 +55,8 @@ export function ClientesList({ clients }: { clients: ClientItem[] }) {
             <Badge variant="outline" className="transition-all duration-200 group-hover/card:border-primary/30 group-hover/card:text-foreground">Cliente ativo</Badge>
             <p className="mt-1 text-xs text-muted-foreground transition-colors duration-200 group-hover/card:text-foreground/70">
               Convertido em {new Intl.DateTimeFormat("pt-BR").format(client.convertedAt)}
-              {client.brokerName ? ` · ${client.brokerName}` : ""}
             </p>
+            <OwnershipContext brokerName={client.brokerName} branchName={client.branchName} className="mt-1 text-xs" />
           </div>
         </motion.div>
       ))}

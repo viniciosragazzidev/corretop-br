@@ -1,4 +1,5 @@
 import "server-only";
+import { randomUUID } from "node:crypto";
 import { eq, and, or } from "drizzle-orm";
 import webpush from "web-push";
 import { getDatabase, schema } from "@/shared/db";
@@ -80,18 +81,35 @@ export async function notifyNewLead(
   leadName: string
 ) {
   const db = getDatabase();
+  const now = new Date();
 
-  // 1. Notify the assigned broker (if any)
+  // 1. Notify the assigned broker (if any) — insert into `notifications` table
+  //    so the Supabase Realtime subscription catches it and shows toast + sound
   if (corretorId) {
-    await sendNotificationToUser(corretorId, {
-      title: "Novo Lead Atribuído! ⚡",
-      body: `O lead "${leadName}" foi distribuído para você.`,
-      url: `/leads/${leadId}`,
-      tag: `lead-${leadId}`,
-    });
+    await Promise.all([
+      db.insert(schema.notifications).values({
+        id: randomUUID(),
+        tenantId,
+        recipientUserId: corretorId,
+        leadId,
+        type: "agent.lead_assigned",
+        title: "Novo lead atribuído",
+        message: `Você recebeu o lead ${leadName} para atender.`,
+        createdAt: now,
+      }),
+      sendNotificationToUser(corretorId, {
+        title: "Novo Lead Atribuído! ⚡",
+        body: `O lead "${leadName}" foi distribuído para você.`,
+        url: `/leads/${leadId}`,
+        tag: `lead-${leadId}`,
+      }),
+    ]);
   }
 
   // 2. Query and notify all managers of the branch and directors of the tenant
+  //    (push only — managers already get Sonner toasts from the `leads` Supabase
+  //     subscription in RealtimeSyncProvider, so we skip `notifications` table
+  //     inserts here to avoid duplicate toasts)
   const managers = await db
     .select({ userId: schema.tenantMemberships.userId, role: schema.tenantMemberships.role })
     .from(schema.tenantMemberships)
@@ -114,8 +132,9 @@ export async function notifyNewLead(
   for (const manager of managers) {
     if (manager.userId === corretorId) continue;
 
+    const isDirector = manager.role === "director";
     await sendNotificationToUser(manager.userId, {
-      title: manager.role === "director" ? "Novo Lead na Corretora! 🏢" : "Novo Lead na Unidade! 📍",
+      title: isDirector ? "Novo Lead na Corretora! 🏢" : "Novo Lead na Unidade! 📍",
       body: corretorId
         ? `"${leadName}" chegou e foi distribuído.`
         : `"${leadName}" chegou e está aguardando distribuição.`,

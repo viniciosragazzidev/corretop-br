@@ -21,7 +21,7 @@ type ScheduleItem = {
   dueDate: string | null;
   percentage: string;
   amount: string;
-  status: "pending" | "paid" | "cancelled";
+  status: "pending" | "paid" | "cancelled" | "chargeback_pending";
   paidAt: string | null;
   paidBy: string | null;
   paidByName: string | null;

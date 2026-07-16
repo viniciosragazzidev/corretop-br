@@ -51,6 +51,11 @@ rastreabilidade. Pendências que impedem uma implementação definitiva ficam no
 | BR-034 | Documento rejeitado requer observação; avanço para análise só ocorre com checklist aprovado. | Tentativa de avançar incompleta → recusada. | RF042–044 |
 | BR-035 | Conversão cria venda e Cliente Ativo ligado a plano e aniversário. | Lead convertido → venda, cliente e eventos subsequentes são criados. | RF130 |
 
+| BR-036 | Todo atendimento pode representar mais de uma pessoa beneficiária e possui exatamente um titular. | Triagem/cotação cria beneficiários persistidos com vínculo ao lead e titular identificado. | Simulação ponta a ponta |
+| BR-037 | Requisitos marcados como individuais são exigidos para cada beneficiário; requisitos familiares são exigidos uma vez. | Checklist materializa itens por pessoa de forma idempotente. | Solução de beneficiários |
+| BR-038 | Venda só é registrada com evidência da aprovação da operadora, apólice, início de vigência e valor final aprovado. | Registro incompleto é recusado e apresenta pendências explícitas. | Solução de registro de venda |
+| BR-039 | Cancelamento não apaga histórico nem desconta dinheiro automaticamente. | Parcelas futuras são canceladas e parcelas pagas na janela são sinalizadas para decisão manual. | Solução de cancelamento |
+
 ## Comissão, pós-venda e metas
 
 | ID | Regra | Gatilho → resultado | Origem |

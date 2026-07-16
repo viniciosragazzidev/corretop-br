@@ -15,8 +15,10 @@ export default async function QuotesPage() {
       : undefined;
 
   const [leads, plans] = await Promise.all([
-    db.select({ id: schema.leads.id, nome: schema.leads.nome, status: schema.leads.status })
+    db.select({ id: schema.leads.id, nome: schema.leads.nome, status: schema.leads.status, brokerName: schema.user.name, branchName: schema.branches.name })
       .from(schema.leads)
+      .leftJoin(schema.user, eq(schema.leads.corretorId, schema.user.id))
+      .leftJoin(schema.branches, eq(schema.leads.branchId, schema.branches.id))
       .where(and(eq(schema.leads.tenantId, context.tenantId), ...(leadScope ? [leadScope] : [])))
       .orderBy(asc(schema.leads.nome)),
     db.select({ id: schema.carrierPlans.id, name: schema.carrierPlans.name, carrierName: schema.carriers.name, coverage: schema.carrierPlans.coverage })

@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { OwnershipContext } from "@/components/ownership-context";
 import {
   Table,
   TableBody,
@@ -37,6 +38,7 @@ type Requirement = {
   name: string;
   description: string | null;
   required: boolean;
+  appliesPerBeneficiary: boolean;
   carrierId: string | null;
   carrierName: string | null;
   planId: string | null;
@@ -51,6 +53,7 @@ type PendingDoc = {
   leadId: string;
   leadNome: string;
   corretorNome: string | null;
+  branchName: string | null;
   requirementName: string | null;
 };
 
@@ -208,7 +211,7 @@ export function DocumentsWorkspace({
                         <TableHead>Lead</TableHead>
                         <TableHead>Documento</TableHead>
                         <TableHead>Tipo Requisitado</TableHead>
-                        <TableHead>Corretor</TableHead>
+                        <TableHead>Responsável / unidade</TableHead>
                         <TableHead>Data de Envio</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
@@ -238,7 +241,7 @@ export function DocumentsWorkspace({
                             </a>
                           </TableCell>
                           <TableCell>{doc.requirementName ?? "Avulso"}</TableCell>
-                          <TableCell>{doc.corretorNome ?? "Não informado"}</TableCell>
+                          <TableCell><OwnershipContext brokerName={doc.corretorNome} branchName={doc.branchName} emptyLabel="Não informado" /></TableCell>
                           <TableCell>
                             {new Intl.DateTimeFormat("pt-BR", {
                               day: "2-digit",
@@ -397,9 +400,13 @@ export function DocumentsWorkspace({
 
                 <div className="flex items-center gap-2 pt-2">
                   <Checkbox id="required" name="required" value="true" defaultChecked />
-                  <Label htmlFor="required" className="text-xs cursor-pointer select-none">
+                    <Label htmlFor="required" className="text-xs cursor-pointer select-none">
                     Este documento é obrigatório para fechamento
                   </Label>
+                  </div>
+                <div className="flex items-center gap-2 pt-2">
+                  <Checkbox id="appliesPerBeneficiary" name="appliesPerBeneficiary" value="true" />
+                  <Label htmlFor="appliesPerBeneficiary" className="text-xs cursor-pointer select-none">Exigir este documento para cada beneficiário</Label>
                 </div>
 
                 <Button className="w-full mt-4" type="submit" disabled={reqPending}>
