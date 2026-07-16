@@ -3,10 +3,12 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { and, eq, gte, inArray, isNotNull, lt } from "drizzle-orm";
 import { getDatabase, schema } from "@/shared/db";
+import { isNotificationCapabilityEnabled } from "@/features/notifications/queries";
 
 const activeStatuses = ["in_contact", "quote_sent", "negotiation", "documentation_pending", "under_analysis"] as const;
 
 export async function createLeadFeedbackReminders() {
+  if (!(await isNotificationCapabilityEnabled("lead_feedback_reminder"))) return { reminders: 0 };
   const db = getDatabase();
   const now = new Date();
   const cutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000);

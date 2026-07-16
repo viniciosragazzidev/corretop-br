@@ -3,11 +3,13 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { and, eq, gte, inArray, lte } from "drizzle-orm";
 import { getDatabase, schema } from "@/shared/db";
+import { isNotificationCapabilityEnabled } from "@/features/notifications/queries";
 
 const REENGAGEMENT_DAYS = 30;
 const NOTIFICATION_TYPE = "lead_reengagement";
 
 export async function createLeadReengagementReminders(now = new Date()) {
+  if (!(await isNotificationCapabilityEnabled("lead_reengagement"))) return { reengagement: 0 };
   const db = getDatabase();
 
   const cutoff = new Date(now.getTime() - REENGAGEMENT_DAYS * 24 * 60 * 60 * 1000);

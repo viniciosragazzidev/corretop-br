@@ -73,7 +73,7 @@ export default function SuperAdminDashboardPage() {
       <PlatformAdminHeader breadcrumb="CorreTop / Admin" title="Super-Admin DevTools" />
 
       <main className="flex flex-1 flex-col gap-6 p-4 lg:p-6 bg-background/50">
-        
+
         {/* Bento Grid Header */}
         <section className="flex flex-col gap-2">
           <p className="text-xs font-semibold text-primary uppercase tracking-widest">Painel Dev & Ops</p>
@@ -85,10 +85,10 @@ export default function SuperAdminDashboardPage() {
 
         {/* Bento Row 1: KPI Stats Grid */}
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          
+
           <Card className="border border-border/80 bg-card shadow-none hover:border-primary/20 transition-all duration-200">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Banco de Dados (Neon)</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Banco de Dados (Supabase)</span>
               <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
             </CardHeader>
             <CardContent>
@@ -150,7 +150,7 @@ export default function SuperAdminDashboardPage() {
 
         {/* Bento Row 2: SQL Terminal & Dev Operations */}
         <section className="grid gap-6 xl:grid-cols-3">
-          
+
           {/* Bento Box 1: SQL Explorer (Col Span 2) */}
           <Card className="xl:col-span-2 border border-border/80 bg-card shadow-none flex flex-col justify-between">
             <CardHeader className="border-b border-border/50 pb-4">
@@ -163,7 +163,7 @@ export default function SuperAdminDashboardPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0 flex flex-col flex-1">
-              
+
               {/* Controls bar */}
               <div className="flex flex-wrap items-center gap-3 p-4 bg-muted/40 border-b border-border/45">
                 <div className="flex flex-col gap-1">
@@ -268,7 +268,7 @@ export default function SuperAdminDashboardPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 pt-5">
-              
+
               <div className="space-y-2">
                 <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Serviços e Jobs</h4>
                 <div className="flex flex-col gap-2">

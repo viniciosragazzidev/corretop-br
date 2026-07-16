@@ -1,6 +1,6 @@
 "use client";
 
-import { Buildings, Gear, House, RoadHorizon, ShieldStar, SignOut, Clock, ShieldWarning } from "@/components/huge-icons";
+import { Buildings, Gear, House, RoadHorizon, ShieldStar, SignOut, Clock, ShieldWarning, RocketLaunch } from "@/components/huge-icons";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -58,7 +58,7 @@ export function PlatformAdminSidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      
+
       <SidebarContent className="px-3 pt-4">
         <SidebarGroup>
           <SidebarGroupLabel className="px-3.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
@@ -66,6 +66,17 @@ export function PlatformAdminSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent className="mt-1.5">
             <SidebarMenu className="gap-1">
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={pathname === "/super-admin/onboarding"}
+                  render={<Link href="/super-admin/onboarding" prefetch />}
+                  tooltip="Onboarding guiado"
+                  className="px-3.5 py-2 text-xs font-medium"
+                >
+                  <RocketLaunch className="size-4" />
+                  <span>Onboarding guiado</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
                   isActive={pathname === "/super-admin"}
@@ -154,9 +165,9 @@ export function PlatformAdminSidebar() {
               size="lg"
               render={<button type="button" onClick={handleLogout} />}
               tooltip={userName}
-              className="w-full justify-start rounded-lg hover:bg-sidebar-accent px-3 py-2"
+              className="w-full justify-start rounded-lg hover:bg-sidebar-warning px-3 py-2"
             >
-              <span className="grid size-7 place-items-center rounded-full bg-sidebar-accent/50 text-foreground/80">
+              <span className="grid size-7 place-items-center rounded-full bg-sidebar-warning/50 text-foreground/80">
                 <ShieldStar weight="fill" className="size-3.5" />
               </span>
               <div className="flex flex-col text-left flex-1 pl-2">

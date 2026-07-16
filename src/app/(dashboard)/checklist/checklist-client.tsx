@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
+import { OwnershipContext } from "@/components/ownership-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -22,6 +23,7 @@ type LeadChecklist = {
   nome: string;
   status: string;
   corretorNome: string | null;
+  branchName: string | null;
   stageEnteredAt: string;
   type: "pre" | "post";
   items: ChecklistItem[];
@@ -51,9 +53,6 @@ export function ChecklistClient({
     const q = search.toLocaleLowerCase("pt-BR");
     return postItems.filter((item) => item.nome.toLocaleLowerCase("pt-BR").includes(q));
   }, [postItems, search]);
-
-  const preReady = filteredPre.filter((i) => i.ready).length;
-  const postReady = filteredPost.filter((i) => i.ready).length;
 
   return (
     <div className="space-y-4">
@@ -123,7 +122,7 @@ function ChecklistCard({ lead }: { lead: LeadChecklist }) {
               <Badge variant="outline" className="text-[10px]">
                 {lead.status === "negotiation" ? "Negociação" : lead.status === "documentation_pending" ? "Doc. Pendente" : lead.status === "under_analysis" ? "Em Análise" : "Convertido"}
               </Badge>
-              {lead.corretorNome && <span>{lead.corretorNome}</span>}
+              <OwnershipContext brokerName={lead.corretorNome} branchName={lead.branchName} emptyLabel="Sem responsável" />
               <span>{new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(new Date(lead.stageEnteredAt))}</span>
             </div>
           </div>

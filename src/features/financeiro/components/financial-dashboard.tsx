@@ -142,11 +142,10 @@ function SummaryCard({
                 <TrendDown className="size-3 text-rose-500" weight="fill" />
               )}
               <span
-                className={`text-xs ${
-                  trend.isUp
-                    ? "text-emerald-600 dark:text-emerald-400"
-                    : "text-rose-600 dark:text-rose-400"
-                }`}
+                className={`text-xs ${trend.isUp
+                  ? "text-emerald-600 dark:text-emerald-400"
+                  : "text-rose-600 dark:text-rose-400"
+                  }`}
               >
                 {trend.value}
               </span>
@@ -350,13 +349,12 @@ export function FinancialDashboard({ data, role }: Props) {
                     className="absolute inset-y-0 left-0 rounded-full bg-chart-4"
                     initial={{ width: 0 }}
                     animate={{
-                      width: `${
-                        parseFloat(summary.totalCommissions) > 0
-                          ? (parseFloat(summary.pendingCommissions) /
-                              parseFloat(summary.totalCommissions)) *
-                            100
-                          : 0
-                      }%`,
+                      width: `${parseFloat(summary.totalCommissions) > 0
+                        ? (parseFloat(summary.pendingCommissions) /
+                          parseFloat(summary.totalCommissions)) *
+                        100
+                        : 0
+                        }%`,
                     }}
                     transition={{ duration: 1, ease: [0, 0, 0.2, 1] }}
                   />
@@ -468,11 +466,10 @@ export function FinancialDashboard({ data, role }: Props) {
                           </p>
                         </div>
                         <span
-                          className={`ml-3 text-sm font-semibold tabular-nums ${
-                            pct >= 100
-                              ? "text-emerald-600 dark:text-emerald-400"
-                              : "text-foreground"
-                          }`}
+                          className={`ml-3 text-sm font-semibold tabular-nums ${pct >= 100
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : "text-foreground"
+                            }`}
                         >
                           {pct.toFixed(0)}%
                         </span>

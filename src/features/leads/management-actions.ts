@@ -41,16 +41,6 @@ export async function reassignLeadAction(_prev: ManagementActionState, formData:
     await db.transaction(async (tx) => {
       await tx.update(schema.leads).set({ corretorId: input.brokerId, status: "distributed", assignedAt: now, firstContactAt: null, serviceStartedAt: null, serviceStartedBy: null, stageEnteredAt: now, motivoPerda: null }).where(eq(schema.leads.id, lead.id));
       if (tenantPolicy?.feedbackRequiredEnabled !== false) await tx.insert(schema.leadAssignmentAttempts).values({ id: randomUUID(), tenantId: lead.tenantId, leadId: lead.id, brokerId, sequence: 1, assignedAt: now, feedbackDueAt: new Date(now.getTime() + ((Number.parseInt(tenantPolicy?.slaFirstContactMinutes ?? "15", 10) || 15) + (Number.parseInt(tenantPolicy?.feedbackGraceMinutes ?? "5", 10) || 5)) * 60_000), status: "open", createdAt: now });
-      await tx.insert(schema.notifications).values({
-        id: randomUUID(),
-        tenantId: lead.tenantId,
-        recipientUserId: brokerId,
-        leadId: input.leadId,
-        type: "agent.lead_assigned",
-        title: "Novo lead atribuído",
-        message: `Você recebeu o lead ${lead.nome} para atender.`,
-        createdAt: now,
-      });
       await tx.insert(schema.leadInteractions).values({ id: randomUUID(), leadId: lead.id, userId: context.userId, tipo: "system_alert", conteudo: `Lead reatribuído por ${context.role === "director" ? "Diretor" : "Gestor"}; SLA reiniciado.` });
       await tx.insert(schema.auditLogs).values({ id: randomUUID(), userId: context.userId, entidade: "lead", entidadeId: lead.id, acao: "reatribuiu_lead" });
     });

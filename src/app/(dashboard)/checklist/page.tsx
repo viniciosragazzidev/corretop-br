@@ -31,10 +31,12 @@ export default async function ChecklistPage() {
       planId: schema.leads.planId,
       corretorId: schema.leads.corretorId,
       corretorNome: schema.user.name,
+      branchName: schema.branches.name,
       stageEnteredAt: schema.leads.stageEnteredAt,
     })
     .from(schema.leads)
     .leftJoin(schema.user, eq(schema.leads.corretorId, schema.user.id))
+    .leftJoin(schema.branches, eq(schema.leads.branchId, schema.branches.id))
     .where(
       and(
         eq(schema.leads.tenantId, context.tenantId),
@@ -46,7 +48,7 @@ export default async function ChecklistPage() {
     .limit(50);
 
   // Converted leads in the last 30 days (post-sale)
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const thirtyDaysAgo = sql`now() - interval '30 days'`;
   const convertedLeads = await db
     .select({
       id: schema.leads.id,
@@ -54,10 +56,12 @@ export default async function ChecklistPage() {
       telefone: schema.leads.telefone,
       status: schema.leads.status,
       corretorNome: schema.user.name,
+      branchName: schema.branches.name,
       stageEnteredAt: schema.leads.stageEnteredAt,
     })
     .from(schema.leads)
     .leftJoin(schema.user, eq(schema.leads.corretorId, schema.user.id))
+    .leftJoin(schema.branches, eq(schema.leads.branchId, schema.branches.id))
     .where(
       and(
         eq(schema.leads.tenantId, context.tenantId),
@@ -193,6 +197,7 @@ export default async function ChecklistPage() {
       nome: lead.nome,
       status: lead.status,
       corretorNome: lead.corretorNome,
+      branchName: lead.branchName,
       stageEnteredAt: lead.stageEnteredAt.toISOString(),
       type: "pre" as const,
       items,
@@ -232,6 +237,7 @@ export default async function ChecklistPage() {
       nome: lead.nome,
       status: lead.status,
       corretorNome: lead.corretorNome,
+      branchName: lead.branchName,
       stageEnteredAt: lead.stageEnteredAt.toISOString(),
       type: "post" as const,
       items,

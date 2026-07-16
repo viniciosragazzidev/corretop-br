@@ -1,10 +1,8 @@
 import { and, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
-import Link from "next/link";
 
 import { DashboardHeader } from "@/components/dashboard-header";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LeadStatusSelector } from "@/features/leads/components/lead-status-selector";
@@ -26,12 +24,12 @@ import { QuoteModalButton } from "./quote-modal-button";
 import { getRequirementsForLead, getLeadDocuments } from "@/features/documents/actions";
 import { LeadDocumentsSection } from "@/features/documents/components/lead-documents-section";
 import { LeadActionHub } from "@/features/leads/components/lead-action-hub";
-import { LeadReminder } from "@/features/leads/components/lead-reminder";
 import { LeadFeedbackForm } from "./lead-feedback-form";
 import { RegisterSalePanel } from "./register-sale-panel";
 import { BeneficiariesSection } from "./beneficiaries-section";
 import { getLeadBeneficiaries } from "@/features/post-sale/queries";
 import { Phone, Clock, Share, Buildings, UserPlus } from "@/components/huge-icons";
+import { PersonRecordDetails } from "@/features/customer-record/components/person-record-details";
 
 function getCurrentTimestamp() {
   return Date.now();
@@ -54,6 +52,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
       branchId: schema.leads.branchId,
       planId: schema.leads.planId,
       motivoPerda: schema.leads.motivoPerda,
+      consentimentoLgpd: schema.leads.consentimentoLgpd,
       createdAt: schema.leads.createdAt,
       stageEnteredAt: schema.leads.stageEnteredAt,
       corretorNome: schema.user.name,
@@ -111,43 +110,40 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
   return (
     <>
       <DashboardHeader breadcrumb="Operação comercial" title="Perfil do Lead" />
-      <main className="flex min-h-full flex-col gap-6 bg-background p-4 lg:p-6">
-        
+      <main className="mx-auto flex min-h-full w-full max-w-[1440px] flex-col gap-5 bg-background p-4 lg:p-6">
+
         {/* Profile Cover & Header Card */}
-        <div className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-          {/* Subtle brand color cover accent */}
-          <div className="h-28 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-b border-border/40" />
-          
-          <div className="relative px-6 pb-6 pt-4">
+        <div className="rounded-xl border border-border/80 bg-card px-4 py-4 shadow-none sm:px-5">
+          {/* Subtle brand color cover warning */}
+          <div className="hidden" />
+
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             {/* Avatar overlapping cover */}
-            <div className="absolute -top-10 left-6 flex size-20 items-center justify-center rounded-2xl border-4 border-card bg-primary text-2xl font-bold text-primary-foreground shadow-sm">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary text-sm font-semibold text-primary-foreground">
               {lead.nome.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase()}
             </div>
-            
-            <div className="flex flex-col gap-4 pl-0 pt-10 sm:flex-row sm:items-end sm:justify-between sm:pl-24 sm:pt-0">
-              <div className="space-y-1">
+
+            <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0 space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-2xl font-bold tracking-tight text-foreground">{lead.nome}</h1>
+                  <h1 className="truncate text-xl font-semibold tracking-tight text-foreground sm:text-2xl">{lead.nome}</h1>
                   <Badge variant={lead.status === "lost" ? "destructive" : "outline"} className="capitalize">
                     {lead.status === "in_contact" ? "Em atendimento" : (LEAD_STATUS_LABELS as Record<string, string>)[lead.status] ?? lead.status}
                   </Badge>
-                  {["in_contact", "quote_sent", "negotiation", "documentation_pending", "under_analysis"].includes(lead.status) && (
-                    <Badge className="border-emerald-300/30 bg-emerald-300/10 text-emerald-200" variant="outline">Ativo agora</Badge>
-                  )}
                 </div>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                   <span>Criado em {new Intl.DateTimeFormat("pt-BR", { dateStyle: "long" }).format(lead.createdAt)}</span>
                   <span>•</span>
                   <span>Unidade: <strong className="font-semibold text-foreground">{lead.branchNome ?? "Geral/Sem filial"}</strong></span>
                 </div>
               </div>
-              
+
               {/* Quick Header Actions */}
-              <div id="lead-actions" className="flex flex-wrap items-center gap-2">
+              <div id="lead-actions" className="flex flex-wrap items-center gap-2 sm:justify-end">
                 {lead.status !== "distributed" && (
                   <QuoteModalButton leadId={lead.id} plans={plans.map((p) => ({ id: p.id, name: p.name, carrierName: p.carrierName, coverage: p.type }))} />
                 )}
-                <Badge className={slaUrgent ? "border-amber-300/40 bg-amber-300/10 text-amber-200" : "border-border"} variant="outline">
+                <Badge className={slaUrgent ? "border-warning/30 bg-warning/[0.08] text-warning" : "border-border/80"} variant="outline">
                   {lead.status === "distributed" ? `SLA: ${remainingMinutes > 0 ? `expira em ${remainingMinutes}min` : "expirado"}` : "SLA em acompanhamento"}
                 </Badge>
                 {context.role === "broker" && context.userId === lead.corretorId && lead.status === "distributed" && (
@@ -165,19 +161,19 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
         </div>
 
         {/* 2-Column Social-style Operational Layout */}
-        <div className="grid gap-6 lg:grid-cols-[24rem_1fr] items-start">
-          
+        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_20rem]">
+
           {/* Left Column: Profile Card & Management Panel */}
-          <div className="space-y-6">
-            
+          <aside className="space-y-4 xl:order-2">
+
             {/* About Contact Info Card */}
-            <Card className="border-border bg-card shadow-sm">
-              <CardHeader className="pb-3 border-b border-border/40">
-                <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Sobre o Contato</CardTitle>
+            <Card className="border-border/80 bg-card shadow-none">
+              <CardHeader className="border-b border-border/60 pb-3">
+                <CardTitle className="text-sm font-semibold">Contato e contexto</CardTitle>
               </CardHeader>
-              <CardContent className="pt-4 space-y-4">
+              <CardContent className="space-y-3 pt-4">
                 <div className="flex items-start gap-3">
-                  <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                     <Phone className="size-4" />
                   </div>
                   <div>
@@ -191,7 +187,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                     <Clock className="size-4" />
                   </div>
                   <div>
@@ -205,7 +201,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                     <Share className="size-4" />
                   </div>
                   <div>
@@ -215,7 +211,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                     <Buildings className="size-4" />
                   </div>
                   <div>
@@ -225,7 +221,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                     <UserPlus className="size-4" />
                   </div>
                   <div>
@@ -251,12 +247,13 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
 
             {/* Management Actions Card */}
             <LeadManagementActions leadId={lead.id} brokers={brokers} canManage={context.role === "manager" || context.role === "director"} isLost={lead.status === "lost"} currentStatus={lead.status} currentOwner={lead.corretorNome} />
+            <PersonRecordDetails kind="lead" createdAt={lead.createdAt} consentimentoLgpd={lead.consentimentoLgpd} dependents={beneficiaries} documentCount={leadDocs.length} />
             <BeneficiariesSection leadId={lead.id} initialBeneficiaries={beneficiaries} />
             {lead.status === "under_analysis" || lead.status === "documentation_pending" ? <RegisterSalePanel leadId={lead.id} documents={leadDocs.map((document) => ({ id: document.id, filename: document.filename, status: document.status }))} /> : null}
-          </div>
+          </aside>
 
-          {/* Right Column: Operations Tabs, Timeline, Quotes & Documents */}
-          <div className="space-y-6">
+          {/* Main operational area */}
+          <div className="space-y-5 xl:order-1">
             {/* Lead Action Hub Recommendation (only for the broker owner) */}
             <LeadActionHub
               hasPendingDocuments={leadDocs.some((document) => document.status === "pending" || document.status === "rejected")}
@@ -266,6 +263,8 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
               nextTask={(() => { const task = tasks.find((item) => !item.completedAt); return task ? { title: task.title, dueAt: task.dueAt?.toISOString() ?? null, priority: task.priority, assigneeName: task.assigneeName } : null; })()}
               status={lead.status}
               isOwner={context.userId === lead.corretorId}
+              phone={canSeePersonalData ? lead.telefone : null}
+              canSeePersonalData={canSeePersonalData}
             />
 
             {context.role === "broker" && context.userId === lead.corretorId && lead.status !== "lost" && lead.status !== "converted" && (
@@ -278,7 +277,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                 <TabsTrigger value="history">Linha do Tempo</TabsTrigger>
                 <TabsTrigger value="tasks">Tarefas ({tasks.filter(t => !t.completedAt).length})</TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="summary" className="mt-4 space-y-6">
                 {/* Documents Checklist (Only show if not in distributed state) */}
                 {lead.status !== "distributed" && (

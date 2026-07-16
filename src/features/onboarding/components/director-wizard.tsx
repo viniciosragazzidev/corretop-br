@@ -34,13 +34,12 @@ function StepDots({ current, total }: { current: number; total: number }) {
       {Array.from({ length: total }, (_, i) => (
         <div
           key={i}
-          className={`h-1.5 rounded-full transition-all duration-300 ${
-            i < current
-              ? "bg-foreground w-1.5"
-              : i === current
-                ? "bg-foreground w-6"
-                : "bg-foreground/10 w-1.5"
-          }`}
+          className={`h-1.5 rounded-full transition-all duration-300 ${i < current
+            ? "bg-foreground w-1.5"
+            : i === current
+              ? "bg-foreground w-6"
+              : "bg-foreground/10 w-1.5"
+            }`}
         />
       ))}
     </div>

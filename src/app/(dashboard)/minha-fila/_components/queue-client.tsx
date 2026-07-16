@@ -24,7 +24,7 @@ const statusLabels: Record<string, { label: string; color: string }> = {
   new: { label: "Novo", color: "bg-chart-1 text-chart-1" },
   distributed: { label: "Distribuído", color: "bg-chart-2 text-chart-2" },
   in_contact: { label: "Em contato", color: "bg-chart-3 text-chart-3" },
-  quote_sent: { label: "Cotação enviada", color: "bg-warning text-warning" },
+  quote_sent: { label: "Cotação enviada", color: "bg-accent text-warning" },
   negotiation: { label: "Negociação", color: "bg-chart-4 text-chart-4" },
   documentation_pending: {
     label: "Documentação",
@@ -201,9 +201,9 @@ export function BrokerQueueClient({
                 <TableCell className="hidden text-xs text-muted-foreground md:table-cell">
                   {lead.lastInteractionAt
                     ? new Intl.DateTimeFormat("pt-BR", {
-                        dateStyle: "short",
-                        timeStyle: "short",
-                      }).format(lead.lastInteractionAt)
+                      dateStyle: "short",
+                      timeStyle: "short",
+                    }).format(lead.lastInteractionAt)
                     : "—"}
                 </TableCell>
                 <TableCell className="pr-5 text-right">

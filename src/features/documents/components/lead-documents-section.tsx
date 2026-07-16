@@ -5,7 +5,8 @@ import { toast } from "sonner";
 import {
   FileText,
   Eye,
-  Plus
+  Plus,
+  FolderSimple,
 } from "@/components/huge-icons";
 import { Badge } from "@/components/ui/badge";
 import { confirmDocumentUploadAction } from "@/features/documents/actions";
@@ -28,6 +29,17 @@ type UserDoc = {
 };
 
 type Beneficiary = { id: string; name: string; isHolder: boolean };
+
+const documentFolderOrder = ["Identificação", "Dependentes", "Proposta e contratação", "Pós-venda", "Outros"] as const;
+
+function getDocumentFolder(name: string, appliesPerBeneficiary: boolean) {
+  const normalized = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  if (appliesPerBeneficiary || normalized.includes("depend") || normalized.includes("benefici")) return "Dependentes";
+  if (normalized.includes("contrat") || normalized.includes("propost") || normalized.includes("apolice") || normalized.includes("plano")) return "Proposta e contratação";
+  if (normalized.includes("renova") || normalized.includes("cancel") || normalized.includes("vigenc")) return "Pós-venda";
+  if (normalized.includes("cpf") || normalized.includes("rg") || normalized.includes("identidade") || normalized.includes("documento pessoal")) return "Identificação";
+  return "Outros";
+}
 
 export function LeadDocumentsSection({
   leadId,
@@ -110,10 +122,24 @@ export function LeadDocumentsSection({
     }
   };
 
+  const groupedRequirements = documentFolderOrder
+    .map((folder) => [folder, requirements.filter((requirement) => getDocumentFolder(requirement.name, Boolean(requirement.appliesPerBeneficiary)) === folder)] as const)
+    .filter(([, folderRequirements]) => folderRequirements.length > 0);
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        {requirements.map((req) => {
+        {groupedRequirements.map(([folder, folderRequirements]) => (
+          <section className="overflow-hidden rounded-xl border border-border/70 bg-card" key={folder}>
+            <header className="flex items-center justify-between border-b border-border/60 bg-muted/20 px-4 py-3">
+              <div className="flex items-center gap-2">
+                <span className="grid size-8 place-items-center rounded-lg bg-primary/10 text-primary"><FolderSimple className="size-4" /></span>
+                <div><h4 className="text-sm font-semibold">{folder}</h4><p className="text-[11px] text-muted-foreground">{folderRequirements.length} requisito{folderRequirements.length !== 1 ? "s" : ""}</p></div>
+              </div>
+              <Badge variant="outline" className="text-[10px]">{folderRequirements.filter((requirement) => documents.some((document) => document.requirementId === requirement.id)).length}/{folderRequirements.length}</Badge>
+            </header>
+            <div className="space-y-2 p-3">
+        {folderRequirements.map((req) => {
           const relevantDocuments = documents.filter((d) => d.requirementId === req.id);
           const selectedBeneficiaryId = selectedBeneficiaryByRequirement[req.id] ?? beneficiaries?.[0]?.id ?? null;
           const doc = relevantDocuments.find((d) => (req.appliesPerBeneficiary ? d.beneficiaryId === selectedBeneficiaryId : true));
@@ -178,6 +204,9 @@ export function LeadDocumentsSection({
             </div>
           );
         })}
+            </div>
+          </section>
+        ))}
       </div>
 
       <div className="pt-4 border-t">

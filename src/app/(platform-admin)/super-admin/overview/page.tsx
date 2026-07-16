@@ -179,7 +179,7 @@ export default async function PlatformOverviewPage() {
                 {
                   label: "Inadimplentes",
                   value: tenants?.delinquent ?? 0,
-                  color: "bg-warning",
+                  color: "bg-accent",
                   textColor: "text-warning",
                   icon: Warning,
                 },

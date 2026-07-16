@@ -134,7 +134,7 @@ export function SuperDevSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
-        <div className="mx-2 rounded-md border border-sidebar-border bg-sidebar-accent/45 px-3 py-2.5 group-data-[collapsible=icon]:hidden">
+        <div className="mx-2 rounded-md border border-sidebar-border bg-sidebar-warning/45 px-3 py-2.5 group-data-[collapsible=icon]:hidden">
           <p className="text-[11px] text-sidebar-foreground/55">Ambiente</p>
           <p className="mt-0.5 truncate text-sm font-medium">Super Administração</p>
         </div>
@@ -146,7 +146,7 @@ export function SuperDevSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" render={<button type="button" onClick={handleLogout} />} tooltip={userName}>
-              <span className="grid size-7 place-items-center rounded-full bg-sidebar-accent text-xs font-semibold">
+              <span className="grid size-7 place-items-center rounded-full bg-sidebar-warning text-xs font-semibold">
                 {initials}
               </span>
               <span className="grid flex-1 text-left text-sm leading-tight">

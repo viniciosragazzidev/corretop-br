@@ -39,6 +39,8 @@ rastreabilidade. Pendências que impedem uma implementação definitiva ficam no
 | BR-025 | O SLA tem dois relógios: primeiro contato e última interação. | Limite ultrapassado → marca não trabalhado, notifica e/ou redistribui conforme configuração. | RF022–024 |
 | BR-026 | Estagnação é diferente de SLA de interação. | Lead permanece na etapa além do limite, ainda que haja interação → alerta de estagnação. | RF194 |
 | BR-027 | Reabertura e reatribuição são decisões de Gestor/Diretor e preservam histórico. | Reabertura → lead volta ao fluxo com evento de auditoria/timeline. | RF196 |
+| BR-028 | Estouro de SLA remove o corretor responsável antes de redistribuir. | Lead do Diretor tenta outro corretor elegível da unidade e, sem elegível, retorna à fila central da corretora mãe; lead do Gestor retorna à fila da própria unidade para distribuição manual. | DEC-027 |
+| BR-029 | Notificação operacional é um evento coordenado. | Capacidade ativa → cria notificação in-app para Realtime/toast e tenta push; capacidade desativada pelo Super-admin → nenhum canal é emitido, com auditoria da alteração. | DEC-028 |
 
 ## Cotação, documentos e venda
 
@@ -85,3 +87,4 @@ rastreabilidade. Pendências que impedem uma implementação definitiva ficam no
 - Fórmula, vigência e reversão de comissões (DEC-004).
 - Base legal, retenção e consentimento LGPD (DEC-005).
 - Canal, aprovação e opt-out do reengajamento (DEC-006).
+| BR-030 | A apresentaÃ§Ã£o de uma rota Ã© exibida uma vez por usuÃ¡rio e tenant, e pode ser reativada pelo Super-admin. | Primeira visita sem conclusÃ£o â†’ dialog contextual; conclusÃ£o/dispensa â†’ progresso persistido; reset administrativo â†’ todas as rotas voltam a ficar disponÃ­veis e a aÃ§Ã£o Ã© auditada. | DEC-029 |

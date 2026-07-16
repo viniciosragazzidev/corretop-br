@@ -28,36 +28,36 @@ export default async function MinhaFilaPage() {
 
   // ─── Leads ───
   const leads = await db
-      .select({
-        id: schema.leads.id,
-        name: schema.leads.nome,
-        phone: schema.leads.telefone,
-        source: schema.leads.origem,
-        status: schema.leads.status,
-        createdAt: schema.leads.createdAt,
-        serviceStartedAt: schema.leads.serviceStartedAt,
-        assignedAt: schema.leads.assignedAt,
-        stageEnteredAt: schema.leads.stageEnteredAt,
-      })
-      .from(schema.leads)
-      .where(
-        and(
-          eq(schema.leads.tenantId, context.tenantId),
-          eq(schema.leads.corretorId, context.userId),
-        ),
-      )
-      .orderBy(desc(schema.leads.createdAt));
+    .select({
+      id: schema.leads.id,
+      name: schema.leads.nome,
+      phone: schema.leads.telefone,
+      source: schema.leads.origem,
+      status: schema.leads.status,
+      createdAt: schema.leads.createdAt,
+      serviceStartedAt: schema.leads.serviceStartedAt,
+      assignedAt: schema.leads.assignedAt,
+      stageEnteredAt: schema.leads.stageEnteredAt,
+    })
+    .from(schema.leads)
+    .where(
+      and(
+        eq(schema.leads.tenantId, context.tenantId),
+        eq(schema.leads.corretorId, context.userId),
+      ),
+    )
+    .orderBy(desc(schema.leads.createdAt));
 
   // Interactions per lead
   const interactions = leads.length
     ? await db
-        .select({
-          leadId: schema.leadInteractions.leadId,
-          createdAt: schema.leadInteractions.createdAt,
-        })
-        .from(schema.leadInteractions)
-        .where(inArray(schema.leadInteractions.leadId, leads.map((l) => l.id)))
-        .orderBy(desc(schema.leadInteractions.createdAt))
+      .select({
+        leadId: schema.leadInteractions.leadId,
+        createdAt: schema.leadInteractions.createdAt,
+      })
+      .from(schema.leadInteractions)
+      .where(inArray(schema.leadInteractions.leadId, leads.map((l) => l.id)))
+      .orderBy(desc(schema.leadInteractions.createdAt))
     : [];
 
   const latestInteraction = new Map<string, Date>();
@@ -69,18 +69,18 @@ export default async function MinhaFilaPage() {
   // Task counts per lead
   const taskCounts = leads.length
     ? await db
-        .select({
-          leadId: schema.leadTasks.leadId,
-          taskCount: count(schema.leadTasks.id),
-        })
-        .from(schema.leadTasks)
-        .where(
-          and(
-            inArray(schema.leadTasks.leadId, leads.map((l) => l.id)),
-            eq(schema.leadTasks.tenantId, context.tenantId),
-          ),
-        )
-        .groupBy(schema.leadTasks.leadId)
+      .select({
+        leadId: schema.leadTasks.leadId,
+        taskCount: count(schema.leadTasks.id),
+      })
+      .from(schema.leadTasks)
+      .where(
+        and(
+          inArray(schema.leadTasks.leadId, leads.map((l) => l.id)),
+          eq(schema.leadTasks.tenantId, context.tenantId),
+        ),
+      )
+      .groupBy(schema.leadTasks.leadId)
     : [];
 
   const taskCount = new Map<string, number>();
@@ -114,19 +114,19 @@ export default async function MinhaFilaPage() {
   // Leads where there's at least one incoming message but no outgoing response after it
   const recentMessageLeads = leads.length
     ? await db
-        .select({
-          leadId: schema.whatsappMessages.leadId,
-          direction: schema.whatsappMessages.direction,
-          sentAt: schema.whatsappMessages.sentAt,
-        })
-        .from(schema.whatsappMessages)
-        .where(
-          and(
-            eq(schema.whatsappMessages.tenantId, context.tenantId),
-            inArray(schema.whatsappMessages.leadId, leads.map((l) => l.id)),
-          ),
-        )
-        .orderBy(desc(schema.whatsappMessages.sentAt))
+      .select({
+        leadId: schema.whatsappMessages.leadId,
+        direction: schema.whatsappMessages.direction,
+        sentAt: schema.whatsappMessages.sentAt,
+      })
+      .from(schema.whatsappMessages)
+      .where(
+        and(
+          eq(schema.whatsappMessages.tenantId, context.tenantId),
+          inArray(schema.whatsappMessages.leadId, leads.map((l) => l.id)),
+        ),
+      )
+      .orderBy(desc(schema.whatsappMessages.sentAt))
     : [];
 
   // Find leads with incoming message as the latest (needs response)
@@ -146,27 +146,27 @@ export default async function MinhaFilaPage() {
   // ─── Recent Quotes ───
   const recentQuotes = leads.length
     ? await db
-        .select({
-          id: schema.quotes.id,
-          status: schema.quotes.status,
-          createdAt: schema.quotes.createdAt,
-          leadId: schema.quotes.leadId,
-          leadName: schema.leads.nome,
-        })
-        .from(schema.quotes)
-        .innerJoin(schema.leads, eq(schema.quotes.leadId, schema.leads.id))
-        .where(
-          and(
-            eq(schema.quotes.tenantId, context.tenantId),
-            eq(schema.leads.corretorId, context.userId),
-          ),
-        )
-        .orderBy(desc(schema.quotes.createdAt))
-        .limit(5)
+      .select({
+        id: schema.quotes.id,
+        status: schema.quotes.status,
+        createdAt: schema.quotes.createdAt,
+        leadId: schema.quotes.leadId,
+        leadName: schema.leads.nome,
+      })
+      .from(schema.quotes)
+      .innerJoin(schema.leads, eq(schema.quotes.leadId, schema.leads.id))
+      .where(
+        and(
+          eq(schema.quotes.tenantId, context.tenantId),
+          eq(schema.leads.corretorId, context.userId),
+        ),
+      )
+      .orderBy(desc(schema.quotes.createdAt))
+      .limit(5)
     : [];
 
   // ─── Goal Progress ───
-  const now = new Date();
+  const now = new Date().toISOString();
   const activeGoals = await db
     .select({
       id: schema.goals.id,
@@ -248,10 +248,10 @@ export default async function MinhaFilaPage() {
             >
               <span className="relative flex size-2">
                 {urgentLeads > 0 && (
-                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-warning/40 opacity-75" />
+                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-accent/40 opacity-75" />
                 )}
                 <span
-                  className={`relative inline-flex size-2 rounded-full ${urgentLeads > 0 ? "bg-warning" : "bg-success"}`}
+                  className={`relative inline-flex size-2 rounded-full ${urgentLeads > 0 ? "bg-accent" : "bg-success"}`}
                 />
               </span>
               {urgentLeads > 0
@@ -307,7 +307,7 @@ export default async function MinhaFilaPage() {
             <CardContent className="space-y-2">
               {pendingTasks.slice(0, 4).map((task) => (
                 <Link key={task.id} href={`/leads/${task.leadId}#tarefas`} className="group flex items-start gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-muted/50">
-                  <span className={`mt-0.5 size-1.5 shrink-0 rounded-full ${task.dueAt && task.dueAt.getTime() < Date.now() ? "bg-destructive" : task.priority === "urgent" ? "bg-warning" : "bg-muted-foreground"}`} />
+                  <span className={`mt-0.5 size-1.5 shrink-0 rounded-full ${task.dueAt && task.dueAt.getTime() < Date.now() ? "bg-destructive" : task.priority === "urgent" ? "bg-accent" : "bg-muted-foreground"}`} />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-xs font-medium group-hover:text-primary">{task.title}</span>
                     <span className="block truncate text-[10px] text-muted-foreground">{task.leadName}{task.dueAt ? ` · ${new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(task.dueAt)}` : ""}</span>
@@ -338,7 +338,7 @@ export default async function MinhaFilaPage() {
             <CardContent className="space-y-2">
               {leadsNeedingResponse.slice(0, 4).map((lead) => (
                 <Link key={lead.id} href={`/conversas?leadId=${lead.id}`} className="group flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-muted/50">
-                  <span className="size-1.5 shrink-0 rounded-full bg-warning" />
+                  <span className="size-1.5 shrink-0 rounded-full bg-accent" />
                   <span className="min-w-0 flex-1 truncate text-xs font-medium group-hover:text-primary">{lead.name}</span>
                 </Link>
               ))}
@@ -364,7 +364,7 @@ export default async function MinhaFilaPage() {
             <CardContent className="space-y-2">
               {recentQuotes.map((quote) => (
                 <Link key={quote.id} href={`/cotacoes/${quote.id}`} className="group flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-muted/50">
-                  <span className={`mt-0.5 size-1.5 shrink-0 rounded-full ${quote.status === "sent" || quote.status === "accepted" ? "bg-success" : quote.status === "draft" ? "bg-muted-foreground" : "bg-warning"}`} />
+                  <span className={`mt-0.5 size-1.5 shrink-0 rounded-full ${quote.status === "sent" || quote.status === "accepted" ? "bg-success" : quote.status === "draft" ? "bg-muted-foreground" : "bg-accent"}`} />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-xs font-medium group-hover:text-primary">{quote.leadName}</span>
                     <span className="block truncate text-[10px] text-muted-foreground">{quote.status === "draft" ? "Rascunho" : quote.status === "sent" ? "Enviada" : quote.status === "accepted" ? "Aceita" : quote.status}</span>

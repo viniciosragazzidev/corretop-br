@@ -8,6 +8,7 @@ import { TenantOnboardingDialogLoader } from "@/features/onboarding/components/t
 import { DirectorWizardLoader } from "@/features/onboarding/components/director-wizard-loader";
 import { RealtimeSyncProvider } from "@/components/providers/realtime-sync-provider";
 import { NotificationCountProvider } from "@/components/providers/notification-count-provider";
+import { RouteOnboardingLoader } from "@/features/onboarding/components/route-onboarding-loader";
 
 export default async function DashboardLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   let context;
@@ -39,6 +40,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
     >
       <TenantOnboardingDialogLoader />
       <DirectorWizardLoader />
+      <RouteOnboardingLoader />
       <RealtimeSyncProvider
         tenantId={context.tenantId}
         userId={context.userId}

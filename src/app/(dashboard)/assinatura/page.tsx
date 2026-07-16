@@ -265,13 +265,12 @@ export default async function SubscriptionPage() {
                       </div>
                       {percentage != null && (
                         <span
-                          className={`text-xs font-medium ${
-                            percentage >= 80
-                              ? "text-destructive"
-                              : percentage >= 60
-                                ? "text-warning"
-                                : "text-success"
-                          }`}
+                          className={`text-xs font-medium ${percentage >= 80
+                            ? "text-destructive"
+                            : percentage >= 60
+                              ? "text-warning"
+                              : "text-success"
+                            }`}
                         >
                           {percentage}%
                         </span>
@@ -280,13 +279,12 @@ export default async function SubscriptionPage() {
                     {percentage != null && (
                       <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
                         <div
-                          className={`h-full rounded-full transition-all duration-500 ${
-                            percentage >= 80
-                              ? "bg-destructive"
-                              : percentage >= 60
-                                ? "bg-warning"
-                                : "bg-success"
-                          }`}
+                          className={`h-full rounded-full transition-all duration-500 ${percentage >= 80
+                            ? "bg-destructive"
+                            : percentage >= 60
+                              ? "bg-accent"
+                              : "bg-success"
+                            }`}
                           style={{ width: `${Math.min(percentage, 100)}%` }}
                         />
                       </div>

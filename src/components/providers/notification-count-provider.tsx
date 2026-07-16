@@ -5,10 +5,12 @@ import { createClient } from "@/utils/supabase/client";
 
 interface NotificationCountContextValue {
   unreadCount: number;
+  userId: string | null;
 }
 
 const NotificationCountContext = createContext<NotificationCountContextValue>({
   unreadCount: 0,
+  userId: null,
 });
 
 export function useNotificationCount() {
@@ -111,7 +113,7 @@ export function NotificationCountProvider({
   }, []);
 
   return (
-    <NotificationCountContext.Provider value={{ unreadCount }}>
+    <NotificationCountContext.Provider value={{ unreadCount, userId }}>
       {children}
     </NotificationCountContext.Provider>
   );

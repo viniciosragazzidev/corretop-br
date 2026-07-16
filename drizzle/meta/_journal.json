@@ -43,6 +43,20 @@
       "when": 1784722100000,
       "tag": "0041_post_sale_foundation",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1784722200000,
+      "tag": "0042_feedback_timeout_routing",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1784722300000,
+      "tag": "0043_route_onboarding_progress",
+      "breakpoints": true
     }
   ]
 }

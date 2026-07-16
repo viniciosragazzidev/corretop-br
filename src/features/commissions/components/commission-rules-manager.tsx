@@ -132,7 +132,7 @@ function CommissionRuleForm({ rule, carriers, onDone }: CommissionRuleFormProps)
             name="appliesToAll"
             checked={appliesToAll}
             onChange={(e) => setAppliesToAll(e.target.checked)}
-            className="mt-0.5 size-4 accent-primary"
+            className="mt-0.5 size-4 warning-primary"
           />
           <div>
             <p className="text-sm font-medium">Aplicar a todos os planos e operadoras</p>
@@ -196,7 +196,7 @@ function CommissionRuleForm({ rule, carriers, onDone }: CommissionRuleFormProps)
               value="unica"
               checked={ruleType === "unica"}
               onChange={() => handleTypeChange("unica")}
-              className="size-4 accent-primary"
+              className="size-4 warning-primary"
             />
             <span className="text-sm">Comissão única</span>
           </label>
@@ -207,7 +207,7 @@ function CommissionRuleForm({ rule, carriers, onDone }: CommissionRuleFormProps)
               value="escalonada"
               checked={ruleType === "escalonada"}
               onChange={() => handleTypeChange("escalonada")}
-              className="size-4 accent-primary"
+              className="size-4 warning-primary"
             />
             <span className="text-sm">Comissão escalonada</span>
           </label>

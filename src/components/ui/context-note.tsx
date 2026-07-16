@@ -10,7 +10,7 @@ const contextNoteVariants = cva(
     variants: {
       variant: {
         info: "border-primary/20 bg-primary/[0.06] text-muted-foreground [&>svg]:text-primary",
-        warning: "border-warning/25 bg-warning/[0.07] text-muted-foreground [&>svg]:text-warning",
+        warning: "border-warning/25 bg-accent/[0.07] text-muted-foreground [&>svg]:text-warning",
         success: "border-success/20 bg-success/[0.06] text-muted-foreground [&>svg]:text-success",
         error: "border-destructive/20 bg-destructive/[0.06] text-muted-foreground [&>svg]:text-destructive",
         neutral: "border-border bg-muted/35 text-muted-foreground [&>svg]:text-foreground/60",

@@ -106,7 +106,7 @@ export function TeamMembersTable({ members, branches, currentRole, currentBranch
                       transition: { duration: 0.15, ease: [0, 0, 0.2, 1], delay: Math.min(index * 0.03, 0.25) },
                     }),
                   }}
-                  className="group/card cursor-default transition-colors duration-200 hover:bg-[var(--sidebar-accent)]"
+                  className="group/card cursor-default transition-colors duration-200 hover:bg-[var(--sidebar-warning)]"
                 >
                   <TableCell className="pl-5">
                     <p className="font-medium">{member.name ?? "Sem nome"}</p>
@@ -114,7 +114,6 @@ export function TeamMembersTable({ members, branches, currentRole, currentBranch
                   </TableCell>
                   <TableCell className="text-muted-foreground transition-colors duration-200 group-hover/card:text-foreground">{member.email}</TableCell>
                   <TableCell>
-                    <div className="font-medium text-xs text-zinc-900 dark:text-zinc-100 mb-1">{jobTitleLabel[member.jobTitle] ?? member.jobTitle}</div>
                     <RoleBadge role={member.role} />
                   </TableCell>
                   <TableCell className="text-muted-foreground transition-colors duration-200 group-hover/card:text-foreground">{member.branchName ?? "Sem filial"}</TableCell>
