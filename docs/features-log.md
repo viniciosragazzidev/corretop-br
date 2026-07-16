@@ -225,3 +225,10 @@ O domínio de catálogo passa a ter uma separação explícita entre a base ofic
 * **Corretora**: `/catalogo/interno` é exclusivo ao Diretor e permite cadastrar operadora, plano e tabela de acordo privado; Gestor e Corretor recebem acesso negado.
 * **Contrato público**: `listAvailableCatalogPlans()` resolve planos oficiais autorizados, respeita restrição de filial e acrescenta somente os itens privados do tenant autenticado.
 * **Estado**: primeira fase entregue. A troca gradual dos consumidores legados (cotador, documentos, vendas, comissões e PDFs) continua registrada no roadmap N32 para evitar alterações históricas involuntárias.
+
+## 9. Fundação do WhatsApp oficial da Meta
+
+* **Domínio e migração**: `0047_meta_whatsapp_cloud_foundation` adiciona canais de comunicação por tenant/unidade, ledger idempotente de webhook e proveniência de mensagens.
+* **Segurança**: o endpoint `/api/webhooks/meta/whatsapp` valida challenge e HMAC; resolve o tenant pelo `phone_number_id`; o access token é cifrado no servidor e não é registrado em auditorias.
+* **Operação**: Diretor conecta ou pausa o canal pelo Embedded Signup em `/settings/whatsapp`; Super-admin controla a capacidade global e cada alteração é auditada.
+* **Transição**: envio escolhe o canal Meta ativo da unidade antes do fallback OpenWA. Texto inbound/outbound e status foram preparados; templates, mídia, janelas de conversa e fila assíncrona permanecem no roadmap N34.

@@ -82,6 +82,10 @@ rastreabilidade. Pendências que impedem uma implementação definitiva ficam no
 | BR-056 | Relatório de evidências preserva timeline, status e mensagens autorizadas do lead. | Solicitação autorizada → gera exportação auditada e limitada ao escopo. | RF197 |
 | BR-057 | A plataforma deve disponibilizar termos públicos que delimitem uso do CRM, responsabilidades operacionais e tratamento de dados. | Acesso a `/termos` → informa a versão, uso permitido, papéis de proteção de dados e canal a ser formalizado pelo contratante. | DEC-032 |
 
+| BR-058 | O canal oficial de WhatsApp é resolvido pelo `phone_number_id` previamente registrado pela Meta, e nunca por identificador de tenant enviado pelo navegador ou webhook. | Webhook assinado → encontra canal ativo pelo identificador da Meta; somente então persiste mensagens do tenant correspondente. | DEC-033 |
+| BR-059 | Tokens de canal oficial permanecem exclusivamente no servidor, cifrados em repouso, e não entram em logs de auditoria ou respostas de API. | Embedded Signup concluído → token é cifrado antes da persistência; UI recebe somente estado e metadados permitidos. | DEC-033 |
+| BR-060 | Enquanto a migração estiver ativa, o canal Meta oficial tem precedência para envio na unidade; OpenWA é fallback somente quando não há canal oficial ativo. | Envio de mensagem → seleciona canal Meta ativo por tenant/unidade/owner; sem canal oficial, usa conexão legada existente. | DEC-033 |
+
 ## Regras que exigem decisão antes do código
 
 - Transições exatas de funil e permissões por transição (DEC-001).

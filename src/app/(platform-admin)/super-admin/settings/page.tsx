@@ -1,6 +1,6 @@
 import { getSystemSettings } from "@/features/system-settings/queries";
 import { getNotificationCapabilityStates } from "@/features/notifications/queries";
-import { updateCentralAtencaoSettingsAction, updateGlobalSearchSettingsAction, updateNotificationCapabilityAction, updateAiSettingsAction } from "@/app/(platform-admin)/super-admin/actions";
+import { updateCentralAtencaoSettingsAction, updateGlobalSearchSettingsAction, updateMetaCloudWhatsAppSettingsAction, updateNotificationCapabilityAction, updateAiSettingsAction } from "@/app/(platform-admin)/super-admin/actions";
 import { setRouteOnboardingGlobalAction } from "@/features/onboarding/actions/route-onboarding-actions";
 import { PlatformAdminHeader } from "@/components/platform-admin-header";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ export default async function SuperAdminSettingsPage() {
     "feature_central_atencao_stagnant_days", 
     "feature_global_search_enabled", 
     "feature_route_onboarding_enabled",
+    "feature_whatsapp_meta_cloud_enabled",
     "ai_enabled",
     "ai_primary_provider",
     "ai_primary_model",
@@ -33,6 +34,7 @@ export default async function SuperAdminSettingsPage() {
   const stagnantDays = settingMap.get("feature_central_atencao_stagnant_days") ?? "3";
   const globalSearchEnabled = settingMap.get("feature_global_search_enabled") !== "false";
   const routeOnboardingEnabled = settingMap.get("feature_route_onboarding_enabled") !== "false";
+  const metaCloudWhatsAppEnabled = settingMap.get("feature_whatsapp_meta_cloud_enabled") === "true";
 
   const aiEnabled = settingMap.get("ai_enabled") === "true";
   const aiPrimaryProvider = settingMap.get("ai_primary_provider") ?? "groq";
@@ -113,6 +115,11 @@ export default async function SuperAdminSettingsPage() {
               </form>
             ))}
           </CardContent>
+        </Card>
+
+        <Card className="border-border bg-card shadow-none">
+          <CardHeader><CardTitle>WhatsApp oficial da Meta</CardTitle><CardDescription>Ativa o Embedded Signup, o webhook oficial e o envio pela Cloud API. A capacidade pode ser interrompida sem apagar canais ou histórico.</CardDescription></CardHeader>
+          <CardContent><form action={updateMetaCloudWhatsAppSettingsAction} className="flex flex-wrap items-center justify-between gap-4"><label className="flex items-center gap-2 text-sm"><input type="checkbox" name="metaCloudWhatsAppEnabled" value="true" defaultChecked={metaCloudWhatsAppEnabled} className="size-4 warning-[var(--primary)]" /><span><span className="font-medium">Integração oficial habilitada</span><span className="block text-xs text-muted-foreground">Exige as credenciais privadas da Meta configuradas no ambiente da Vercel.</span></span></label><Button type="submit" variant="outline">Salvar integração</Button></form></CardContent>
         </Card>
 
         <Card className="border-border bg-card shadow-none">

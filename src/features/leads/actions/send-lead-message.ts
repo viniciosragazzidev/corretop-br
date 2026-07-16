@@ -5,6 +5,7 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { getOpenWaSessionStatus, sendOpenWaText } from "@/lib/integrations/openwa";
+import { getPreferredMetaCloudChannel, sendMetaCloudChannelText } from "@/features/communication-channels/service";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
 
@@ -18,13 +19,24 @@ export async function sendLeadMessageAction(leadId: string, body: string): Promi
   try {
     const context = await getRequiredTenantContext();
     const db = getDatabase();
-    const [lead] = await db.select({ id: schema.leads.id, telefone: schema.leads.telefone, status: schema.leads.status, corretorId: schema.leads.corretorId })
+    const [lead] = await db.select({ id: schema.leads.id, telefone: schema.leads.telefone, status: schema.leads.status, corretorId: schema.leads.corretorId, branchId: schema.leads.branchId })
       .from(schema.leads)
       .where(and(eq(schema.leads.id, leadId), eq(schema.leads.tenantId, context.tenantId)))
       .limit(1);
     if (!lead) return { success: false, error: "Lead não encontrado." };
     if (lead.status === "distributed") return { success: false, error: "Inicie o atendimento antes de enviar mensagens." };
     if (lead.corretorId !== context.userId) return { success: false, error: "Este atendimento está sob responsabilidade de outro corretor. Para responder, assuma o atendimento primeiro." };
+
+    const officialChannel = await getPreferredMetaCloudChannel({ tenantId: context.tenantId, branchId: lead.branchId, userId: context.userId });
+    if (officialChannel) {
+      const sent = await sendMetaCloudChannelText({ channel: officialChannel, to: lead.telefone, body: text });
+      const sentAt = new Date();
+      const id = randomUUID();
+      await db.insert(schema.whatsappMessages).values({ id, tenantId: context.tenantId, leadId: lead.id, communicationChannelId: officialChannel.id, provider: "meta_cloud", providerStatus: "sent", messageId: sent.messageId, phone: lead.telefone, direction: "outgoing", body: text, sentAt });
+      revalidatePath(`/leads/${leadId}`);
+      revalidatePath("/conversas");
+      return { success: true, message: { id, body: text, direction: "outgoing", sentAt } };
+    }
 
     const [connection] = await db.select({ sessionId: schema.whatsappConnections.sessionId, status: schema.whatsappConnections.status, active: schema.whatsappConnections.chatInternoAtivo })
       .from(schema.whatsappConnections).where(and(eq(schema.whatsappConnections.tenantId, context.tenantId), eq(schema.whatsappConnections.userId, context.userId))).limit(1);
@@ -36,7 +48,7 @@ export async function sendLeadMessageAction(leadId: string, body: string): Promi
     const sent = await sendOpenWaText(connection.sessionId, lead.telefone, text);
     const sentAt = new Date();
     const id = randomUUID();
-    await db.insert(schema.whatsappMessages).values({ id, tenantId: context.tenantId, leadId: lead.id, messageId: sent.messageId ?? id, phone: lead.telefone, direction: "outgoing", body: text, sentAt });
+    await db.insert(schema.whatsappMessages).values({ id, tenantId: context.tenantId, leadId: lead.id, provider: "openwa_legacy", providerStatus: "sent", messageId: sent.messageId ?? id, phone: lead.telefone, direction: "outgoing", body: text, sentAt });
     revalidatePath(`/leads/${leadId}`);
     return { success: true, message: { id, body: text, direction: "outgoing", sentAt } };
   } catch (error) {

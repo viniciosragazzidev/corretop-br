@@ -4,6 +4,7 @@ import { DashboardHeader } from "@/components/dashboard-header";
 import { ConversationsWorkspace, type ConversationItem, type ConversationMessage, type PlanSuggestion } from "./conversations-workspace";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
+import { getPreferredMetaCloudChannel } from "@/features/communication-channels/service";
 
 export default async function ConversationsPage({ searchParams }: { searchParams: Promise<{ leadId?: string; setup?: string }> }) {
   const { leadId, setup } = await searchParams;
@@ -17,7 +18,7 @@ export default async function ConversationsPage({ searchParams }: { searchParams
       ? eq(schema.leads.branchId, context.branchId)
       : undefined;
 
-  const [leads, availablePlans, connection, branches] = await Promise.all([
+  const [leads, availablePlans, connection, branches, officialChannel] = await Promise.all([
     db
       .select({
         id: schema.leads.id,
@@ -63,6 +64,7 @@ export default async function ConversationsPage({ searchParams }: { searchParams
           .where(and(eq(schema.branches.tenantId, context.tenantId), eq(schema.branches.status, "active")))
           .orderBy(asc(schema.branches.name))
       : Promise.resolve([] as { id: string; name: string }[]),
+    getPreferredMetaCloudChannel({ tenantId: context.tenantId, branchId: context.branchId, userId: context.userId }),
   ]);
 
   const leadIds = leads.map((lead) => lead.id);
@@ -138,8 +140,8 @@ export default async function ConversationsPage({ searchParams }: { searchParams
   });
 
   const plans: PlanSuggestion[] = availablePlans;
-  const whatsappSessionReady = connection[0]?.status === "ready";
-  const whatsappReady = connection[0]?.active === true && connection[0]?.status === "ready";
+  const whatsappSessionReady = Boolean(officialChannel) || connection[0]?.status === "ready";
+  const whatsappReady = Boolean(officialChannel) || (connection[0]?.active === true && connection[0]?.status === "ready");
 
   return (
     <>
