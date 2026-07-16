@@ -51,6 +51,10 @@ export async function getRequiredTenantContext(): Promise<TenantContext> {
     throw new AuthorizationError("The tenant is not active.");
   }
 
+  if ((membership.role === "manager" || membership.role === "broker") && !membership.branchId) {
+    throw new AuthorizationError("O acesso operacional precisa estar vinculado a uma unidade.");
+  }
+
   if (membership.branchId && membership.branchStatus !== "active") {
     throw new AuthorizationError("The associated branch is not active.");
   }

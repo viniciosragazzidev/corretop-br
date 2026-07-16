@@ -15,6 +15,20 @@
       "when": 1784721700000,
       "tag": "0037_add_tenant_setup_timestamp",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784721800000,
+      "tag": "0038_enable_lead_realtime",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1784721900000,
+      "tag": "0039_mandatory_lead_feedback",
+      "breakpoints": true
     }
   ]
 }

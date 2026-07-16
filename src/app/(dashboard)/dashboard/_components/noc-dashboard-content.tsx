@@ -828,7 +828,7 @@ function ManagerNocContent({ data }: { data: ManagerDashboardData }) {
           </div>
           <div>
             <h2 className="text-sm font-semibold">
-              Filial — Operacional
+              {data.branchName} — Operacional
             </h2>
             <p className="text-xs text-muted-foreground">
               {data.activeMembers} de {data.teamSize}{" "}
@@ -1119,7 +1119,7 @@ function BrokerNocContent({ data }: { data: BrokerDashboardData }) {
           </div>
           <div>
             <h2 className="text-sm font-semibold">
-              Minha Carteira
+              Minha Carteira · {data.branchName}
             </h2>
             <p className="text-xs text-muted-foreground">
               {data.totals.all} leads · {data.totals.active} ativos ·{" "}

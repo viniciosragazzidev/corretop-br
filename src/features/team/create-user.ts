@@ -23,6 +23,9 @@ const createUserInput = z.object({
 export async function createTeamUser(rawInput: unknown) {
   const input = createUserInput.parse(rawInput);
   const context = requireCanCreateRole(await getRequiredTenantContext(), input.role);
+  if (context.role === "manager" && input.branchId !== context.branchId) {
+    throw new Error("Gestores só podem criar acessos na própria unidade.");
+  }
 
   const db = getDatabase();
 

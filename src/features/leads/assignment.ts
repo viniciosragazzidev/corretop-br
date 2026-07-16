@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, count, eq, inArray } from "drizzle-orm";
+import { and, asc, count, eq, inArray, not } from "drizzle-orm";
 
 import { getDatabase, schema } from "@/shared/db";
 
@@ -10,7 +10,7 @@ const activeStatuses = ["distributed", "in_contact", "quote_sent", "negotiation"
  * Escolhe o corretor elegível com a menor carteira ativa (desempate por criação).
  * Retorna null se a filial não permitir distribuição automática (auto_distribute = false).
  */
-export async function chooseAvailableBroker(tenantId: string, branchId: string | null) {
+export async function chooseAvailableBroker(tenantId: string, branchId: string | null, excludeBrokerId?: string | null) {
   if (!branchId) return null;
   const db = getDatabase();
 
@@ -34,6 +34,7 @@ export async function chooseAvailableBroker(tenantId: string, branchId: string |
       eq(schema.tenantMemberships.availabilityStatus, "available"),
       eq(schema.user.active, true),
       eq(schema.user.status, "active"),
+      ...(excludeBrokerId ? [not(eq(schema.user.id, excludeBrokerId))] : []),
     ))
     .orderBy(asc(schema.user.createdAt));
 

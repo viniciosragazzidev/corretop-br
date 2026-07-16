@@ -24,6 +24,16 @@ export default async function ReportsPage() {
   const context = await getRequiredTenantContext();
   const db = getDatabase();
   const canExport = hasPermission(context.role, "exportar_relatorios");
+  const leadScope = context.role === "broker"
+    ? eq(schema.leads.corretorId, context.userId)
+    : context.role === "manager" && context.branchId
+      ? eq(schema.leads.branchId, context.branchId)
+      : undefined;
+  const clientScope = context.role === "broker"
+    ? eq(schema.clients.corretorId, context.userId)
+    : context.role === "manager" && context.branchId
+      ? eq(schema.clients.branchId, context.branchId)
+      : undefined;
 
   // Fetch aggregate stats
   const [leadCount, clientCount, quoteCount, saleCount] =
@@ -31,19 +41,21 @@ export default async function ReportsPage() {
       db
         .select({ count: count() })
         .from(schema.leads)
-        .where(eq(schema.leads.tenantId, context.tenantId)),
+        .where(and(eq(schema.leads.tenantId, context.tenantId), leadScope)),
       db
         .select({ count: count() })
         .from(schema.clients)
-        .where(eq(schema.clients.tenantId, context.tenantId)),
+        .where(and(eq(schema.clients.tenantId, context.tenantId), clientScope)),
       db
         .select({ count: count() })
         .from(schema.quotes)
-        .where(eq(schema.quotes.tenantId, context.tenantId)),
+        .innerJoin(schema.leads, eq(schema.quotes.leadId, schema.leads.id))
+        .where(and(eq(schema.quotes.tenantId, context.tenantId), eq(schema.leads.tenantId, context.tenantId), leadScope)),
       db
         .select({ count: count() })
         .from(schema.sales)
-        .where(eq(schema.sales.tenantId, context.tenantId)),
+        .innerJoin(schema.leads, eq(schema.sales.leadId, schema.leads.id))
+        .where(and(eq(schema.sales.tenantId, context.tenantId), eq(schema.leads.tenantId, context.tenantId), leadScope)),
     ]);
 
   // Get this month's sales revenue
@@ -53,9 +65,12 @@ export default async function ReportsPage() {
       total: sql<string>`coalesce(sum(${schema.sales.saleValue}), '0')`,
     })
     .from(schema.sales)
+    .innerJoin(schema.leads, eq(schema.sales.leadId, schema.leads.id))
     .where(
       and(
         eq(schema.sales.tenantId, context.tenantId),
+        eq(schema.leads.tenantId, context.tenantId),
+        leadScope,
         eq(schema.sales.status, "active"),
         sql`to_char(${schema.sales.saleDate}, 'YYYY-MM') = ${currentMonth}`,
       ),

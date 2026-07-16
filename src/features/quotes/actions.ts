@@ -104,10 +104,17 @@ export async function getLeadQuotes(leadId: string) {
     })
     .from(schema.quotes)
     .leftJoin(schema.quoteItems, eq(schema.quotes.id, schema.quoteItems.quoteId))
+    .innerJoin(schema.leads, eq(schema.quotes.leadId, schema.leads.id))
     .where(
       and(
         eq(schema.quotes.leadId, leadId),
-        eq(schema.quotes.tenantId, context.tenantId)
+        eq(schema.quotes.tenantId, context.tenantId),
+        eq(schema.leads.tenantId, context.tenantId),
+        context.role === "broker"
+          ? eq(schema.leads.corretorId, context.userId)
+          : context.role === "manager" && context.branchId
+            ? eq(schema.leads.branchId, context.branchId)
+            : undefined,
       )
     )
     .groupBy(schema.quotes.id)

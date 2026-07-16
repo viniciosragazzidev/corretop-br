@@ -171,6 +171,9 @@ export const tenants = pgTable("tenants", {
   subscriptionPlan: text("subscription_plan").notNull().default("Essencial"),
   slaFirstContactMinutes: text("sla_first_contact_minutes").notNull().default("15"),
   slaStagnantDays: text("sla_stagnant_days").notNull().default("3"),
+  feedbackRequiredEnabled: boolean("feedback_required_enabled").notNull().default(true),
+  feedbackGraceMinutes: text("feedback_grace_minutes").notNull().default("5"),
+  autoRedistributeOnFeedbackTimeout: boolean("auto_redistribute_on_feedback_timeout").notNull().default(true),
   status: tenantStatus("status").notNull().default("active"),
   createdAt,
   updatedAt,
@@ -590,6 +593,42 @@ export const notifications = pgTable(
     createdAt,
   },
   (table) => [index("notifications_recipient_created_idx").on(table.recipientUserId, table.createdAt), index("notifications_tenant_idx").on(table.tenantId)],
+);
+
+export const leadFeedbacks = pgTable(
+  "lead_feedbacks",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    leadId: text("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+    brokerId: text("broker_id").notNull().references(() => user.id),
+    type: text("type").notNull(),
+    content: text("content"),
+    nextAction: text("next_action"),
+    nextActionAt: timestamp("next_action_at", { withTimezone: true }),
+    createdAt,
+  },
+  (table) => [index("lead_feedbacks_lead_created_idx").on(table.leadId, table.createdAt)],
+);
+
+export const leadAssignmentAttempts = pgTable(
+  "lead_assignment_attempts",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    leadId: text("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+    brokerId: text("broker_id").notNull().references(() => user.id),
+    sequence: integer("sequence").notNull().default(1),
+    assignedAt: timestamp("assigned_at", { withTimezone: true }).notNull(),
+    firstContactAt: timestamp("first_contact_at", { withTimezone: true }),
+    feedbackDueAt: timestamp("feedback_due_at", { withTimezone: true }).notNull(),
+    status: text("status").notNull().default("open"),
+    expiredAt: timestamp("expired_at", { withTimezone: true }),
+    releasedAt: timestamp("released_at", { withTimezone: true }),
+    releaseReason: text("release_reason"),
+    createdAt,
+  },
+  (table) => [index("lead_assignment_attempts_open_idx").on(table.tenantId, table.status, table.feedbackDueAt), index("lead_assignment_attempts_lead_idx").on(table.leadId, table.sequence)],
 );
 
 export const whatsappConnections = pgTable(

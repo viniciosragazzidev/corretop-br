@@ -11,6 +11,15 @@ import { TeamMembersTable } from "./team-members-table";
 export default async function TeamPage() {
   const context = await getRequiredTenantContext();
   if (context.role === "broker") redirect("/access-denied");
+  const branchScope = context.role === "manager"
+    ? context.branchId ? eq(schema.tenantMemberships.branchId, context.branchId) : sql`false`
+    : undefined;
+  const branchEntityScope = context.role === "manager"
+    ? context.branchId ? eq(schema.branches.id, context.branchId) : sql`false`
+    : undefined;
+  const leadBranchScope = context.role === "manager"
+    ? context.branchId ? eq(schema.leads.branchId, context.branchId) : sql`false`
+    : undefined;
 
   const [tenant, branches, members, unassignedLeads, salesTotal] = await Promise.all([
     getDatabase()
@@ -21,7 +30,7 @@ export default async function TeamPage() {
     getDatabase()
       .select({ id: schema.branches.id, name: schema.branches.name })
       .from(schema.branches)
-      .where(and(eq(schema.branches.tenantId, context.tenantId), eq(schema.branches.status, "active")))
+      .where(and(eq(schema.branches.tenantId, context.tenantId), eq(schema.branches.status, "active"), branchEntityScope))
       .orderBy(asc(schema.branches.name)),
     getDatabase()
       .select({
@@ -38,16 +47,17 @@ export default async function TeamPage() {
       .from(schema.tenantMemberships)
       .innerJoin(schema.user, eq(schema.tenantMemberships.userId, schema.user.id))
       .leftJoin(schema.branches, eq(schema.tenantMemberships.branchId, schema.branches.id))
-      .where(eq(schema.tenantMemberships.tenantId, context.tenantId))
+      .where(and(eq(schema.tenantMemberships.tenantId, context.tenantId), branchScope))
       .orderBy(asc(schema.user.name)),
     getDatabase()
       .select({ count: sql<number>`count(*)::int` })
       .from(schema.leads)
-      .where(and(eq(schema.leads.tenantId, context.tenantId), eq(schema.leads.status, "new"))),
+      .where(and(eq(schema.leads.tenantId, context.tenantId), eq(schema.leads.status, "new"), leadBranchScope)),
     getDatabase()
       .select({ sum: sql<number>`coalesce(sum(${schema.sales.saleValue}), 0)::int` })
       .from(schema.sales)
-      .where(eq(schema.sales.tenantId, context.tenantId)),
+      .innerJoin(schema.leads, eq(schema.sales.leadId, schema.leads.id))
+      .where(and(eq(schema.sales.tenantId, context.tenantId), eq(schema.leads.tenantId, context.tenantId), leadBranchScope)),
   ]);
 
   const activeMembers = members.filter((member) => member.status === "active").length;

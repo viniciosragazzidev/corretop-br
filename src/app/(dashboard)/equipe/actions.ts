@@ -275,6 +275,21 @@ export async function transferLeadsAction(
       throw new Error("Os usuários de origem e destino devem pertencer ao mesmo tenant.");
     }
 
+    const [source] = await db.select({ role: schema.tenantMemberships.role, branchId: schema.tenantMemberships.branchId })
+      .from(schema.tenantMemberships)
+      .where(and(eq(schema.tenantMemberships.tenantId, context.tenantId), eq(schema.tenantMemberships.userId, input.fromUserId)))
+      .limit(1);
+    const [target] = await db.select({ role: schema.tenantMemberships.role, branchId: schema.tenantMemberships.branchId, status: schema.tenantMemberships.status })
+      .from(schema.tenantMemberships)
+      .where(and(eq(schema.tenantMemberships.tenantId, context.tenantId), eq(schema.tenantMemberships.userId, input.toUserId)))
+      .limit(1);
+    if (!source || !target || source.role !== "broker" || target.role !== "broker" || target.status !== "active" || source.branchId !== target.branchId) {
+      throw new Error("A transferência só pode ocorrer entre corretores ativos da mesma unidade.");
+    }
+    if (context.role === "manager" && source.branchId !== context.branchId) {
+      throw new Error("Gestores só podem transferir leads dentro da própria unidade.");
+    }
+
     await db
       .update(schema.leads)
       .set({ corretorId: input.toUserId, assignedAt: new Date() })

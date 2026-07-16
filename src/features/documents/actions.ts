@@ -124,11 +124,17 @@ export async function getLeadDocuments(leadId: string) {
       createdAt: schema.leadDocuments.createdAt,
     })
     .from(schema.leadDocuments)
+    .innerJoin(schema.leads, eq(schema.leadDocuments.leadId, schema.leads.id))
     .leftJoin(schema.documentRequirements, eq(schema.leadDocuments.requirementId, schema.documentRequirements.id))
     .where(
       and(
         eq(schema.leadDocuments.leadId, leadId),
-        eq(schema.leadDocuments.tenantId, context.tenantId)
+        eq(schema.leadDocuments.tenantId, context.tenantId),
+        context.role === "broker"
+          ? eq(schema.leads.corretorId, context.userId)
+          : context.role === "manager" && context.branchId
+            ? eq(schema.leads.branchId, context.branchId)
+            : undefined,
       )
     )
     .orderBy(schema.leadDocuments.createdAt);
@@ -214,6 +220,15 @@ export async function reviewDocumentAction({
 
   const db = getDatabase();
   try {
+    const [lead] = await db.select({ id: schema.leads.id, branchId: schema.leads.branchId })
+      .from(schema.leads)
+      .where(and(
+        eq(schema.leads.id, leadId),
+        eq(schema.leads.tenantId, context.tenantId),
+        context.role === "manager" && context.branchId ? eq(schema.leads.branchId, context.branchId) : undefined,
+      ))
+      .limit(1);
+    if (!lead) return { error: "Este lead não pertence ao escopo da sua unidade." };
     await db.transaction(async (tx) => {
       const [doc] = await tx
         .update(schema.leadDocuments)
@@ -225,7 +240,8 @@ export async function reviewDocumentAction({
         .where(
           and(
             eq(schema.leadDocuments.id, documentId),
-            eq(schema.leadDocuments.tenantId, context.tenantId)
+            eq(schema.leadDocuments.tenantId, context.tenantId),
+            eq(schema.leadDocuments.leadId, leadId)
           )
         )
         .returning({ filename: schema.leadDocuments.filename });
@@ -366,7 +382,15 @@ export async function getRequirementsForLead(leadId: string) {
     })
     .from(schema.leads)
     .leftJoin(schema.carrierPlans, eq(schema.leads.planId, schema.carrierPlans.id))
-    .where(and(eq(schema.leads.id, leadId), eq(schema.leads.tenantId, context.tenantId)))
+    .where(and(
+      eq(schema.leads.id, leadId),
+      eq(schema.leads.tenantId, context.tenantId),
+      context.role === "broker"
+        ? eq(schema.leads.corretorId, context.userId)
+        : context.role === "manager" && context.branchId
+          ? eq(schema.leads.branchId, context.branchId)
+          : undefined,
+    ))
     .limit(1);
 
   if (!lead) return [];

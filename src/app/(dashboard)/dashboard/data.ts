@@ -9,6 +9,7 @@ const activeLeadStatuses = ["new", "distributed", "in_contact", "quote_sent", "n
 
 export type BrokerDashboardData = {
   userName: string;
+  branchName: string;
   availabilityStatus: "available" | "paused";
   leads: Array<{ id: string; name: string; phone: string; source: string; status: string; createdAt: Date; lastInteractionAt: Date | null }>;
   activeLeads: Array<{ id: string; name: string; status: string; serviceStartedAt: Date | null }>;
@@ -20,7 +21,7 @@ export async function getBrokerDashboardData(): Promise<BrokerDashboardData> {
   const db = getDatabase();
   const [user, membership, leads] = await Promise.all([
     db.select({ name: schema.user.name }).from(schema.user).where(eq(schema.user.id, context.userId)).limit(1),
-    db.select({ availabilityStatus: schema.tenantMemberships.availabilityStatus }).from(schema.tenantMemberships).where(and(eq(schema.tenantMemberships.tenantId, context.tenantId), eq(schema.tenantMemberships.userId, context.userId))).limit(1),
+    db.select({ availabilityStatus: schema.tenantMemberships.availabilityStatus, branchName: schema.branches.name }).from(schema.tenantMemberships).leftJoin(schema.branches, eq(schema.tenantMemberships.branchId, schema.branches.id)).where(and(eq(schema.tenantMemberships.tenantId, context.tenantId), eq(schema.tenantMemberships.userId, context.userId))).limit(1),
     db.select({ id: schema.leads.id, name: schema.leads.nome, phone: schema.leads.telefone, source: schema.leads.origem, status: schema.leads.status, createdAt: schema.leads.createdAt, serviceStartedAt: schema.leads.serviceStartedAt }).from(schema.leads).where(and(eq(schema.leads.tenantId, context.tenantId), eq(schema.leads.corretorId, context.userId))).orderBy(desc(schema.leads.createdAt)),
   ]);
   const interactions = leads.length ? await db.select({ leadId: schema.leadInteractions.leadId, createdAt: schema.leadInteractions.createdAt }).from(schema.leadInteractions).where(inArray(schema.leadInteractions.leadId, leads.map((lead) => lead.id))).orderBy(desc(schema.leadInteractions.createdAt)) : [];
@@ -28,6 +29,7 @@ export async function getBrokerDashboardData(): Promise<BrokerDashboardData> {
   for (const interaction of interactions) if (!latest.has(interaction.leadId)) latest.set(interaction.leadId, interaction.createdAt);
   return {
     userName: user[0]?.name ?? "Corretor",
+    branchName: membership[0]?.branchName ?? "Unidade não identificada",
     availabilityStatus: membership[0]?.availabilityStatus ?? "available",
     leads: leads.map((lead) => ({ ...lead, phone: maskPhone(lead.phone), lastInteractionAt: latest.get(lead.id) ?? null })),
     activeLeads: leads.filter((lead) => (activeLeadStatuses as readonly string[]).includes(lead.status) && lead.status !== "new" && lead.status !== "distributed").map((lead) => ({ id: lead.id, name: lead.name, status: lead.status, serviceStartedAt: lead.serviceStartedAt })),
@@ -47,6 +49,7 @@ function maskPhone(phone: string) {
 }
 
 export type ManagerDashboardData = {
+  branchName: string;
   teamSize: number;
   activeMembers: number;
   leadsTotal: number;
@@ -63,14 +66,14 @@ export async function getManagerDashboardData(): Promise<ManagerDashboardData> {
   const context = await getRequiredTenantContext();
   const db = getDatabase();
   const [branch, members, leads] = await Promise.all([
-    db.select({ autoDistribute: schema.branches.autoDistribute }).from(schema.branches).where(and(eq(schema.branches.id, context.branchId!), eq(schema.branches.tenantId, context.tenantId))).limit(1),
+    db.select({ autoDistribute: schema.branches.autoDistribute, branchName: schema.branches.name }).from(schema.branches).where(and(eq(schema.branches.id, context.branchId!), eq(schema.branches.tenantId, context.tenantId))).limit(1),
     db.select({ userId: schema.tenantMemberships.userId, status: schema.tenantMemberships.status }).from(schema.tenantMemberships).where(and(eq(schema.tenantMemberships.tenantId, context.tenantId), eq(schema.tenantMemberships.branchId, context.branchId!), eq(schema.tenantMemberships.role, "broker"))),
     db.select({ status: schema.leads.status, corretorId: schema.leads.corretorId, assignedAt: schema.leads.assignedAt, stageEnteredAt: schema.leads.stageEnteredAt }).from(schema.leads).where(and(eq(schema.leads.tenantId, context.tenantId), eq(schema.leads.branchId, context.branchId!))),
   ]);
   const now = Date.now();
   const unworked = leads.filter((lead) => lead.status === "distributed" && lead.assignedAt && now - lead.assignedAt.getTime() > 15 * 60 * 1000).length;
   const stalled = leads.filter((lead) => (activeLeadStatuses as readonly string[]).includes(lead.status) && now - lead.stageEnteredAt.getTime() > 3 * 24 * 60 * 60 * 1000).length;
-  return { teamSize: members.length, activeMembers: members.filter((member) => member.status === "active").length, leadsTotal: leads.length, newLeads: leads.filter((lead) => lead.status === "new").length, inContact: leads.filter((lead) => lead.status === "in_contact").length, unassigned: leads.filter((lead) => !lead.corretorId).length, unworked, stalled, branchId: context.branchId!, autoDistribute: branch[0]?.autoDistribute ?? true };
+  return { branchName: branch[0]?.branchName ?? "Unidade não identificada", teamSize: members.length, activeMembers: members.filter((member) => member.status === "active").length, leadsTotal: leads.length, newLeads: leads.filter((lead) => lead.status === "new").length, inContact: leads.filter((lead) => lead.status === "in_contact").length, unassigned: leads.filter((lead) => !lead.corretorId).length, unworked, stalled, branchId: context.branchId!, autoDistribute: branch[0]?.autoDistribute ?? true };
 }
 
 export type DirectorDashboardData = {

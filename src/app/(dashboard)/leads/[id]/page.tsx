@@ -52,7 +52,15 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
     })
     .from(schema.leads)
     .leftJoin(schema.user, eq(schema.leads.corretorId, schema.user.id))
-    .where(and(eq(schema.leads.id, id), eq(schema.leads.tenantId, context.tenantId)))
+    .where(and(
+      eq(schema.leads.id, id),
+      eq(schema.leads.tenantId, context.tenantId),
+      context.role === "broker"
+        ? eq(schema.leads.corretorId, context.userId)
+        : context.role === "manager" && context.branchId
+          ? eq(schema.leads.branchId, context.branchId)
+          : undefined,
+    ))
     .limit(1);
 
   if (!lead) notFound();

@@ -21,6 +21,19 @@ Notificações e atualização automática das telas do dashboard em tempo real,
 
 ---
 
+## 🔄 1.1. Redistribuição Automática por Estouro de SLA (Primeiro Contato)
+Redistribuição ativa de novos leads se o corretor não realizar o primeiro contato dentro do tempo limite.
+
+*   **Arquivos Criados/Modificados**:
+    *   [sla.ts](file:///c:/Users/kyper/Desktop/Kyper/Projects/corretopV2/corretop/src/features/leads/sla.ts) (Motor de varredura de SLA)
+    *   [assignment.ts](file:///c:/Users/kyper/Desktop/Kyper/Projects/corretopV2/corretop/src/features/leads/assignment.ts) (Lógica de distribuição round-robin)
+*   **Comportamento**:
+    *   **Exclusão do Corretor Unresponsive**: O algoritmo de round-robin agora aceita um parâmetro de exclusão, garantindo que o corretor que perdeu o lead por estouro de SLA não o receba de volta imediatamente.
+    *   **Reatribuição**: O lead é reatribuído ao próximo corretor disponível na filial. Caso não haja nenhum outro corretor online/disponível, o lead retorna para a fila geral (status `"new"` / `"queued"`).
+    *   **Auditoria e Histórico**: Registra uma nota descritiva na timeline do lead e insere um log de auditoria (`"lead.redistributed_sla"`).
+
+---
+
 ## 👥 2. Gestão de Equipe & Permissões por Unidade
 Regras de escopo de dados e interfaces para diferenciar a atuação dos cargos dentro da corretora.
 
