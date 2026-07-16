@@ -20,18 +20,37 @@ function getDatabaseUrl(): string {
   return databaseUrl;
 }
 
+/**
+ * Supabase exposes standard PostgreSQL URLs, often through a pooler hostname.
+ * The provider must be inferred from the URL rather than from the environment
+ * variable name: production uses DATABASE_URL while local development uses
+ * SUPABASE_DB_URL.
+ */
+export function usesPostgresJsDriver(databaseUrl: string): boolean {
+  try {
+    const hostname = new URL(databaseUrl).hostname.toLowerCase();
+    return hostname.endsWith(".supabase.com");
+  } catch {
+    return false;
+  }
+}
+
+function createPostgresDatabase(databaseUrl: string): Database {
+  return drizzlePostgres(postgres(databaseUrl, {
+    prepare: false,
+    max: 5,
+    connect_timeout: 15,
+    idle_timeout: 20,
+  }), { schema });
+}
+
 /** Infrastructure-only database entry point. Domain code must use tenantDb. */
 export function getDatabase(): Database {
-  const supabaseUrl = process.env.SUPABASE_DB_URL;
-  if (supabaseUrl) {
-    database ??= drizzlePostgres(postgres(supabaseUrl, {
-      prepare: false,
-      max: 5,
-      connect_timeout: 15,
-      idle_timeout: 20,
-    }), { schema });
+  const databaseUrl = getDatabaseUrl();
+  if (usesPostgresJsDriver(databaseUrl)) {
+    database ??= createPostgresDatabase(databaseUrl);
   } else {
-    database ??= drizzle(new Pool({ connectionString: getDatabaseUrl() }), { schema }) as unknown as Database;
+    database ??= drizzle(new Pool({ connectionString: databaseUrl }), { schema }) as unknown as Database;
   }
   return database;
 }
