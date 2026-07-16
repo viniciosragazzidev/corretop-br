@@ -85,6 +85,7 @@ rastreabilidade. Pendências que impedem uma implementação definitiva ficam no
 | BR-058 | O canal oficial de WhatsApp é resolvido pelo `phone_number_id` previamente registrado pela Meta, e nunca por identificador de tenant enviado pelo navegador ou webhook. | Webhook assinado → encontra canal ativo pelo identificador da Meta; somente então persiste mensagens do tenant correspondente. | DEC-033 |
 | BR-059 | Tokens de canal oficial permanecem exclusivamente no servidor, cifrados em repouso, e não entram em logs de auditoria ou respostas de API. | Embedded Signup concluído → token é cifrado antes da persistência; UI recebe somente estado e metadados permitidos. | DEC-033 |
 | BR-060 | Enquanto a migração estiver ativa, o canal Meta oficial tem precedência para envio na unidade; OpenWA é fallback somente quando não há canal oficial ativo. | Envio de mensagem → seleciona canal Meta ativo por tenant/unidade/owner; sem canal oficial, usa conexão legada existente. | DEC-033 |
+| BR-061 | Enquanto o chat interno estiver em desenvolvimento, ele não pode sugerir sincronização de mensagens. O Corretor inicia o atendimento pelo fluxo auditado e é direcionado ao WhatsApp pessoal pelo telefone autorizado do lead. | Lead distribuído → Corretor inicia atendimento → status e auditoria são persistidos → `wa.me` abre o WhatsApp Web ou o app conforme o dispositivo. | DEC-009 / DEC-033 |
 
 ## Regras que exigem decisão antes do código
 

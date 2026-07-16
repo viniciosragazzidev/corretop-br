@@ -93,8 +93,6 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
   if (!interactions) notFound();
 
 
-  const [whatsappConnection] = await getDatabase().select({ active: schema.whatsappConnections.chatInternoAtivo }).from(schema.whatsappConnections).where(and(eq(schema.whatsappConnections.tenantId, context.tenantId), eq(schema.whatsappConnections.userId, context.userId))).limit(1);
-  const whatsappMessages = await getDatabase().select({ id: schema.whatsappMessages.id, body: schema.whatsappMessages.body, direction: schema.whatsappMessages.direction, sentAt: schema.whatsappMessages.sentAt }).from(schema.whatsappMessages).where(and(eq(schema.whatsappMessages.tenantId, context.tenantId), eq(schema.whatsappMessages.leadId, id))).orderBy(schema.whatsappMessages.sentAt);
   const brokers = (context.role === "manager" || context.role === "director") && lead.branchId
     ? await getDatabase().select({ id: schema.user.id, name: schema.user.name }).from(schema.tenantMemberships)
       .innerJoin(schema.user, eq(schema.tenantMemberships.userId, schema.user.id))
@@ -102,8 +100,6 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
     : [];
 
   const canSeePersonalData = context.role !== "broker" || lead.corretorId !== context.userId || lead.status !== "distributed";
-  const chatCanSend = lead.corretorId === context.userId && lead.status !== "distributed";
-  const chatCanAssume = (context.role === "manager" || context.role === "director") && !chatCanSend && ["in_contact", "quote_sent", "negotiation", "documentation_pending", "under_analysis"].includes(lead.status);
   const maskedPhone = maskPhone(lead.telefone);
   const maskedEmail = lead.email ? maskEmail(lead.email) : "Não informado";
 
@@ -324,7 +320,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             </Tabs>
 
             {/* Chat Connection */}
-            <LeadChat active={whatsappConnection?.active ?? false} canAssume={chatCanAssume} canSend={chatCanSend} leadId={lead.id} messages={whatsappMessages} phone={canSeePersonalData ? lead.telefone : null} />
+            <LeadChat phone={canSeePersonalData ? lead.telefone : null} />
           </div>
 
         </div>

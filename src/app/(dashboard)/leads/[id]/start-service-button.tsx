@@ -29,7 +29,7 @@ export function StartServiceButton({ leadId }: { leadId: string }) {
         return;
       }
       setCompleted(true);
-      toast.success("Atendimento iniciado com sucesso.", { description: "Dados liberados. Abrindo o WhatsApp..." });
+      toast.success("Atendimento iniciado com sucesso.", { description: "Dados liberados. Abrindo seu WhatsApp pessoal..." });
       window.setTimeout(() => window.location.assign(result.whatsappUrl!), 650);
     });
   }
