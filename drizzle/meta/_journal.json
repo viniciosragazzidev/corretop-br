@@ -78,6 +78,13 @@
       "when": 1784812600000,
       "tag": "0046_feedback_checklists",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1784813600000,
+      "tag": "0047_meta_whatsapp_cloud_foundation",
+      "breakpoints": true
     }
   ]
 }

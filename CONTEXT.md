@@ -17,3 +17,9 @@
 - **Cliente ativo**: vínculo pós-venda criado a partir de uma venda aprovada, com vigência e aniversário contratual próprios.
 - **Cancelamento**: encerramento do cliente ativo informado à corretora; não desconta dinheiro automaticamente e gera pendências financeiras auditáveis.
 - **Estorno pendente**: sinalização de uma parcela já paga que pode estar dentro da janela de chargeback; sua resolução é manual.
+
+## Canais de comunicação
+
+- **Canal de comunicação**: identidade operacional de um provedor associada a um tenant e, opcionalmente, a uma unidade. Para WhatsApp oficial, a chave externa é o `phone_number_id` da Meta.
+- **Canal Meta Cloud**: canal empresarial conectado por Embedded Signup; seu token é cifrado no servidor e nunca é devolvido ao navegador.
+- **Canal legado OpenWA**: conexão temporária por QR Code mantida apenas durante a migração. Não deve receber novas capacidades estruturais.

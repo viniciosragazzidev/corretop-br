@@ -1101,6 +1101,66 @@ export const whatsappConnections = pgTable(
   (table) => [index("whatsapp_connections_user_idx").on(table.tenantId, table.userId), index("whatsapp_connections_session_idx").on(table.sessionId), uniqueIndex("whatsapp_connections_tenant_user_unique").on(table.tenantId, table.userId).where(sql`${table.userId} IS NOT NULL`)],
 );
 
+/**
+ * Canal de comunicação persistido e resolvido pelo provedor. A identidade de
+ * tenant nunca vem do webhook: para a Meta ela é derivada exclusivamente do
+ * phoneNumberId previamente associado a este registro.
+ */
+export const communicationChannels = pgTable(
+  "communication_channels",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    branchId: text("branch_id").references(() => branches.id, { onDelete: "set null" }),
+    ownerUserId: text("owner_user_id").references(() => user.id, { onDelete: "set null" }),
+    provider: text("provider").notNull(),
+    channelType: text("channel_type").notNull().default("shared"),
+    status: text("status").notNull().default("pending"),
+    businessId: text("business_id"),
+    wabaId: text("waba_id"),
+    phoneNumberId: text("phone_number_id"),
+    displayPhoneNumber: text("display_phone_number"),
+    verifiedName: text("verified_name"),
+    qualityRating: text("quality_rating"),
+    messagingLimit: text("messaging_limit"),
+    accessTokenCiphertext: text("access_token_ciphertext"),
+    tokenKeyVersion: text("token_key_version"),
+    tokenExpiresAt: timestamp("token_expires_at", { withTimezone: true }),
+    isDefault: boolean("is_default").notNull().default(false),
+    lastWebhookAt: timestamp("last_webhook_at", { withTimezone: true }),
+    activatedAt: timestamp("activated_at", { withTimezone: true }),
+    createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("communication_channels_tenant_status_idx").on(table.tenantId, table.status),
+    index("communication_channels_tenant_branch_idx").on(table.tenantId, table.branchId),
+    uniqueIndex("communication_channels_provider_phone_unique").on(table.provider, table.phoneNumberId).where(sql`${table.phoneNumberId} IS NOT NULL`),
+  ],
+);
+
+/** Minimal, PII-free webhook ledger for replay protection and operational audit. */
+export const communicationChannelWebhookEvents = pgTable(
+  "communication_channel_webhook_events",
+  {
+    id: text("id").primaryKey(),
+    channelId: text("channel_id").references(() => communicationChannels.id, { onDelete: "set null" }),
+    provider: text("provider").notNull(),
+    externalEventId: text("external_event_id"),
+    eventType: text("event_type").notNull(),
+    payloadHash: text("payload_hash").notNull(),
+    status: text("status").notNull().default("received"),
+    errorCode: text("error_code"),
+    receivedAt: timestamp("received_at", { withTimezone: true }).notNull().defaultNow(),
+    processedAt: timestamp("processed_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("communication_channel_webhook_events_channel_idx").on(table.channelId, table.receivedAt),
+    uniqueIndex("communication_channel_webhook_events_provider_external_unique").on(table.provider, table.externalEventId).where(sql`${table.externalEventId} IS NOT NULL`),
+  ],
+);
+
 export const whatsappMessages = pgTable(
   "whatsapp_messages",
   {
@@ -1108,7 +1168,10 @@ export const whatsappMessages = pgTable(
     tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
     leadId: text("lead_id").references(() => leads.id, { onDelete: "cascade" }),
     clientId: text("client_id").references(() => clients.id, { onDelete: "cascade" }),
+    communicationChannelId: text("communication_channel_id").references(() => communicationChannels.id, { onDelete: "set null" }),
+    provider: text("provider").notNull().default("openwa_legacy"),
     messageId: text("message_id"),
+    providerStatus: text("provider_status"),
     phone: text("phone").notNull(),
     direction: text("direction").notNull(),
     body: text("body").notNull(),

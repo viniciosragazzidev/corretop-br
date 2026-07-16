@@ -23,6 +23,13 @@ para ADR se aplicável.
 | DEC-027 | No estouro do SLA de primeiro contato, o owner anterior é removido antes de qualquer nova atribuição. Leads originados pelo Diretor usam a fila central da corretora mãe: tentam outro corretor elegível na unidade e, se não houver, retornam à fila central para nova distribuição. Leads originados pelo Gestor permanecem na fila da unidade para distribuição manual. A origem é persistida, toda transição é auditada e o corretor que perdeu o SLA é excluído da tentativa imediata. | Aprovada — 2026-07-16 | Solicitação do usuário; implementação de `feedback-sla` e distribuição |
 | DEC-028 | Notificações operacionais devem ser publicadas por um serviço central com registro in-app/Realtime e push coordenados. Cada capacidade possui uma chave global reversível controlada pelo Super-admin; quando desativada, nenhum dos dois canais é emitido para o evento. O catálogo e a auditoria da configuração são obrigatórios. | Aprovada — 2026-07-16 | Solicitação do usuário; correção de toast junto com push |
 
+## DEC-033 — WhatsApp Cloud API oficial com Embedded Signup
+
+**Estado:** Aceita
+**Data:** 2026-07-16
+
+O CorreTop migra de OpenWA para a Cloud API oficial da Meta em etapas. `communication_channels` é o domínio do canal; o webhook confirma assinatura HMAC e resolve o tenant pelo `phone_number_id`. Diretor conecta/pausa canais do seu tenant, Super-admin controla a capacidade global e OpenWA permanece apenas como fallback reversível durante a transição. Tokens são cifrados em repouso e nunca chegam ao frontend.
+
 ## Pendentes bloqueantes
 
 | ID | Decisão necessária | Impacto | Dono sugerido |

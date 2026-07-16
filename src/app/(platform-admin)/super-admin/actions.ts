@@ -67,6 +67,19 @@ export async function updateGlobalSearchSettingsAction(formData: FormData) {
   revalidatePath("/super-admin/settings");
 }
 
+export async function updateMetaCloudWhatsAppSettingsAction(formData: FormData) {
+  const admin = await getRequiredPlatformAdmin();
+  const enabled = formData.get("metaCloudWhatsAppEnabled") === "true" ? "true" : "false";
+  const now = new Date();
+  await setSystemSetting("feature_whatsapp_meta_cloud_enabled", enabled, now);
+  await getDatabase().insert(schema.platformAuditLogs).values({
+    id: crypto.randomUUID(), actorUserId: admin.userId, action: "meta_cloud_whatsapp_feature.updated",
+    targetType: "system_settings", targetId: "whatsapp_meta_cloud", metadata: { enabled }, createdAt: now,
+  });
+  revalidatePath("/super-admin/settings");
+  revalidatePath("/settings/whatsapp");
+}
+
 export async function updateNotificationCapabilityAction(formData: FormData) {
   const admin = await getRequiredPlatformAdmin();
   const capabilityId = String(formData.get("capabilityId") ?? "");
