@@ -252,7 +252,7 @@ function Hero() {
               </div>
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <span className="size-2 rounded-full bg-warning" />
+                  <span className="size-2 rounded-full bg-accent" />
                   <span className="text-[11px] font-medium text-foreground/70">Fila</span>
                   <span className="ml-auto text-sm font-semibold tabular-nums">18</span>
                 </div>
@@ -269,7 +269,7 @@ function Hero() {
                           item.status === "success"
                             ? "bg-success"
                             : item.status === "warning"
-                              ? "bg-warning"
+                              ? "bg-accent"
                               : "bg-muted-foreground",
                         )}
                       />
@@ -667,13 +667,18 @@ function Footer() {
               Empresa
             </h4>
             <ul className="space-y-2">
-              {["Sobre", "Blog", "Contato", "Privacidade"].map((item) => (
-                <li key={item}>
+              {[
+                { label: "Sobre", href: "#" },
+                { label: "Blog", href: "#" },
+                { label: "Contato", href: "#" },
+                { label: "Termos e privacidade", href: "/termos" },
+              ].map((item) => (
+                <li key={item.label}>
                   <Link
-                    href="#"
+                    href={item.href}
                     className="text-sm text-foreground/70 transition-colors hover:text-foreground"
                   >
-                    {item}
+                    {item.label}
                   </Link>
                 </li>
               ))}

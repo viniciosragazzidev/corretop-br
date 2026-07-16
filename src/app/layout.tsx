@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { AppProviders } from "@/components/app-providers";
+import { SplashScreen } from "@/components/splash-screen";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -32,6 +33,7 @@ export default async function RootLayout({
   return (
     <html lang="pt-BR" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable} ${theme === "dark" ? "dark" : ""} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
+        <SplashScreen />
         <AppProviders>
           <TooltipProvider>{children}</TooltipProvider>
           <Toaster />

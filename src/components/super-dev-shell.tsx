@@ -38,7 +38,7 @@ export function SuperDevShell({ children }: { children: ReactNode }) {
               href={railAreas[0].href}
               aria-label={railAreas[0].label}
               title={railAreas[0].label}
-              className="grid size-10 place-items-center rounded-xl border border-transparent text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              className="grid size-10 place-items-center rounded-xl border border-transparent text-sidebar-foreground/60 transition-colors hover:bg-sidebar-warning hover:text-sidebar-warning-foreground"
             >
               <SquaresFour size={19} />
             </Link>

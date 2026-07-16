@@ -135,6 +135,7 @@ export async function toggleAcceptingLeadsAction(
       .where(eq(schema.branches.id, branch.id));
     revalidatePath("/filiais");
     revalidatePath("/equipe");
+    revalidatePath(`/unidades/${branchId.data}`);
     return { success: true };
   } catch (error) {
     return actionError(error);
@@ -170,6 +171,7 @@ export async function toggleAutoDistributeAction(
       .where(eq(schema.branches.id, branch.id));
     revalidatePath("/filiais");
     revalidatePath("/dashboard");
+    revalidatePath(`/unidades/${branchId.data}`);
     return { success: true };
   } catch (error) {
     return actionError(error);

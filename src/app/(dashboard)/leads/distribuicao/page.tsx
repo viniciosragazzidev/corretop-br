@@ -1,11 +1,13 @@
 import { count, eq, and, inArray } from "drizzle-orm";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 
 import { DashboardHeader } from "@/components/dashboard-header";
 import { DistributionDashboard } from "./_components/distribution-dashboard";
 import { DistributionInbox } from "./_components/distribution-inbox";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
+import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
@@ -37,87 +39,64 @@ export default async function LeadDistributionPage() {
     return (
       <>
         <DashboardHeader breadcrumb="Operação comercial" title="Distribuição" />
-        <main className="flex min-h-full flex-col items-center justify-center gap-4 bg-background p-4 lg:p-6">
-          <p className="text-sm font-medium">Nenhuma filial cadastrada</p>
-          <p className="text-xs text-muted-foreground">Crie filiais em /filiais para configurar a distribuição.</p>
+        <main className="flex min-h-full flex-col items-center justify-center gap-4 bg-background p-12 text-center">
+          <p className="text-sm font-semibold text-foreground">Nenhuma filial cadastrada</p>
+          <p className="text-xs text-muted-foreground mb-2">Crie filiais para poder configurar as regras de distribuição de leads.</p>
+          <Button render={<Link href="/filiais" />} size="sm" variant="outline">Ir para Filiais</Button>
         </main>
       </>
     );
   }
 
-  const brokers = await db
-    .select({ id: schema.user.id, name: schema.user.name, email: schema.user.email, branchId: schema.tenantMemberships.branchId, branchName: schema.branches.name, availabilityStatus: schema.tenantMemberships.availabilityStatus })
-    .from(schema.tenantMemberships)
-    .innerJoin(schema.user, eq(schema.tenantMemberships.userId, schema.user.id))
-    .leftJoin(schema.branches, eq(schema.tenantMemberships.branchId, schema.branches.id))
-    .where(and(eq(schema.tenantMemberships.tenantId, context.tenantId), inArray(schema.tenantMemberships.branchId, branchIds), eq(schema.tenantMemberships.role, "broker"), eq(schema.tenantMemberships.status, "active"), eq(schema.user.active, true)));
-  const unassignedLeads = await db
-    .select({ id: schema.leads.id, name: schema.leads.nome, phone: schema.leads.telefone, branchId: schema.leads.branchId, distributionStatus: schema.leads.distributionStatus, createdAt: schema.leads.createdAt })
-    .from(schema.leads)
-    .where(and(eq(schema.leads.tenantId, context.tenantId), inArray(schema.leads.distributionStatus, ["unassigned", "queued"]), context.role === "manager" && context.branchId ? eq(schema.leads.branchId, context.branchId) : undefined))
-    .orderBy(schema.leads.createdAt)
-    .limit(100);
-  const activeBrokerLeads = await db
-    .select({ brokerId: schema.leads.corretorId, count: count(schema.leads.id) })
-    .from(schema.leads)
-    .where(and(eq(schema.leads.tenantId, context.tenantId), inArray(schema.leads.branchId, branchIds), inArray(schema.leads.status, activeStatuses)))
-    .groupBy(schema.leads.corretorId);
+  const [
+    brokers,
+    unassignedLeads,
+    activeBrokerLeads,
+    memberCounts,
+    availableCounts,
+    leadCounts,
+    newLeadCounts
+  ] = await Promise.all([
+    db
+      .select({ id: schema.user.id, name: schema.user.name, email: schema.user.email, branchId: schema.tenantMemberships.branchId, branchName: schema.branches.name, availabilityStatus: schema.tenantMemberships.availabilityStatus })
+      .from(schema.tenantMemberships)
+      .innerJoin(schema.user, eq(schema.tenantMemberships.userId, schema.user.id))
+      .leftJoin(schema.branches, eq(schema.tenantMemberships.branchId, schema.branches.id))
+      .where(and(eq(schema.tenantMemberships.tenantId, context.tenantId), inArray(schema.tenantMemberships.branchId, branchIds), eq(schema.tenantMemberships.role, "broker"), eq(schema.tenantMemberships.status, "active"), eq(schema.user.active, true))),
+    db
+      .select({ id: schema.leads.id, name: schema.leads.nome, phone: schema.leads.telefone, branchId: schema.leads.branchId, distributionStatus: schema.leads.distributionStatus, createdAt: schema.leads.createdAt })
+      .from(schema.leads)
+      .where(and(eq(schema.leads.tenantId, context.tenantId), inArray(schema.leads.distributionStatus, ["unassigned", "queued"]), context.role === "manager" && context.branchId ? eq(schema.leads.branchId, context.branchId) : undefined))
+      .orderBy(schema.leads.createdAt)
+      .limit(100),
+    db
+      .select({ brokerId: schema.leads.corretorId, count: count(schema.leads.id) })
+      .from(schema.leads)
+      .where(and(eq(schema.leads.tenantId, context.tenantId), inArray(schema.leads.branchId, branchIds), inArray(schema.leads.status, activeStatuses)))
+      .groupBy(schema.leads.corretorId),
+    db
+      .select({ branchId: schema.tenantMemberships.branchId, count: count(schema.tenantMemberships.id) })
+      .from(schema.tenantMemberships)
+      .where(and(eq(schema.tenantMemberships.tenantId, context.tenantId), eq(schema.tenantMemberships.role, "broker"), inArray(schema.tenantMemberships.branchId, branchIds)))
+      .groupBy(schema.tenantMemberships.branchId),
+    db
+      .select({ branchId: schema.tenantMemberships.branchId, count: count(schema.tenantMemberships.id) })
+      .from(schema.tenantMemberships)
+      .where(and(eq(schema.tenantMemberships.tenantId, context.tenantId), eq(schema.tenantMemberships.role, "broker"), eq(schema.tenantMemberships.availabilityStatus, "available"), eq(schema.tenantMemberships.status, "active"), inArray(schema.tenantMemberships.branchId, branchIds)))
+      .groupBy(schema.tenantMemberships.branchId),
+    db
+      .select({ branchId: schema.leads.branchId, count: count(schema.leads.id) })
+      .from(schema.leads)
+      .where(and(eq(schema.leads.tenantId, context.tenantId), inArray(schema.leads.branchId, branchIds), inArray(schema.leads.status, activeStatuses)))
+      .groupBy(schema.leads.branchId),
+    db
+      .select({ branchId: schema.leads.branchId, count: count(schema.leads.id) })
+      .from(schema.leads)
+      .where(and(eq(schema.leads.tenantId, context.tenantId), inArray(schema.leads.branchId, branchIds), eq(schema.leads.status, "new")))
+      .groupBy(schema.leads.branchId)
+  ]);
+
   const activeBrokerLeadsMap = new Map(activeBrokerLeads.map((entry) => [entry.brokerId, Number(entry.count)]));
-
-  // Fetch member counts per branch (brokers only)
-  const memberCounts = await db
-    .select({ branchId: schema.tenantMemberships.branchId, count: count(schema.tenantMemberships.id) })
-    .from(schema.tenantMemberships)
-    .where(
-      and(
-        eq(schema.tenantMemberships.tenantId, context.tenantId),
-        eq(schema.tenantMemberships.role, "broker"),
-        inArray(schema.tenantMemberships.branchId, branchIds),
-      ),
-    )
-    .groupBy(schema.tenantMemberships.branchId);
-
-  // Fetch available broker counts per branch
-  const availableCounts = await db
-    .select({ branchId: schema.tenantMemberships.branchId, count: count(schema.tenantMemberships.id) })
-    .from(schema.tenantMemberships)
-    .where(
-      and(
-        eq(schema.tenantMemberships.tenantId, context.tenantId),
-        eq(schema.tenantMemberships.role, "broker"),
-        eq(schema.tenantMemberships.availabilityStatus, "available"),
-        eq(schema.tenantMemberships.status, "active"),
-        inArray(schema.tenantMemberships.branchId, branchIds),
-      ),
-    )
-    .groupBy(schema.tenantMemberships.branchId);
-
-  // Fetch lead counts per branch
-  const leadCounts = await db
-    .select({ branchId: schema.leads.branchId, count: count(schema.leads.id) })
-    .from(schema.leads)
-    .where(
-      and(
-        eq(schema.leads.tenantId, context.tenantId),
-        inArray(schema.leads.branchId, branchIds),
-        inArray(schema.leads.status, activeStatuses),
-      ),
-    )
-    .groupBy(schema.leads.branchId);
-
-  // Fetch new/unassigned lead counts per branch
-  const newLeadCounts = await db
-    .select({ branchId: schema.leads.branchId, count: count(schema.leads.id) })
-    .from(schema.leads)
-    .where(
-      and(
-        eq(schema.leads.tenantId, context.tenantId),
-        inArray(schema.leads.branchId, branchIds),
-        eq(schema.leads.status, "new"),
-      ),
-    )
-    .groupBy(schema.leads.branchId);
-
   const countsByBranch = new Map(memberCounts.map((e) => [e.branchId, Number(e.count)]));
   const availableByBranch = new Map(availableCounts.map((e) => [e.branchId, Number(e.count)]));
   const leadsByBranch = new Map(leadCounts.map((e) => [e.branchId, Number(e.count)]));

@@ -1,6 +1,7 @@
 import { relations, sql } from "drizzle-orm";
 import {
   boolean,
+  date,
   foreignKey,
   index,
   integer,
@@ -24,6 +25,7 @@ export const userStatusValues = ["pending", "active", "disabled"] as const;
 export const leadStatusValues = ["new", "distributed", "in_contact", "quote_sent", "negotiation", "documentation_pending", "under_analysis", "converted", "lost"] as const;
 export const leadOriginValues = ["manual", "webhook"] as const;
 export const leadDistributionStatusValues = ["unassigned", "awaiting_unit", "queued", "assigning", "assigned", "distribution_failed", "returned_to_queue"] as const;
+export const leadDistributionOriginValues = ["parent", "unit"] as const;
 export const assignmentSourceValues = ["manual_director", "manual_manager", "automatic", "duty_schedule", "redistribution", "system_recovery"] as const;
 export const leadInteractionTypeValues = [
   "status_change",
@@ -54,6 +56,14 @@ export const webhookDeliveryStatus = pgEnum("webhook_delivery_status", webhookDe
 
 export const quoteStatusValues = ["draft", "shared", "sent", "accepted", "expired"] as const;
 export const quoteStatus = pgEnum("quote_status", quoteStatusValues);
+export const catalogStatusValues = ["draft", "published", "archived"] as const;
+export const catalogStatus = pgEnum("catalog_status", catalogStatusValues);
+export const catalogImportStatusValues = ["draft", "validating", "ready_for_review", "published", "rejected", "failed"] as const;
+export const catalogImportStatus = pgEnum("catalog_import_status", catalogImportStatusValues);
+export const catalogSourceValues = ["global", "tenant_private"] as const;
+export const catalogSource = pgEnum("catalog_source", catalogSourceValues);
+export const beneficiaryRelationshipValues = ["titular", "conjuge", "filho", "outro"] as const;
+export const beneficiaryRelationship = pgEnum("beneficiary_relationship", beneficiaryRelationshipValues);
 export const taskPriorityValues = ["low", "normal", "urgent"] as const;
 export const taskPriority = pgEnum("task_priority", taskPriorityValues);
 
@@ -174,6 +184,10 @@ export const tenants = pgTable("tenants", {
   feedbackRequiredEnabled: boolean("feedback_required_enabled").notNull().default(true),
   feedbackGraceMinutes: text("feedback_grace_minutes").notNull().default("5"),
   autoRedistributeOnFeedbackTimeout: boolean("auto_redistribute_on_feedback_timeout").notNull().default(true),
+  feedbackReminderIntervalMinutes: text("feedback_reminder_interval_minutes").notNull().default("30"),
+  feedbackReminderMaxAttempts: integer("feedback_reminder_max_attempts").notNull().default(5),
+  feedbackPushEnabled: boolean("feedback_push_enabled").notNull().default(true),
+  feedbackToastEnabled: boolean("feedback_toast_enabled").notNull().default(true),
   status: tenantStatus("status").notNull().default("active"),
   createdAt,
   updatedAt,
@@ -304,6 +318,7 @@ export const leads = pgTable(
     origem: leadOrigin("origem").notNull().default("manual"),
     status: leadStatus("status").notNull().default("new"),
     distributionStatus: text("distribution_status").notNull().default("unassigned"),
+    distributionOrigin: text("distribution_origin"),
     queueId: text("queue_id"),
     unitAssignedAt: timestamp("unit_assigned_at", { withTimezone: true }),
     assignmentSource: text("assignment_source"),
@@ -327,6 +342,25 @@ export const leads = pgTable(
     index("leads_corretor_status_idx").on(table.corretorId, table.status),
     index("leads_webhook_credential_idx").on(table.webhookCredentialId),
     uniqueIndex("leads_credential_external_id_unique").on(table.webhookCredentialId, table.externalId).where(sql`${table.externalId} IS NOT NULL`),
+  ],
+);
+
+export const leadBeneficiaries = pgTable(
+  "lead_beneficiaries",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    leadId: text("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    birthDate: date("birth_date", { mode: "string" }).notNull(),
+    relationship: beneficiaryRelationship("relationship").notNull().default("outro"),
+    isHolder: boolean("is_holder").notNull().default(false),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("lead_beneficiaries_tenant_lead_idx").on(table.tenantId, table.leadId),
+    index("lead_beneficiaries_lead_holder_idx").on(table.leadId, table.isHolder),
   ],
 );
 
@@ -529,6 +563,25 @@ export const quoteItems = pgTable(
   (table) => [index("quote_items_quote_idx").on(table.quoteId)],
 );
 
+export const quoteLineItems = pgTable(
+  "quote_line_items",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    quoteId: text("quote_id").notNull().references(() => quotes.id, { onDelete: "cascade" }),
+    beneficiaryId: text("beneficiary_id").notNull().references(() => leadBeneficiaries.id, { onDelete: "restrict" }),
+    planId: text("plan_id").notNull().references(() => carrierPlans.id),
+    calculatedValue: numeric("calculated_value", { precision: 12, scale: 2 }).notNull(),
+    ageAtQuote: integer("age_at_quote").notNull(),
+    snapshot: jsonb("snapshot").notNull().default({}),
+    createdAt,
+  },
+  (table) => [
+    index("quote_line_items_tenant_quote_idx").on(table.tenantId, table.quoteId),
+    uniqueIndex("quote_line_items_quote_beneficiary_plan_unique").on(table.quoteId, table.beneficiaryId, table.planId),
+  ],
+);
+
 export const carrierPlanPrices = pgTable(
   "carrier_plan_prices",
   {
@@ -555,6 +608,325 @@ export const carrierPlanNetworks = pgTable(
     createdAt,
   },
   (table) => [index("carrier_plan_networks_plan_city_idx").on(table.planId, table.city)],
+);
+
+// Global catalog: only platform administrators may publish these records. Tenant
+// visibility is expressed by the settings tables below instead of duplicating plans.
+export const globalCarriers = pgTable(
+  "global_carriers",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    legalName: text("legal_name"),
+    ansCode: text("ans_code"),
+    status: catalogStatus("status").notNull().default("draft"),
+    metadata: jsonb("metadata").notNull().default({}),
+    createdBy: text("created_by").references(() => user.id),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    uniqueIndex("global_carriers_name_unique").on(table.name),
+    uniqueIndex("global_carriers_ans_code_unique").on(table.ansCode).where(sql`${table.ansCode} IS NOT NULL`),
+    index("global_carriers_status_idx").on(table.status),
+  ],
+);
+
+export const globalPlans = pgTable(
+  "global_plans",
+  {
+    id: text("id").primaryKey(),
+    carrierId: text("carrier_id").notNull().references(() => globalCarriers.id),
+    name: text("name").notNull(),
+    code: text("code"),
+    type: planType("type").notNull().default("individual"),
+    description: text("description"),
+    coverage: text("coverage"),
+    ansRegistration: text("ans_registration"),
+    maxEntryAge: integer("max_entry_age"),
+    metadata: jsonb("metadata").notNull().default({}),
+    status: catalogStatus("status").notNull().default("draft"),
+    createdBy: text("created_by").references(() => user.id),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("global_plans_carrier_status_idx").on(table.carrierId, table.status),
+    uniqueIndex("global_plans_carrier_code_unique").on(table.carrierId, table.code).where(sql`${table.code} IS NOT NULL`),
+  ],
+);
+
+export const catalogPriceTables = pgTable(
+  "catalog_price_tables",
+  {
+    id: text("id").primaryKey(),
+    planId: text("plan_id").notNull().references(() => globalPlans.id),
+    name: text("name").notNull(),
+    code: text("code"),
+    status: catalogStatus("status").notNull().default("draft"),
+    metadata: jsonb("metadata").notNull().default({}),
+    createdBy: text("created_by").references(() => user.id),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("catalog_price_tables_plan_status_idx").on(table.planId, table.status),
+    uniqueIndex("catalog_price_tables_plan_code_unique").on(table.planId, table.code).where(sql`${table.code} IS NOT NULL`),
+  ],
+);
+
+export const catalogTableVersions = pgTable(
+  "catalog_table_versions",
+  {
+    id: text("id").primaryKey(),
+    priceTableId: text("price_table_id").notNull().references(() => catalogPriceTables.id),
+    versionNumber: integer("version_number").notNull(),
+    status: catalogStatus("status").notNull().default("draft"),
+    effectiveFrom: timestamp("effective_from", { withTimezone: true }).notNull(),
+    effectiveTo: timestamp("effective_to", { withTimezone: true }),
+    sourceLabel: text("source_label"),
+    contentHash: text("content_hash"),
+    snapshot: jsonb("snapshot").notNull().default({}),
+    publishedBy: text("published_by").references(() => user.id),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    unique("catalog_table_versions_table_number_unique").on(table.priceTableId, table.versionNumber),
+    index("catalog_table_versions_lookup_idx").on(table.priceTableId, table.status, table.effectiveFrom),
+  ],
+);
+
+export const catalogPriceRows = pgTable(
+  "catalog_price_rows",
+  {
+    id: text("id").primaryKey(),
+    tableVersionId: text("table_version_id").notNull().references(() => catalogTableVersions.id, { onDelete: "cascade" }),
+    ageBand: text("age_band").notNull(),
+    minAge: integer("min_age"),
+    maxAge: integer("max_age"),
+    monthlyPrice: numeric("monthly_price", { precision: 12, scale: 2 }).notNull(),
+    criteria: jsonb("criteria").notNull().default({}),
+    createdAt,
+  },
+  (table) => [
+    unique("catalog_price_rows_version_age_band_unique").on(table.tableVersionId, table.ageBand),
+    index("catalog_price_rows_version_idx").on(table.tableVersionId),
+  ],
+);
+
+export const tenantCatalogPlanSettings = pgTable(
+  "tenant_catalog_plan_settings",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    globalPlanId: text("global_plan_id").notNull().references(() => globalPlans.id, { onDelete: "cascade" }),
+    enabled: boolean("enabled").notNull().default(false),
+    favorite: boolean("favorite").notNull().default(false),
+    sortOrder: integer("sort_order").notNull().default(0),
+    updatedBy: text("updated_by").references(() => user.id),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    unique("tenant_catalog_plan_settings_tenant_plan_unique").on(table.tenantId, table.globalPlanId),
+    index("tenant_catalog_plan_settings_tenant_enabled_idx").on(table.tenantId, table.enabled),
+  ],
+);
+
+export const branchCatalogPlanRestrictions = pgTable(
+  "branch_catalog_plan_restrictions",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    branchId: text("branch_id").notNull().references(() => branches.id, { onDelete: "cascade" }),
+    globalPlanId: text("global_plan_id").notNull().references(() => globalPlans.id, { onDelete: "cascade" }),
+    restricted: boolean("restricted").notNull().default(true),
+    updatedBy: text("updated_by").references(() => user.id),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    unique("branch_catalog_plan_restrictions_branch_plan_unique").on(table.branchId, table.globalPlanId),
+    index("branch_catalog_plan_restrictions_tenant_branch_idx").on(table.tenantId, table.branchId),
+  ],
+);
+
+// Private catalog extensions are deliberately separate from global entities. They
+// can reuse legacy ids during backfill without becoming globally addressable.
+export const tenantPrivateCarriers = pgTable(
+  "tenant_private_carriers",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    ansCode: text("ans_code"),
+    contact: text("contact"),
+    phone: text("phone"),
+    email: text("email"),
+    active: boolean("active").notNull().default(true),
+    metadata: jsonb("metadata").notNull().default({}),
+    createdBy: text("created_by").references(() => user.id),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    unique("tenant_private_carriers_tenant_name_unique").on(table.tenantId, table.name),
+    index("tenant_private_carriers_tenant_active_idx").on(table.tenantId, table.active),
+  ],
+);
+
+export const tenantPrivatePlans = pgTable(
+  "tenant_private_plans",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    carrierId: text("carrier_id").notNull().references(() => tenantPrivateCarriers.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    code: text("code"),
+    type: planType("type").notNull().default("individual"),
+    description: text("description"),
+    coverage: text("coverage"),
+    ansRegistration: text("ans_registration"),
+    maxEntryAge: integer("max_entry_age"),
+    active: boolean("active").notNull().default(true),
+    metadata: jsonb("metadata").notNull().default({}),
+    createdBy: text("created_by").references(() => user.id),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("tenant_private_plans_tenant_carrier_active_idx").on(table.tenantId, table.carrierId, table.active),
+    uniqueIndex("tenant_private_plans_carrier_code_unique").on(table.carrierId, table.code).where(sql`${table.code} IS NOT NULL`),
+  ],
+);
+
+export const tenantPrivatePriceTables = pgTable(
+  "tenant_private_price_tables",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    planId: text("plan_id").notNull().references(() => tenantPrivatePlans.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    code: text("code"),
+    active: boolean("active").notNull().default(true),
+    metadata: jsonb("metadata").notNull().default({}),
+    createdBy: text("created_by").references(() => user.id),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("tenant_private_price_tables_tenant_plan_idx").on(table.tenantId, table.planId, table.active),
+    uniqueIndex("tenant_private_price_tables_plan_code_unique").on(table.planId, table.code).where(sql`${table.code} IS NOT NULL`),
+  ],
+);
+
+export const tenantPrivateTableVersions = pgTable(
+  "tenant_private_table_versions",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    priceTableId: text("price_table_id").notNull().references(() => tenantPrivatePriceTables.id, { onDelete: "cascade" }),
+    versionNumber: integer("version_number").notNull(),
+    status: catalogStatus("status").notNull().default("draft"),
+    effectiveFrom: timestamp("effective_from", { withTimezone: true }).notNull(),
+    effectiveTo: timestamp("effective_to", { withTimezone: true }),
+    sourceLabel: text("source_label"),
+    snapshot: jsonb("snapshot").notNull().default({}),
+    publishedBy: text("published_by").references(() => user.id),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    unique("tenant_private_table_versions_table_number_unique").on(table.priceTableId, table.versionNumber),
+    index("tenant_private_table_versions_lookup_idx").on(table.tenantId, table.priceTableId, table.status, table.effectiveFrom),
+  ],
+);
+
+export const tenantPrivatePriceRows = pgTable(
+  "tenant_private_price_rows",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    tableVersionId: text("table_version_id").notNull().references(() => tenantPrivateTableVersions.id, { onDelete: "cascade" }),
+    ageBand: text("age_band").notNull(),
+    minAge: integer("min_age"),
+    maxAge: integer("max_age"),
+    monthlyPrice: numeric("monthly_price", { precision: 12, scale: 2 }).notNull(),
+    criteria: jsonb("criteria").notNull().default({}),
+    createdAt,
+  },
+  (table) => [
+    unique("tenant_private_price_rows_version_age_band_unique").on(table.tableVersionId, table.ageBand),
+    index("tenant_private_price_rows_tenant_version_idx").on(table.tenantId, table.tableVersionId),
+  ],
+);
+
+export const catalogImportBatches = pgTable(
+  "catalog_import_batches",
+  {
+    id: text("id").primaryKey(),
+    source: catalogSource("source").notNull(),
+    targetTenantId: text("target_tenant_id").references(() => tenants.id, { onDelete: "cascade" }),
+    status: catalogImportStatus("status").notNull().default("draft"),
+    fileName: text("file_name"),
+    contentHash: text("content_hash"),
+    summary: jsonb("summary").notNull().default({}),
+    createdBy: text("created_by").notNull().references(() => user.id),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("catalog_import_batches_source_status_idx").on(table.source, table.status),
+    index("catalog_import_batches_tenant_idx").on(table.targetTenantId),
+  ],
+);
+
+export const catalogChangeSets = pgTable(
+  "catalog_change_sets",
+  {
+    id: text("id").primaryKey(),
+    importBatchId: text("import_batch_id").references(() => catalogImportBatches.id, { onDelete: "set null" }),
+    source: catalogSource("source").notNull(),
+    targetTenantId: text("target_tenant_id").references(() => tenants.id, { onDelete: "cascade" }),
+    status: catalogImportStatus("status").notNull().default("draft"),
+    baseVersionId: text("base_version_id"),
+    proposedData: jsonb("proposed_data").notNull().default({}),
+    createdBy: text("created_by").notNull().references(() => user.id),
+    reviewedBy: text("reviewed_by").references(() => user.id),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("catalog_change_sets_source_status_idx").on(table.source, table.status),
+    index("catalog_change_sets_tenant_idx").on(table.targetTenantId),
+  ],
+);
+
+export const catalogAuditEvents = pgTable(
+  "catalog_audit_events",
+  {
+    id: text("id").primaryKey(),
+    actorUserId: text("actor_user_id").notNull().references(() => user.id),
+    tenantId: text("tenant_id").references(() => tenants.id, { onDelete: "cascade" }),
+    source: catalogSource("source").notNull(),
+    action: text("action").notNull(),
+    entityType: text("entity_type").notNull(),
+    entityId: text("entity_id").notNull(),
+    metadata: jsonb("metadata").notNull().default({}),
+    createdAt,
+  },
+  (table) => [
+    index("catalog_audit_events_tenant_created_idx").on(table.tenantId, table.createdAt),
+    index("catalog_audit_events_actor_created_idx").on(table.actorUserId, table.createdAt),
+  ],
 );
 
 export const auditLogs = pgTable(
@@ -595,6 +967,84 @@ export const notifications = pgTable(
   (table) => [index("notifications_recipient_created_idx").on(table.recipientUserId, table.createdAt), index("notifications_tenant_idx").on(table.tenantId)],
 );
 
+export const routeOnboardingProgress = pgTable(
+  "route_onboarding_progress",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+    routeKey: text("route_key").notNull(),
+    enabled: boolean("enabled").notNull().default(true),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
+    resetAt: timestamp("reset_at", { withTimezone: true }),
+    version: integer("version").notNull().default(1),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    uniqueIndex("route_onboarding_progress_user_route_unique").on(table.tenantId, table.userId, table.routeKey),
+    index("route_onboarding_progress_user_idx").on(table.tenantId, table.userId),
+  ],
+);
+
+export const dutyRosterAssignments = pgTable(
+  "duty_roster_assignments",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    branchId: text("branch_id").notNull().references(() => branches.id, { onDelete: "cascade" }),
+    scheduleId: text("schedule_id").notNull().references(() => unitDutySchedules.id, { onDelete: "cascade" }),
+    brokerId: text("broker_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+    dayOfWeek: integer("day_of_week").notNull(),
+    startsAt: text("starts_at").notNull(),
+    endsAt: text("ends_at").notNull(),
+    validFrom: timestamp("valid_from", { withTimezone: true }).notNull(),
+    validUntil: timestamp("valid_until", { withTimezone: true }),
+    status: text("status").notNull().default("active"),
+    createdBy: text("created_by").notNull().references(() => user.id),
+    updatedBy: text("updated_by").notNull().references(() => user.id),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("duty_roster_assignments_tenant_branch_idx").on(table.tenantId, table.branchId, table.dayOfWeek, table.startsAt),
+    index("duty_roster_assignments_broker_idx").on(table.tenantId, table.brokerId, table.dayOfWeek),
+    index("duty_roster_assignments_schedule_idx").on(table.scheduleId, table.status),
+  ],
+);
+
+export const feedbackChecklistTemplates = pgTable(
+  "feedback_checklist_templates",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    description: text("description"),
+    active: boolean("active").notNull().default(true),
+    createdBy: text("created_by").notNull().references(() => user.id),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [index("feedback_checklist_templates_tenant_idx").on(table.tenantId)],
+);
+
+export const feedbackChecklistItems = pgTable(
+  "feedback_checklist_items",
+  {
+    id: text("id").primaryKey(),
+    templateId: text("template_id").notNull().references(() => feedbackChecklistTemplates.id, { onDelete: "cascade" }),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    sortOrder: integer("sort_order").notNull().default(0),
+    question: text("question").notNull(),
+    answerType: text("answer_type").notNull().default("boolean"),
+    options: jsonb("options"),
+    required: boolean("required").notNull().default(true),
+    createdAt,
+  },
+  (table) => [index("feedback_checklist_items_template_idx").on(table.templateId, table.sortOrder)],
+);
+
 export const leadFeedbacks = pgTable(
   "lead_feedbacks",
   {
@@ -606,6 +1056,8 @@ export const leadFeedbacks = pgTable(
     content: text("content"),
     nextAction: text("next_action"),
     nextActionAt: timestamp("next_action_at", { withTimezone: true }),
+    checklistId: text("checklist_id").references(() => feedbackChecklistTemplates.id),
+    answers: jsonb("answers"),
     createdAt,
   },
   (table) => [index("lead_feedbacks_lead_created_idx").on(table.leadId, table.createdAt)],
@@ -649,6 +1101,66 @@ export const whatsappConnections = pgTable(
   (table) => [index("whatsapp_connections_user_idx").on(table.tenantId, table.userId), index("whatsapp_connections_session_idx").on(table.sessionId), uniqueIndex("whatsapp_connections_tenant_user_unique").on(table.tenantId, table.userId).where(sql`${table.userId} IS NOT NULL`)],
 );
 
+/**
+ * Canal de comunicação persistido e resolvido pelo provedor. A identidade de
+ * tenant nunca vem do webhook: para a Meta ela é derivada exclusivamente do
+ * phoneNumberId previamente associado a este registro.
+ */
+export const communicationChannels = pgTable(
+  "communication_channels",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    branchId: text("branch_id").references(() => branches.id, { onDelete: "set null" }),
+    ownerUserId: text("owner_user_id").references(() => user.id, { onDelete: "set null" }),
+    provider: text("provider").notNull(),
+    channelType: text("channel_type").notNull().default("shared"),
+    status: text("status").notNull().default("pending"),
+    businessId: text("business_id"),
+    wabaId: text("waba_id"),
+    phoneNumberId: text("phone_number_id"),
+    displayPhoneNumber: text("display_phone_number"),
+    verifiedName: text("verified_name"),
+    qualityRating: text("quality_rating"),
+    messagingLimit: text("messaging_limit"),
+    accessTokenCiphertext: text("access_token_ciphertext"),
+    tokenKeyVersion: text("token_key_version"),
+    tokenExpiresAt: timestamp("token_expires_at", { withTimezone: true }),
+    isDefault: boolean("is_default").notNull().default(false),
+    lastWebhookAt: timestamp("last_webhook_at", { withTimezone: true }),
+    activatedAt: timestamp("activated_at", { withTimezone: true }),
+    createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("communication_channels_tenant_status_idx").on(table.tenantId, table.status),
+    index("communication_channels_tenant_branch_idx").on(table.tenantId, table.branchId),
+    uniqueIndex("communication_channels_provider_phone_unique").on(table.provider, table.phoneNumberId).where(sql`${table.phoneNumberId} IS NOT NULL`),
+  ],
+);
+
+/** Minimal, PII-free webhook ledger for replay protection and operational audit. */
+export const communicationChannelWebhookEvents = pgTable(
+  "communication_channel_webhook_events",
+  {
+    id: text("id").primaryKey(),
+    channelId: text("channel_id").references(() => communicationChannels.id, { onDelete: "set null" }),
+    provider: text("provider").notNull(),
+    externalEventId: text("external_event_id"),
+    eventType: text("event_type").notNull(),
+    payloadHash: text("payload_hash").notNull(),
+    status: text("status").notNull().default("received"),
+    errorCode: text("error_code"),
+    receivedAt: timestamp("received_at", { withTimezone: true }).notNull().defaultNow(),
+    processedAt: timestamp("processed_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("communication_channel_webhook_events_channel_idx").on(table.channelId, table.receivedAt),
+    uniqueIndex("communication_channel_webhook_events_provider_external_unique").on(table.provider, table.externalEventId).where(sql`${table.externalEventId} IS NOT NULL`),
+  ],
+);
+
 export const whatsappMessages = pgTable(
   "whatsapp_messages",
   {
@@ -656,7 +1168,10 @@ export const whatsappMessages = pgTable(
     tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
     leadId: text("lead_id").references(() => leads.id, { onDelete: "cascade" }),
     clientId: text("client_id").references(() => clients.id, { onDelete: "cascade" }),
+    communicationChannelId: text("communication_channel_id").references(() => communicationChannels.id, { onDelete: "set null" }),
+    provider: text("provider").notNull().default("openwa_legacy"),
     messageId: text("message_id"),
+    providerStatus: text("provider_status"),
     phone: text("phone").notNull(),
     direction: text("direction").notNull(),
     body: text("body").notNull(),
@@ -849,16 +1364,18 @@ export const tenantMembershipRelations = relations(
 );
 
 export const commissionRuleTypeValues = ["unica", "escalonada"] as const;
-export const commissionScheduleStatusValues = ["pending", "paid", "cancelled"] as const;
+export const commissionScheduleStatusValues = ["pending", "paid", "cancelled", "chargeback_pending"] as const;
 export const goalScopeValues = ["broker", "team", "branch", "tenant"] as const;
 export const goalTargetTypeValues = ["sales_count", "revenue", "conversion_rate", "leads_contacted"] as const;
 export const saleStatusValues = ["active", "cancelled"] as const;
+export const activeCustomerStatusValues = ["active", "cancelled"] as const;
 
 export const commissionRuleType = pgEnum("commission_rule_type", commissionRuleTypeValues);
 export const commissionScheduleStatus = pgEnum("commission_schedule_status", commissionScheduleStatusValues);
 export const goalScope = pgEnum("goal_scope", goalScopeValues);
 export const goalTargetType = pgEnum("goal_target_type", goalTargetTypeValues);
 export const saleStatus = pgEnum("sale_status", saleStatusValues);
+export const activeCustomerStatus = pgEnum("active_customer_status", activeCustomerStatusValues);
 
 export const documentStatusValues = ["pending", "approved", "rejected"] as const;
 export const documentStatus = pgEnum("document_status", documentStatusValues);
@@ -875,6 +1392,7 @@ export const documentRequirements = pgTable(
     name: text("name").notNull(),
     description: text("description"),
     required: boolean("required").notNull().default(true),
+    appliesPerBeneficiary: boolean("applies_per_beneficiary").notNull().default(false),
     createdAt,
     updatedAt,
   },
@@ -894,6 +1412,7 @@ export const leadDocuments = pgTable(
       .notNull()
       .references(() => leads.id, { onDelete: "cascade" }),
     requirementId: text("requirement_id").references(() => documentRequirements.id, { onDelete: "set null" }),
+    beneficiaryId: text("beneficiary_id").references(() => leadBeneficiaries.id, { onDelete: "set null" }),
     filename: text("filename").notNull(),
     fileUrl: text("file_url").notNull(),
     status: documentStatus("status").notNull().default("pending"),
@@ -955,6 +1474,10 @@ export const sales = pgTable(
     commissionRuleId: text("commission_rule_id").references(() => commissionRules.id),
     saleDate: timestamp("sale_date", { withTimezone: true }).notNull(),
     saleValue: numeric("sale_value", { precision: 12, scale: 2 }).notNull(),
+    policyNumber: text("policy_number"),
+    coverageStartDate: date("coverage_start_date", { mode: "string" }),
+    approvedValue: numeric("approved_value", { precision: 12, scale: 2 }),
+    confirmationDocumentId: text("confirmation_document_id").references(() => leadDocuments.id, { onDelete: "set null" }),
     status: saleStatus("status").notNull().default("active"),
     notes: text("notes"),
     createdBy: text("created_by")
@@ -998,6 +1521,45 @@ export const commissionSchedule = pgTable(
     index("commission_schedule_ref_month_idx").on(table.referenceMonth),
     index("commission_schedule_status_idx").on(table.status),
   ],
+);
+
+export const activeCustomers = pgTable(
+  "active_customers",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    saleId: text("sale_id").notNull().references(() => sales.id, { onDelete: "cascade" }),
+    clientId: text("client_id").references(() => clients.id, { onDelete: "set null" }),
+    leadId: text("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+    brokerId: text("broker_id").notNull().references(() => user.id),
+    branchId: text("branch_id").references(() => branches.id),
+    status: activeCustomerStatus("status").notNull().default("active"),
+    coverageStartDate: date("coverage_start_date", { mode: "string" }).notNull(),
+    contractAnniversary: date("contract_anniversary", { mode: "string" }).notNull(),
+    cancellationDate: date("cancellation_date", { mode: "string" }),
+    cancellationReason: text("cancellation_reason"),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    uniqueIndex("active_customers_sale_unique").on(table.saleId),
+    index("active_customers_tenant_status_idx").on(table.tenantId, table.status),
+    index("active_customers_branch_idx").on(table.branchId),
+  ],
+);
+
+export const postSaleSettings = pgTable(
+  "post_sale_settings",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    chargebackWindowDays: integer("chargeback_window_days").notNull().default(90),
+    active: boolean("active").notNull().default(true),
+    updatedBy: text("updated_by").references(() => user.id),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [uniqueIndex("post_sale_settings_tenant_unique").on(table.tenantId)],
 );
 
 /* ─── Goals ─── */

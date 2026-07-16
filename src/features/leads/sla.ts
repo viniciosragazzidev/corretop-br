@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto";
 import { getDatabase, schema } from "@/shared/db";
 import { chooseAvailableBroker } from "./assignment";
 import { notifyNewLead } from "@/features/notifications/send-push-helper";
+import { isNotificationCapabilityEnabled } from "@/features/notifications/queries";
 
 const activeStatuses = ["in_contact", "quote_sent", "negotiation", "documentation_pending", "under_analysis"] as const;
 type SlaKind = "lead_unworked" | "lead_stalled";
@@ -13,6 +14,7 @@ type SlaKind = "lead_unworked" | "lead_stalled";
 export type SlaSweepResult = { tenants: number; unworked: number; stalled: number; notifications: number };
 
 export async function runSlaSweep(tenantId?: string): Promise<SlaSweepResult> {
+  if (!(await isNotificationCapabilityEnabled("lead_sla"))) return { tenants: 0, unworked: 0, stalled: 0, notifications: 0 };
   const db = getDatabase();
   const tenants = await db.select({ id: schema.tenants.id, firstContactMinutes: schema.tenants.slaFirstContactMinutes, stagnantDays: schema.tenants.slaStagnantDays })
     .from(schema.tenants).where(tenantId ? eq(schema.tenants.id, tenantId) : eq(schema.tenants.status, "active"));

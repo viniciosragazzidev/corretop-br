@@ -7,6 +7,9 @@ import { getDatabase, schema } from "@/shared/db";
 import { TenantOnboardingDialogLoader } from "@/features/onboarding/components/tenant-onboarding-dialog-loader";
 import { DirectorWizardLoader } from "@/features/onboarding/components/director-wizard-loader";
 import { RealtimeSyncProvider } from "@/components/providers/realtime-sync-provider";
+import { NotificationCountProvider } from "@/components/providers/notification-count-provider";
+import { FeedbackToastHandler } from "@/features/leads/components/feedback-toast-handler";
+import { RouteOnboardingLoader } from "@/features/onboarding/components/route-onboarding-loader";
 
 export default async function DashboardLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   let context;
@@ -38,13 +41,17 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
     >
       <TenantOnboardingDialogLoader />
       <DirectorWizardLoader />
+      <RouteOnboardingLoader />
       <RealtimeSyncProvider
         tenantId={context.tenantId}
         userId={context.userId}
         role={context.role}
         branchId={context.branchId}
       >
-        {children}
+        <NotificationCountProvider userId={context.userId}>
+          <FeedbackToastHandler userId={context.userId} />
+          {children}
+        </NotificationCountProvider>
       </RealtimeSyncProvider>
     </AppShell>
   );

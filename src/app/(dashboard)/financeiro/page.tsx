@@ -1,4 +1,5 @@
 import { DashboardHeader } from "@/components/dashboard-header";
+import { ViewScopeContext } from "@/components/ownership-context";
 import { FinancialDashboard } from "@/features/financeiro/components/financial-dashboard";
 import { getFinancialDashboardData } from "@/features/financeiro/queries";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
@@ -18,6 +19,7 @@ export default async function FinancialPage() {
             <p className="mt-1 text-sm text-muted-foreground">
               Acompanhe comissões, repasses, metas financeiras e resultados da corretora.
             </p>
+            <div className="mt-3"><ViewScopeContext role={context.role} /></div>
           </div>
         </section>
 

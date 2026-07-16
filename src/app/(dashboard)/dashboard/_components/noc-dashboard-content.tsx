@@ -38,7 +38,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cardItemVariants } from "@/shared/animations";
 import type {
   DirectorDashboardData,
@@ -90,15 +89,15 @@ function DirectorActionCenter({ data }: { data: DirectorDashboardData }) {
       label: "Leads sem contato",
       value: data.totals.unworked,
       description: "Distribuídos há mais de 15 minutos",
-      href: "/leads?status=distributed",
-      tone: data.totals.unworked > 0 ? "border-warning/30 bg-warning/[0.06]" : "border-border/60 bg-muted/20",
+      href: "/leads?attention=unworked",
+      tone: data.totals.unworked > 0 ? "border-warning/30 bg-accent/[0.06]" : "border-border/60 bg-muted/20",
       icon: Warning,
     },
     {
       label: "Leads estagnados",
       value: data.totals.stalled,
       description: "Sem avanço há mais de 3 dias",
-      href: "/leads?status=stalled",
+      href: "/leads?attention=stalled",
       tone: data.totals.stalled > 0 ? "border-destructive/30 bg-destructive/[0.05]" : "border-border/60 bg-muted/20",
       icon: XCircle,
     },
@@ -168,10 +167,8 @@ function NocMetricCard({
       initial="hidden"
       animate="visible"
       transition={{ delay: delay / 1000 }}
-      whileHover={{ y: -2, transition: { duration: 0.2, ease: [0, 0, 0.2, 1] } }}
-      whileTap={{ scale: 0.995, transition: { duration: 0.1 } }}
     >
-      <Card className="group/card rounded-xl border-border/70 bg-card shadow-none transition-all duration-200 hover:border-primary/25 hover:shadow-sm hover:shadow-primary/5">
+      <Card className="group/card rounded-xl border-border/70 bg-card shadow-none transition-all duration-200">
         <CardHeader className="pb-1">
           <div className="flex items-center justify-between gap-3">
             <span className="text-sm text-muted-foreground transition-colors duration-200 group-hover/card:text-foreground">{label}</span>
@@ -238,6 +235,7 @@ function ActivityFeed({
     message: string;
     time: string;
     user: string;
+    branchName?: string | null;
   }>;
 }) {
   return (
@@ -255,7 +253,7 @@ function ActivityFeed({
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        <ScrollArea className="h-72">
+        <div className="max-h-72 overflow-y-auto">
           <div className="space-y-0">
             {activities.map((activity, i) => (
               <div
@@ -270,6 +268,12 @@ function ActivityFeed({
                   <p className="text-sm">{activity.message}</p>
                   <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
                     <span>{activity.user}</span>
+                    {activity.branchName && (
+                      <>
+                        <span>·</span>
+                        <span className="font-medium text-foreground/70">{activity.branchName}</span>
+                      </>
+                    )}
                     <span>·</span>
                     <span>{activity.time}</span>
                   </div>
@@ -282,7 +286,7 @@ function ActivityFeed({
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
       </CardContent>
     </Card>
   );
@@ -339,35 +343,36 @@ function DirectorNocContent({ data }: { data: DirectorDashboardData }) {
     time: string;
     user: string;
   }> = [
-    {
-      id: 1,
-      type: "alert",
-      message: `${data.totals.unworked} leads não trabalhados há mais de 15 min`,
-      time: "agora",
-      user: "Alerta",
-    },
-    {
-      id: 2,
-      type: "alert",
-      message: `${data.totals.stalled} leads estagnados sem avanço`,
-      time: "agora",
-      user: "Alerta",
-    },
-    {
-      id: 3,
-      type: "conversion",
-      message: `${totalConverted} leads convertidos no total`,
-      time: "hoje",
-      user: "Sistema",
-    },
-    ...data.branches.map((b, i) => ({
-      id: 10 + i,
-      type: "new_lead" as const,
-      message: `Filial "${b.name}" — ${b.leads} leads, ${b.conversion} conversão`,
-      time: "hoje",
-      user: "Sistema",
-    })),
-  ];
+      {
+        id: 1,
+        type: "alert",
+        message: `${data.totals.unworked} leads não trabalhados há mais de 15 min`,
+        time: "agora",
+        user: "Alerta",
+      },
+      {
+        id: 2,
+        type: "alert",
+        message: `${data.totals.stalled} leads estagnados sem avanço`,
+        time: "agora",
+        user: "Alerta",
+      },
+      {
+        id: 3,
+        type: "conversion",
+        message: `${totalConverted} leads convertidos no total`,
+        time: "hoje",
+        user: "Sistema",
+      },
+      ...data.branches.map((b, i) => ({
+        id: 10 + i,
+        type: "new_lead" as const,
+        message: `Filial "${b.name}" — ${b.leads} leads, ${b.conversion} conversão`,
+        time: "hoje",
+        user: "Sistema",
+        branchName: b.name,
+      })),
+    ];
 
   return (
     <>
@@ -457,98 +462,98 @@ function DirectorNocContent({ data }: { data: DirectorDashboardData }) {
           transition={{ duration: 0.25, ease: [0, 0, 0.2, 1] }}
           className="lg:col-span-4"
         >
-        <Card className="rounded-xl border-border/70 bg-card shadow-none">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Funil Comercial</CardTitle>
-                <CardDescription>
-                  Leads por etapa no tenant
-                </CardDescription>
-              </div>
-              <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                {funnelChartData.map((d) => (
-                  <span
-                    key={d.name}
-                    className="flex items-center gap-1.5"
-                  >
-                    <span className="inline-block size-2.5 rounded-full bg-primary" />
-                    {d.name}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="h-64">
-              <ResponsiveContainer height="100%" width="100%">
-                <AreaChart
-                  data={funnelChartData}
-                  margin={{ top: 4, right: 4, left: -16, bottom: 0 }}
-                >
-                  <defs>
-                    <linearGradient
-                      id="funnelGradient"
-                      x1="0"
-                      x2="0"
-                      y1="0"
-                      y2="1"
+          <Card className="rounded-xl border-border/70 bg-card shadow-none">
+            <CardHeader>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <CardTitle>Funil Comercial</CardTitle>
+                  <CardDescription>
+                    Leads por etapa no tenant
+                  </CardDescription>
+                </div>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                  {funnelChartData.map((d) => (
+                    <span
+                      key={d.name}
+                      className="flex items-center gap-1.5"
                     >
-                      <stop
-                        offset="0%"
-                        stopColor="var(--chart-1)"
-                        stopOpacity={0.25}
-                      />
-                      <stop
-                        offset="100%"
-                        stopColor="var(--chart-1)"
-                        stopOpacity={0.02}
-                      />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid
-                    stroke="var(--border)"
-                    strokeDasharray="3 3"
-                    vertical={false}
-                  />
-                  <XAxis
-                    axisLine={false}
-                    dataKey="name"
-                    tick={{
-                      fill: "var(--muted-foreground)",
-                      fontSize: 12,
-                    }}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tick={{
-                      fill: "var(--muted-foreground)",
-                      fontSize: 12,
-                    }}
-                    tickLine={false}
-                  />
-                  <Tooltip
-                    content={<ChartTooltipWrapper />}
-                    cursor={{
-                      stroke: "var(--border)",
-                      strokeDasharray: "3 3",
-                    }}
-                  />
-                  <Area
-                    dataKey="volume"
-                    fill="url(#funnelGradient)"
-                    stroke="var(--chart-1)"
-                    strokeWidth={2}
-                    type="monotone"
-                    animationDuration={600}
-                    animationEasing="ease-out"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+                      <span className="inline-block size-2.5 rounded-full bg-primary" />
+                      {d.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="h-64">
+                <ResponsiveContainer height="100%" width="100%">
+                  <AreaChart
+                    data={funnelChartData}
+                    margin={{ top: 4, right: 4, left: -16, bottom: 0 }}
+                  >
+                    <defs>
+                      <linearGradient
+                        id="funnelGradient"
+                        x1="0"
+                        x2="0"
+                        y1="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="0%"
+                          stopColor="var(--chart-1)"
+                          stopOpacity={0.25}
+                        />
+                        <stop
+                          offset="100%"
+                          stopColor="var(--chart-1)"
+                          stopOpacity={0.02}
+                        />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid
+                      stroke="var(--border)"
+                      strokeDasharray="3 3"
+                      vertical={false}
+                    />
+                    <XAxis
+                      axisLine={false}
+                      dataKey="name"
+                      tick={{
+                        fill: "var(--muted-foreground)",
+                        fontSize: 12,
+                      }}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tick={{
+                        fill: "var(--muted-foreground)",
+                        fontSize: 12,
+                      }}
+                      tickLine={false}
+                    />
+                    <Tooltip
+                      content={<ChartTooltipWrapper />}
+                      cursor={{
+                        stroke: "var(--border)",
+                        strokeDasharray: "3 3",
+                      }}
+                    />
+                    <Area
+                      dataKey="volume"
+                      fill="url(#funnelGradient)"
+                      stroke="var(--chart-1)"
+                      strokeWidth={2}
+                      type="monotone"
+                      animationDuration={600}
+                      animationEasing="ease-out"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
         </motion.div>
 
         {/* Status Distribution Pie */}
@@ -558,73 +563,73 @@ function DirectorNocContent({ data }: { data: DirectorDashboardData }) {
           transition={{ duration: 0.25, ease: [0, 0, 0.2, 1], delay: 0.08 }}
           className="lg:col-span-3"
         >
-        <Card className="rounded-xl border-border/70 bg-card shadow-none">
-          <CardHeader>
-            <CardTitle>Distribuição por Status</CardTitle>
-            <CardDescription>
-              Leads em cada etapa do funil
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex h-64 items-center justify-center">
-              <div className="relative">
-                <ResponsiveContainer height={180} width={220}>
-                  <PieChart>
-                    <Pie
-                      cx="50%"
-                      cy="50%"
-                      data={statusDistribution.filter((d) => d.value > 0)}
-                      dataKey="value"
-                      endAngle={-270}
-                      innerRadius={50}
-                      outerRadius={75}
-                      paddingAngle={3}
-                      strokeWidth={0}
-                      animationDuration={600}
-                      animationEasing="ease-out"
-                    >
-                      {statusDistribution
-                        .filter((d) => d.value > 0)
-                        .map((entry, i) => (
-                          <Cell key={i} fill={entry.color} />
-                        ))}
-                    </Pie>
-                    <Tooltip content={<ChartTooltipWrapper />} />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-lg font-bold tabular-nums">
-                    {totalLeads}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    Total
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              {statusDistribution
-                .filter((d) => d.value > 0)
-                .map((item) => (
-                  <div
-                    key={item.name}
-                    className="flex items-center gap-2 text-xs"
-                  >
-                    <span
-                      className="inline-block size-2.5 shrink-0 rounded-full"
-                      style={{ backgroundColor: item.color }}
-                    />
-                    <span className="text-muted-foreground">
-                      {item.name}
+          <Card className="rounded-xl border-border/70 bg-card shadow-none">
+            <CardHeader>
+              <CardTitle>Distribuição por Status</CardTitle>
+              <CardDescription>
+                Leads em cada etapa do funil
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex h-64 items-center justify-center">
+                <div className="relative">
+                  <ResponsiveContainer height={180} width={220}>
+                    <PieChart>
+                      <Pie
+                        cx="50%"
+                        cy="50%"
+                        data={statusDistribution.filter((d) => d.value > 0)}
+                        dataKey="value"
+                        endAngle={-270}
+                        innerRadius={50}
+                        outerRadius={75}
+                        paddingAngle={3}
+                        strokeWidth={0}
+                        animationDuration={600}
+                        animationEasing="ease-out"
+                      >
+                        {statusDistribution
+                          .filter((d) => d.value > 0)
+                          .map((entry, i) => (
+                            <Cell key={i} fill={entry.color} />
+                          ))}
+                      </Pie>
+                      <Tooltip content={<ChartTooltipWrapper />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-lg font-bold tabular-nums">
+                      {totalLeads}
                     </span>
-                    <span className="ml-auto font-medium tabular-nums">
-                      {item.value}
+                    <span className="text-xs text-muted-foreground">
+                      Total
                     </span>
                   </div>
-                ))}
-            </div>
-          </CardContent>
-        </Card>
+                </div>
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {statusDistribution
+                  .filter((d) => d.value > 0)
+                  .map((item) => (
+                    <div
+                      key={item.name}
+                      className="flex items-center gap-2 text-xs"
+                    >
+                      <span
+                        className="inline-block size-2.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: item.color }}
+                      />
+                      <span className="text-muted-foreground">
+                        {item.name}
+                      </span>
+                      <span className="ml-auto font-medium tabular-nums">
+                        {item.value}
+                      </span>
+                    </div>
+                  ))}
+              </div>
+            </CardContent>
+          </Card>
         </motion.div>
       </section>
 
@@ -665,11 +670,10 @@ function DirectorNocContent({ data }: { data: DirectorDashboardData }) {
                   <div
                     className="h-full rounded-full bg-chart-5 transition-all duration-700"
                     style={{
-                      width: `${
-                        branch.leads > 0
-                          ? (branch.activeLeads / branch.leads) * 100
-                          : 0
-                      }%`,
+                      width: `${branch.leads > 0
+                        ? (branch.activeLeads / branch.leads) * 100
+                        : 0
+                        }%`,
                     }}
                   />
                 </div>
@@ -691,8 +695,10 @@ function DirectorNocContent({ data }: { data: DirectorDashboardData }) {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="rounded-lg border border-border/40 bg-muted/20 p-3">
-              <div className="flex items-center gap-2">
-                <Warning className="size-4 text-warning" weight="fill" />
+              <div className="flex items-center gap-2">              <Warning
+                className="size-4 text-warning"
+                weight="fill"
+              />
                 <span className="text-sm font-medium">
                   Leads não trabalhados
                 </span>
@@ -810,9 +816,8 @@ function ManagerNocContent({ data }: { data: ManagerDashboardData }) {
     {
       id: 4,
       type: "conversion",
-      message: `${
-        data.teamSize - data.activeMembers
-      } corretores offline na filial`,
+      message: `${data.teamSize - data.activeMembers
+        } corretores offline na filial`,
       time: "hoje",
       user: "Sistema",
     },
@@ -964,8 +969,10 @@ function ManagerNocContent({ data }: { data: ManagerDashboardData }) {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="rounded-lg border border-border/40 bg-muted/20 p-3">
-              <div className="flex items-center gap-2">
-                <Warning className="size-4 text-warning" weight="fill" />
+              <div className="flex items-center gap-2">              <Warning
+                className="size-4 text-warning"
+                weight="fill"
+              />
                 <span className="text-sm font-medium">
                   Não trabalhados
                 </span>
@@ -1088,26 +1095,26 @@ function BrokerNocContent({ data }: { data: BrokerDashboardData }) {
   }> =
     data.activeLeads.length > 0
       ? data.activeLeads.slice(0, 8).map((lead, i) => ({
-          id: i + 1,
-          type: "new_lead",
-          message: `Atendimento ativo — ${lead.name} (${lead.status})`,
-          time: "hoje",
-          user: lead.serviceStartedAt
-            ? new Intl.DateTimeFormat("pt-BR", {
-                hour: "2-digit",
-                minute: "2-digit",
-              }).format(lead.serviceStartedAt)
-            : "Sistema",
-        }))
+        id: i + 1,
+        type: "new_lead",
+        message: `Atendimento ativo — ${lead.name} (${lead.status})`,
+        time: "hoje",
+        user: lead.serviceStartedAt
+          ? new Intl.DateTimeFormat("pt-BR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }).format(lead.serviceStartedAt)
+          : "Sistema",
+      }))
       : [
-          {
-            id: 99,
-            type: "conversion",
-            message: "Nenhum atendimento ativo no momento",
-            time: "agora",
-            user: "Sistema",
-          },
-        ];
+        {
+          id: 99,
+          type: "conversion",
+          message: "Nenhum atendimento ativo no momento",
+          time: "agora",
+          user: "Sistema",
+        },
+      ];
 
   return (
     <>
@@ -1140,6 +1147,66 @@ function BrokerNocContent({ data }: { data: BrokerDashboardData }) {
         </div>
       </section>
 
+      {/* Quick-action cards for pending items */}
+      <section className="grid gap-3 sm:grid-cols-3">
+        <Link
+          href="/leads?status=distributed"
+          className="group rounded-xl border border-warning/30 bg-accent/[0.04] p-4 outline-none transition-colors hover:border-warning/50 hover:bg-accent/[0.07] focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex size-8 items-center justify-center rounded-lg bg-accent/10">
+              <Warning className="size-4 text-warning" weight="fill" />
+            </div>
+            <ArrowUpRight className="size-4 shrink-0 text-muted-foreground transition-transform duration-150 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+          </div>
+          <p className="mt-4 text-sm font-medium">Pendentes</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums">{data.totals.distributed}</p>
+          <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1">
+              <span className={`size-1.5 rounded-full ${data.pendingStaleness.overdueCount > 0 ? "bg-destructive" : "bg-muted-foreground/40"}`} />
+              {data.pendingStaleness.overdueCount} {data.pendingStaleness.overdueCount === 1 ? "venceu" : "venceram"} o SLA
+            </span>
+            {data.pendingStaleness.oldestMinutes !== null && (
+              <>
+                <span>·</span>
+                <span>mais antigo: {data.pendingStaleness.oldestMinutes} min</span>
+              </>
+            )}
+          </div>
+          <p className="mt-1.5 text-xs leading-4 text-muted-foreground/70">Leads atribuídos aguardando primeiro contato</p>
+        </Link>
+
+        <Link
+          href="/leads?status=lost"
+          className="group rounded-xl border border-destructive/20 bg-destructive/[0.03] p-4 outline-none transition-colors hover:border-destructive/40 hover:bg-destructive/[0.06] focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex size-8 items-center justify-center rounded-lg bg-destructive/10">
+              <XCircle className="size-4 text-destructive" weight="fill" />
+            </div>
+            <ArrowUpRight className="size-4 shrink-0 text-muted-foreground transition-transform duration-150 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+          </div>
+          <p className="mt-4 text-sm font-medium">Perdidos</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums">{data.totals.lost}</p>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">Leads perdidos — podem ser reativados</p>
+        </Link>
+
+        <Link
+          href="/leads"
+          className="group rounded-xl border border-border/60 bg-muted/20 p-4 outline-none transition-colors hover:border-primary/30 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex size-8 items-center justify-center rounded-lg bg-chart-3/10">
+              <UserList className="size-4 text-chart-3" weight="fill" />
+            </div>
+            <ArrowUpRight className="size-4 shrink-0 text-muted-foreground transition-transform duration-150 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+          </div>
+          <p className="mt-4 text-sm font-medium">Precisa de ação</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums">{data.totals.active}</p>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">Leads em atendimento que precisam de retorno</p>
+        </Link>
+      </section>
+
       {/* Metric Cards */}
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <NocMetricCard
@@ -1157,10 +1224,10 @@ function BrokerNocContent({ data }: { data: BrokerDashboardData }) {
           delay={80}
         />
         <NocMetricCard
-          label="Novos"
-          value={data.totals.new}
-          change="aguardando contato"
-          description="Leads sem interação"
+          label="Pendentes"
+          value={data.totals.distributed}
+          change="sem primeiro contato"
+          description="Aguardando contato inicial"
           delay={160}
         />
         <NocMetricCard
@@ -1251,43 +1318,43 @@ function BrokerNocContent({ data }: { data: BrokerDashboardData }) {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">              {data.activeLeads.length > 0 ? (
-              data.activeLeads.slice(0, 5).map((lead, i) => (
-                <motion.div
-                  key={lead.id}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.15, ease: [0, 0, 0.2, 1], delay: Math.min(i * 0.05, 0.2) }}
-                  className="flex items-center gap-3 rounded-lg border border-border/40 bg-muted/20 p-2.5"
-                >
-                  <div className="flex size-8 items-center justify-center rounded-full bg-chart-3/10">
-                    <Users
-                      className="size-4 text-chart-3"
-                      weight="fill"
-                    />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate">
-                      {lead.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground capitalize">
-                      {lead.status.replace(/_/g, " ")}
-                    </p>
-                  </div>
-                  {lead.serviceStartedAt && (
-                    <span className="text-xs text-muted-foreground tabular-nums">
-                      {new Intl.DateTimeFormat("pt-BR", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      }).format(lead.serviceStartedAt)}
-                    </span>
-                  )}
-                </motion.div>
-              ))
-            ) : (
-              <div className="py-10 text-center text-sm text-muted-foreground">
-                Nenhum atendimento ativo no momento.
-              </div>
-            )}
+            data.activeLeads.slice(0, 5).map((lead, i) => (
+              <motion.div
+                key={lead.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.15, ease: [0, 0, 0.2, 1], delay: Math.min(i * 0.05, 0.2) }}
+                className="flex items-center gap-3 rounded-lg border border-border/40 bg-muted/20 p-2.5"
+              >
+                <div className="flex size-8 items-center justify-center rounded-full bg-chart-3/10">
+                  <Users
+                    className="size-4 text-chart-3"
+                    weight="fill"
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium truncate">
+                    {lead.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground capitalize">
+                    {lead.status.replace(/_/g, " ")}
+                  </p>
+                </div>
+                {lead.serviceStartedAt && (
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {new Intl.DateTimeFormat("pt-BR", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    }).format(lead.serviceStartedAt)}
+                  </span>
+                )}
+              </motion.div>
+            ))
+          ) : (
+            <div className="py-10 text-center text-sm text-muted-foreground">
+              Nenhum atendimento ativo no momento.
+            </div>
+          )}
             {data.activeLeads.length > 5 && (
               <p className="pt-1 text-center text-xs text-muted-foreground">
                 +{data.activeLeads.length - 5} atendimentos
@@ -1329,9 +1396,12 @@ function BrokerNocContent({ data }: { data: BrokerDashboardData }) {
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export default function NocDashboardContent(props: RoleProps) {
+  const [mounted, setMounted] = useState(false);
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
 
   useEffect(() => {
+    setMounted(true);
+    setCurrentTime(new Date());
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
@@ -1363,14 +1433,20 @@ export default function NocDashboardContent(props: RoleProps) {
         title={title}
         rightSlot={
           <div className="flex items-center gap-3">
-            <div className="hidden items-center gap-2 rounded-lg border border-border/60 bg-muted/40 px-3 py-1.5 text-xs tabular-nums sm:flex">
+            <div className="hidden items-center gap-2 rounded-lg border border-border/60 bg-muted/40 px-3 py-1.5 text-xs tabular-nums sm:flex min-w-[280px] justify-center">
               <WifiHigh className="size-3.5 text-success" weight="fill" />
-              <span className="text-muted-foreground">
-                {formattedDate ?? "Carregando..."}
-              </span>
-              <span className="font-medium text-foreground">
-                {formattedTime ?? "--:--:--"}
-              </span>
+              {mounted && currentTime ? (
+                <>
+                  <span className="text-muted-foreground">
+                    {formattedDate}
+                  </span>
+                  <span className="font-medium text-foreground">
+                    {formattedTime}
+                  </span>
+                </>
+              ) : (
+                <span className="text-muted-foreground animate-pulse">Sincronizando relógio...</span>
+              )}
             </div>
             <Badge className="gap-1.5 rounded-md text-xs" variant="success">
               <span className="relative flex size-2">

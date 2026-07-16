@@ -20,7 +20,8 @@ function useIsIOS(): boolean {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as unknown as Record<string, boolean>).MSStream;
-    setIsIOS(ios);
+    const frame = window.requestAnimationFrame(() => setIsIOS(ios));
+    return () => window.cancelAnimationFrame(frame);
   }, []);
   return isIOS;
 }
@@ -80,10 +81,10 @@ export function PwaInstallPrompt() {
   useEffect(() => {
     // No iOS, `beforeinstallprompt` não existe — usamos detecção manual
     if (isIOS) {
-      if (!shouldSkipPrompt()) {
-        setCanInstall(true);
-      }
-      return;
+      const timeout = window.setTimeout(() => {
+        if (!shouldSkipPrompt()) setCanInstall(true);
+      }, 0);
+      return () => window.clearTimeout(timeout);
     }
 
     const handleBeforeInstallPrompt = (event: Event) => {
@@ -104,7 +105,7 @@ export function PwaInstallPrompt() {
   return (
     <AnimatePresence>
       {canInstall && (
-        <div className="fixed bottom-6 right-6 z-50 max-[559px]:bottom-20 max-[559px]:right-4">
+        <div className="fixed bottom-6 right-6 z-50 max-[559px]:bottom-[calc(5.75rem+env(safe-area-inset-bottom))] max-[559px]:right-3">
           <AnimatePresence mode="wait">
             {showCard && (
               <motion.div
@@ -112,7 +113,7 @@ export function PwaInstallPrompt() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 8, scale: 0.95 }}
                 transition={{ duration: 0.15, ease: "easeOut" }}
-                className="absolute bottom-16 right-0 w-72 max-[559px]:bottom-14 max-[559px]:right-0"
+                className="absolute bottom-16 right-0 w-72 max-[559px]:bottom-12 max-[559px]:right-0 max-[559px]:w-64"
               >
                 <Card size="sm" className="shadow-lg">
                   <CardHeader>
@@ -177,10 +178,10 @@ export function PwaInstallPrompt() {
             exit={{ opacity: 0, scale: 0 }}
             transition={{ type: "spring", stiffness: 260, damping: 20 }}
             onClick={() => setShowCard((prev) => !prev)}
-            className="flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-colors hover:bg-primary/90"
+            className="flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-colors hover:bg-primary/90 max-[559px]:size-10"
             aria-label="Instalar CorreTop"
           >
-            <FileArrowDown className="size-5" />
+            <FileArrowDown className="size-5 max-[559px]:size-4" />
           </motion.button>
         </div>
       )}

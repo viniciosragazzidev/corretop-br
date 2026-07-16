@@ -34,6 +34,8 @@ import { signOut } from "@/shared/auth/client";
 import { toast } from "sonner";
 import { getUserDisplayInfo, type UserDisplayInfo } from "@/shared/auth/actions";
 import { hasPermission, type PermissionKey } from "@/shared/auth/permissions";
+import { getPendingFeedbackCountAction } from "@/features/leads/feedback-queries";
+import { Badge } from "@/components/ui/badge";
 
 type BrokerSidebarItem = { label: string; icon: typeof ListChecks; url: string; permission: PermissionKey };
 const workItems: BrokerSidebarItem[] = [
@@ -61,10 +63,12 @@ function NavigationGroup({
   label,
   items,
   role,
+  badges,
 }: {
   label: string;
   items: BrokerSidebarItem[];
   role: UserDisplayInfo["roleKey"];
+  badges?: Record<string, number>;
 }) {
   const pathname = usePathname();
   const visibleItems = items.filter((item) => hasPermission(role, item.permission));
@@ -75,6 +79,7 @@ function NavigationGroup({
         <SidebarMenu>
           {visibleItems.map((item) => {
             const Icon = item.icon;
+            const count = badges?.[item.label];
             return (
               <SidebarMenuItem key={item.label}>
                 <SidebarMenuButton
@@ -83,7 +88,15 @@ function NavigationGroup({
                   tooltip={item.label}
                 >
                   <Icon weight={item.label === "Resumo" ? "fill" : "regular"} />
-                  <span>{item.label}</span>
+                  <span className="flex-1">{item.label}</span>
+                  {count !== undefined && count > 0 && (
+                    <Badge
+                      variant="warning"
+                      className="ml-auto h-5 min-w-5 rounded-full px-1.5 text-[9px] font-bold leading-none"
+                    >
+                      {count > 99 ? "99+" : count}
+                    </Badge>
+                  )}
                 </SidebarMenuButton>
               </SidebarMenuItem>
             );
@@ -98,9 +111,29 @@ export function CorretorSidebar() {
   const router = useRouter();
   const [user, setUser] = useState<UserDisplayInfo | null>(null);
   const [isAvailable, setIsAvailable] = useState(true);
+  const [pendingFeedback, setPendingFeedback] = useState(0);
 
   useEffect(() => {
     getUserDisplayInfo().then(setUser);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchCount = async () => {
+      try {
+        const { count } = await getPendingFeedbackCountAction();
+        if (!cancelled) setPendingFeedback(count);
+      } catch {
+        // Silent fail — badge just won't show
+      }
+    };
+    fetchCount();
+    // Poll every 60 seconds to keep badge fresh
+    const interval = setInterval(fetchCount, 60_000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, []);
 
   const userName = user?.name ?? "Luiza Costa";
@@ -131,7 +164,7 @@ export function CorretorSidebar() {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavigationGroup items={workItems} label="Atendimento" role={user?.roleKey ?? null} />
+        <NavigationGroup items={workItems} label="Atendimento" role={user?.roleKey ?? null} badges={{ "Minha fila": pendingFeedback }} />
         <NavigationGroup items={performanceItems} label="Desempenho" role={user?.roleKey ?? null} />
         <NavigationGroup items={systemItems} label="Sistema" role={user?.roleKey ?? null} />
       </SidebarContent>
@@ -139,7 +172,7 @@ export function CorretorSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" render={<button type="button" onClick={handleLogout} />} tooltip={userName}>
-              <span className="grid size-7 place-items-center rounded-full bg-sidebar-accent text-xs font-semibold">{initials}</span>
+              <span className="grid size-7 place-items-center rounded-full bg-sidebar-warning text-xs font-semibold">{initials}</span>
               <span className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{userName}</span>
                 <span className="truncate text-xs text-sidebar-foreground/55">Corretor</span>

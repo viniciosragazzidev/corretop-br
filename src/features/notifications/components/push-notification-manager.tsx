@@ -1,100 +1,110 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
 
-import {
-  Bell,
-  BellRinging,
-  CheckCircle,
-} from "@/components/huge-icons";
+import { Bell, BellRinging, CheckCircle } from "@/components/huge-icons";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
+  getSubscriptionStatusAction,
+  sendTestNotificationAction,
   subscribeUserAction,
   unsubscribeUserAction,
-  sendTestNotificationAction,
-  getSubscriptionStatusAction,
 } from "../push-actions";
 
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
+function urlBase64ToArrayBuffer(base64String: string): ArrayBuffer {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
+  const rawData = window.atob((base64String + padding).replace(/-/g, "+").replace(/_/g, "/"));
+  const bytes = Uint8Array.from(rawData, (character) => character.charCodeAt(0));
+  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
 }
 
-export function PushNotificationManager() {
-  const [isSupported, setIsSupported] = useState(false);
+type PushNotificationManagerProps = {
+  variant?: "card" | "compact";
+  onSubscribed?: () => void;
+};
+
+export function PushNotificationManager({
+  variant = "card",
+  onSubscribed,
+}: PushNotificationManagerProps) {
+  const reduceMotion = useReducedMotion();
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [subscriptionCount, setSubscriptionCount] = useState(0);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [showControls, setShowControls] = useState(false);
+  const [permission, setPermission] = useState<NotificationPermission | "unsupported">("default");
 
   const checkSubscription = useCallback(async () => {
     try {
-      const status = await getSubscriptionStatusAction();
-      setIsSubscribed(status.subscribed);
+      const registration = await navigator.serviceWorker.ready;
+      const [status, browserSubscription] = await Promise.all([
+        getSubscriptionStatusAction(),
+        registration.pushManager.getSubscription(),
+      ]);
+      setIsSubscribed(Boolean(browserSubscription));
       setSubscriptionCount(status.count);
+      setPermission(Notification.permission);
     } catch {
-      // Server actions may not be available yet
+      toast.error("Não foi possível verificar o status das notificações.");
     } finally {
       setChecking(false);
     }
   }, []);
 
   useEffect(() => {
-    if ("serviceWorker" in navigator && "PushManager" in window) {
-      setIsSupported(true);
-      checkSubscription();
-    } else {
-      setChecking(false);
-    }
+    const supported = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+    const timeout = window.setTimeout(() => {
+      if (supported) void checkSubscription();
+      else setChecking(false);
+    }, 0);
+    return () => window.clearTimeout(timeout);
   }, [checkSubscription]);
 
   const subscribe = async () => {
-    if (!isSupported) return;
+    if (!("serviceWorker" in navigator && "PushManager" in window)) return;
     setLoading(true);
-
     try {
-      const registration = await navigator.serviceWorker.ready;
-      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-
-      if (!vapidKey) {
-        toast.error("Chave VAPID não configurada. Notificações push não disponíveis.");
-        setLoading(false);
+      if (Notification.permission === "denied") {
+        setPermission("denied");
+        toast.error("As notificações estão bloqueadas neste navegador.", {
+          description: "Libere a permissão nas configurações do navegador para ativá-las.",
+        });
         return;
       }
 
-      const sub = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidKey) as any,
-      });
-
-      const serializedSub = JSON.parse(JSON.stringify(sub));
-      const result = await subscribeUserAction(serializedSub);
-
-      if (result.success) {
-        setIsSubscribed(true);
-        setSubscriptionCount(1);
-        toast.success("Notificações ativadas", {
-          description: "Você receberá alertas mesmo com o app fechado.",
-        });
+      const registration = await navigator.serviceWorker.ready;
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (!vapidKey) {
+        toast.error("Notificações push não estão disponíveis nesta instalação.");
+        return;
       }
+
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToArrayBuffer(vapidKey),
+      });
+      const result = await subscribeUserAction(JSON.parse(JSON.stringify(subscription)));
+      if (!result.success) {
+        toast.error(result.error ?? "Não foi possível ativar as notificações.");
+        return;
+      }
+
+      setIsSubscribed(true);
+      setSubscriptionCount(1);
+      setPermission(Notification.permission);
+      onSubscribed?.();
+      toast.success("Notificações ativadas", {
+        description: "Você receberá alertas mesmo com o CorreTop fechado.",
+      });
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Não foi possível ativar as notificações.",
-      );
+      toast.error(error instanceof Error ? error.message : "Não foi possível ativar as notificações.");
     } finally {
       setLoading(false);
     }
@@ -104,17 +114,16 @@ export function PushNotificationManager() {
     setLoading(true);
     try {
       const registration = await navigator.serviceWorker.ready;
-      const sub = await registration.pushManager.getSubscription();
-
-      if (sub) {
-        await sub.unsubscribe();
-        await unsubscribeUserAction(sub.endpoint);
+      const subscription = await registration.pushManager.getSubscription();
+      if (subscription) {
+        await subscription.unsubscribe();
+        await unsubscribeUserAction(subscription.endpoint);
       }
-
       setIsSubscribed(false);
       setSubscriptionCount(0);
+      setShowControls(false);
       toast.success("Notificações desativadas");
-    } catch (error) {
+    } catch {
       toast.error("Não foi possível desativar as notificações.");
     } finally {
       setLoading(false);
@@ -129,152 +138,96 @@ export function PushNotificationManager() {
     setLoading(true);
     try {
       const result = await sendTestNotificationAction(message);
-      if (result.success) {
-        toast.success("Notificação enviada!", {
-          description: `${result.sent} de ${result.total} dispositivos notificados.`,
-        });
-        setMessage("");
-      } else {
-        toast.error(result.error || "Falha ao enviar notificação.");
+      if (!result.success) {
+        toast.error(result.error ?? "Falha ao enviar a notificação.");
+        return;
       }
-    } catch (error) {
-      toast.error("Erro ao enviar notificação de teste.");
+      setMessage("");
+      toast.success("Notificação enviada", { description: `${result.sent} dispositivo(s) notificado(s).` });
+    } catch {
+      toast.error("Erro ao enviar a notificação de teste.");
     } finally {
       setLoading(false);
     }
   };
 
-  if (!isSupported) {
+  const isSupported = typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+
+  if (variant === "compact") {
+    if (checking || !isSupported || isSubscribed) return null;
+
+    const isBlocked = permission === "denied";
     return (
-      <Card className="border-border bg-card shadow-none">
-        <CardContent className="p-4 text-center">
-          <div className="flex flex-col items-center gap-2 py-4">
-            <Bell className="size-8 text-muted-foreground/40" />
-            <p className="text-sm text-muted-foreground">
-              Notificações push não são suportadas neste navegador.
-            </p>
-            <p className="text-xs text-muted-foreground/60">
-              Atualize para um navegador moderno como Chrome, Edge ou Safari 16.4+.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="mx-4 my-3 flex items-center gap-3 rounded-xl border border-primary/15 bg-primary/[0.035] px-3 py-3">
+        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+          <BellRinging className="size-4" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold text-foreground">
+            {isBlocked ? "Alertas bloqueados neste navegador" : "Não perca o próximo alerta"}
+          </p>
+          <p className="mt-0.5 text-[11px] leading-4 text-muted-foreground">
+            {isBlocked
+              ? "Libere as notificações nas configurações do navegador para receber novos leads e tarefas."
+              : "Ative agora para receber novos leads e tarefas mesmo com o sistema fechado."}
+          </p>
+        </div>
+        {!isBlocked && (
+          <Button size="xs" onClick={() => void subscribe()} disabled={loading} className="shrink-0 gap-1.5">
+            <BellRinging className="size-3" />
+            {loading ? "Ativando" : "Ativar"}
+          </Button>
+        )}
+      </div>
     );
   }
 
   if (checking) {
     return (
-      <Card className="border-border bg-card shadow-none">
-        <CardContent className="p-4 text-center">
-          <div className="flex items-center justify-center gap-2 py-4">
-            <span className="size-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-            <p className="text-sm text-muted-foreground">Verificando status das notificações...</p>
-          </div>
+      <Card className="border-border/80 bg-card shadow-none">
+        <CardContent className="flex items-center gap-3 p-4">
+          <span className="size-9 animate-pulse rounded-lg bg-muted" aria-hidden="true" />
+          <div className="space-y-1.5"><div className="h-3 w-32 animate-pulse rounded bg-muted" /><div className="h-2.5 w-48 animate-pulse rounded bg-muted/70" /></div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!isSupported) {
+    return (
+      <Card className="border-border/80 bg-card shadow-none">
+        <CardContent className="space-y-2 p-4 text-center">
+          <Bell className="mx-auto size-7 text-muted-foreground/50" />
+          <p className="text-sm font-medium">Push indisponível neste navegador</p>
+          <p className="text-xs leading-5 text-muted-foreground">Use Chrome, Edge ou Safari 16.4 ou superior para receber alertas fora do app.</p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2, ease: [0, 0, 0.2, 1] }}
-    >
-      <Card className="border-border bg-card shadow-none">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {isSubscribed ? (
-                <BellRinging className="size-4 text-primary" weight="fill" />
-              ) : (
-                <Bell className="size-4 text-muted-foreground" />
-              )}
-              <div>
-                <CardTitle className="text-sm font-semibold">Notificações Push</CardTitle>
-                <CardDescription className="text-xs">
-                  {isSubscribed
-                    ? `Ativo em ${subscriptionCount} ${subscriptionCount === 1 ? "dispositivo" : "dispositivos"}`
-                    : "Receba alertas mesmo com o app fechado"}
-                </CardDescription>
-              </div>
+    <motion.div initial={reduceMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}>
+      <Card className="border-border/80 bg-card shadow-none">
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <span className={isSubscribed ? "grid size-9 shrink-0 place-items-center rounded-lg bg-success/10 text-success" : "grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"}>
+                {isSubscribed ? <BellRinging className="size-4" weight="fill" /> : <Bell className="size-4" />}
+              </span>
+              <div className="min-w-0"><CardTitle className="text-sm">Notificações push</CardTitle><CardDescription className="mt-0.5 text-xs">{isSubscribed ? `Ativo em ${subscriptionCount} ${subscriptionCount === 1 ? "dispositivo" : "dispositivos"}` : "Receba alertas mesmo com o CorreTop fechado."}</CardDescription></div>
             </div>
-            <Badge
-              variant={isSubscribed ? "success" : "outline"}
-              className="gap-1.5 rounded-md text-[10px]"
-            >
-              <span
-                className={`inline-block size-1.5 rounded-full ${
-                  isSubscribed ? "bg-success" : "bg-muted-foreground"
-                }`}
-              />
-              {isSubscribed ? "Ativo" : "Inativo"}
-            </Badge>
+            <Badge variant={isSubscribed ? "success" : "outline"} className="shrink-0 rounded-md text-[10px]">{isSubscribed ? "Ativo" : "Inativo"}</Badge>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3">
           {isSubscribed ? (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 rounded-lg border border-success/20 bg-success/[0.03] px-3 py-2">
-                <CheckCircle className="size-4 text-success" weight="fill" />
-                <p className="text-xs text-muted-foreground">
-                  Você receberá alertas de novos leads, tarefas e mensagens.
-                </p>
-              </div>
-
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Mensagem para notificação de teste"
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  className="h-9 text-xs flex-1"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") sendTestNotification();
-                  }}
-                />
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={sendTestNotification}
-                  disabled={loading || !message.trim()}
-                  className="whitespace-nowrap"
-                >
-                  {loading ? "Enviando..." : "Testar"}
-                </Button>
-              </div>
-
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={unsubscribe}
-                disabled={loading}
-                className="w-full"
-              >
-                {loading ? "Desativando..." : "Desativar notificações"}
-              </Button>
-            </div>
+            <>
+              <div className="flex gap-2 rounded-lg border border-success/20 bg-success/[0.03] px-3 py-2"><CheckCircle className="mt-0.5 size-4 shrink-0 text-success" weight="fill" /><p className="text-xs leading-5 text-muted-foreground">Novos leads, tarefas e mensagens podem chegar mesmo fora do sistema.</p></div>
+              <Button size="sm" variant="outline" onClick={() => setShowControls((current) => !current)} className="w-full">{showControls ? "Ocultar opções" : "Gerenciar notificações"}</Button>
+              {showControls && <div className="space-y-2 border-t border-border/70 pt-3"><div className="flex gap-2"><Input placeholder="Mensagem para teste" value={message} onChange={(event) => setMessage(event.target.value)} className="h-9 flex-1 text-xs" onKeyDown={(event) => { if (event.key === "Enter") void sendTestNotification(); }} /><Button size="sm" variant="outline" onClick={() => void sendTestNotification()} disabled={loading || !message.trim()}>{loading ? "Enviando..." : "Testar"}</Button></div><Button size="sm" variant="destructive" onClick={() => void unsubscribe()} disabled={loading} className="w-full">{loading ? "Desativando..." : "Desativar notificações"}</Button></div>}
+            </>
           ) : (
-            <div className="space-y-3">
-              <p className="text-xs leading-5 text-muted-foreground">
-                Ative as notificações push para receber alertas de novos leads,
-                tarefas urgentes e mensagens mesmo quando o CorreTop não estiver aberto.
-              </p>
-              <Button
-                size="sm"
-                onClick={subscribe}
-                disabled={loading}
-                className="w-full gap-1.5"
-              >
-                {loading ? (
-                  "Ativando..."
-                ) : (
-                  <>
-                    <BellRinging className="size-3.5" />
-                    Ativar notificações
-                  </>
-                )}
-              </Button>
-            </div>
+            <><p className="text-xs leading-5 text-muted-foreground">Ative para receber avisos de novos leads, tarefas urgentes e atualizações importantes em tempo real.</p><Button size="sm" onClick={() => void subscribe()} disabled={loading} className="w-full gap-1.5">{loading ? "Ativando..." : <><BellRinging className="size-3.5" />Ativar notificações</>}</Button></>
           )}
         </CardContent>
       </Card>

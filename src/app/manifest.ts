@@ -22,9 +22,15 @@ export default function manifest(): MetadataRoute.Manifest {
     },
     icons: [
       {
-        src: "/icon.svg",
+        src: "/logo_icon.jpg",
         sizes: "512x512",
-        type: "image/svg+xml",
+        type: "image/jpeg",
+        purpose: "any",
+      },
+      {
+        src: "/logo_icon.jpg",
+        sizes: "192x192",
+        type: "image/jpeg",
         purpose: "any",
       },
       {
@@ -32,12 +38,6 @@ export default function manifest(): MetadataRoute.Manifest {
         sizes: "512x512",
         type: "image/svg+xml",
         purpose: "maskable",
-      },
-      {
-        src: "/icon.svg",
-        sizes: "192x192",
-        type: "image/svg+xml",
-        purpose: "any",
       },
       {
         src: "/icon.svg",
@@ -53,21 +53,21 @@ export default function manifest(): MetadataRoute.Manifest {
         short_name: "Início",
         description: "Ir para o dashboard",
         url: "/dashboard",
-        icons: [{ src: "/icon.svg", sizes: "192x192" }],
+        icons: [{ src: "/logo_icon.jpg", sizes: "192x192", type: "image/jpeg" }],
       },
       {
         name: "Conversas",
         short_name: "Chat",
         description: "Abrir central de mensagens",
         url: "/conversas",
-        icons: [{ src: "/icon.svg", sizes: "192x192" }],
+        icons: [{ src: "/logo_icon.jpg", sizes: "192x192", type: "image/jpeg" }],
       },
       {
         name: "Leads",
         short_name: "Leads",
         description: "Abrir fila de oportunidades",
         url: "/leads",
-        icons: [{ src: "/icon.svg", sizes: "192x192" }],
+        icons: [{ src: "/logo_icon.jpg", sizes: "192x192", type: "image/jpeg" }],
       },
     ],
   };

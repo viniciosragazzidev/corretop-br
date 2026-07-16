@@ -13,7 +13,7 @@
   "iconLibrary": "hugeicons",
   "rtl": false,
   "menuColor": "default",
-  "menuAccent": "subtle",
+  "menuwarning": "subtle",
   "aliases": {
     "components": "@/components",
     "utils": "@/lib/utils",

@@ -145,7 +145,7 @@ describe("normalizeLeadEmail", () => {
 });
 
 describe("normalizeLeadName", () => {
-  it("trims whitespace preserving accents", () => {
+  it("trims whitespace preserving warnings", () => {
     expect(normalizeLeadName("  João Silva  ")).toBe("João Silva");
   });
 });

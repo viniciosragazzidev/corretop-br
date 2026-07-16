@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { Avatar, AvatarFallback, AvatarBadge } from "@/components/ui/avatar";
@@ -33,6 +33,7 @@ import {
 } from "@/components/huge-icons";
 import { cn } from "@/lib/utils";
 import { SetupTutorialDrawer } from "@/components/setup/setup-tutorial-drawer";
+import { OwnershipContext } from "@/components/ownership-context";
 
 export type ConversationMessage = { id: string; leadId: string | null; body: string; direction: string; sentAt: string };
 export type ConversationItem = {
@@ -42,8 +43,10 @@ export type ConversationItem = {
   email: string | null;
   status: string;
   origem: string;
+  branchId: string | null;
   corretorId: string | null;
   corretorNome: string | null;
+  branchName: string | null;
   consentimentoLgpd: boolean;
   createdAt: string;
   stageEnteredAt: string;
@@ -58,6 +61,8 @@ export type PlanSuggestion = { id: string; name: string; carrierName: string };
 type ViewFilter = "all" | "with_messages" | "without_messages";
 
 export function ConversationsWorkspace({
+  role,
+  branches,
   conversations: initialConversations,
   initialLeadId,
   plans,
@@ -66,6 +71,8 @@ export function ConversationsWorkspace({
   setupOpen,
   canSend,
 }: {
+  role: string;
+  branches: { id: string; name: string }[];
   conversations: ConversationItem[];
   initialLeadId?: string;
   plans: PlanSuggestion[];
@@ -80,21 +87,36 @@ export function ConversationsWorkspace({
     : initialConversations.find((item) => item.messages.length > 0)?.id ?? initialConversations[0]?.id ?? null);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<ViewFilter>("all");
+  const [branchFilter, setBranchFilter] = useState<string>("all");
   const [draft, setDraft] = useState("");
   const [plansOpen, setPlansOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(true);
   const [loadingThread, setLoadingThread] = useState(false);
   const [pending, startTransition] = useTransition();
-
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const selected = conversations.find((conversation) => conversation.id === selectedId) ?? null;
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [selectedId, selected?.messages?.length]);
+  const branchCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    counts.set("all", conversations.length);
+    for (const branch of branches) {
+      counts.set(branch.id, conversations.filter((c) => c.branchId === branch.id).length);
+    }
+    return counts;
+  }, [conversations, branches]);
+
   const filtered = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase("pt-BR");
     return conversations.filter((conversation) => {
       const matchesQuery = !normalized || [conversation.nome, conversation.telefone, conversation.email ?? ""].some((value) => value.toLocaleLowerCase("pt-BR").includes(normalized));
       const matchesFilter = filter === "all" || (filter === "with_messages" ? conversation.messages.length > 0 : conversation.messages.length === 0);
-      return matchesQuery && matchesFilter;
+      const matchesBranch = branchFilter === "all" || conversation.branchId === branchFilter;
+      return matchesQuery && matchesFilter && matchesBranch;
     });
-  }, [conversations, filter, query]);
+  }, [conversations, filter, branchFilter, query]);
 
   useEffect(() => {
     if (!selectedId) return;
@@ -143,7 +165,7 @@ export function ConversationsWorkspace({
   }
 
   function sendMessage() {
-    if (!selected || !draft.trim()) return;
+    if (!selected || !draft.trim() || pending) return;
     startTransition(async () => {
       const result = await sendLeadMessageAction(selected.id, draft);
       if (!result.success || !result.message) {
@@ -165,6 +187,7 @@ export function ConversationsWorkspace({
             <h2 className="text-sm font-semibold tracking-tight">Mensagens</h2>
             {whatsappReady ? <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><span className="size-1.5 rounded-full bg-success" aria-hidden="true" />Conectado</span> : <SetupTutorialDrawer description="Vamos conectar o canal de atendimento e liberar o chat interno em poucos passos." openOnMount={setupOpen} steps={[{ id: "connect", title: "Conectar o WhatsApp", description: "Crie a sessão e leia o QR Code com o WhatsApp da operação.", href: `/settings/whatsapp?returnTo=${encodeURIComponent("/conversas?setup=whatsapp")}`, actionLabel: "Iniciar configuração do WhatsApp", icon: WhatsappLogo }, { id: "activate", title: "Ativar o chat interno", description: "Depois que a sessão estiver pronta, confirme que o chat interno está ativo.", href: `/settings/whatsapp?returnTo=${encodeURIComponent("/conversas?setup=whatsapp")}`, actionLabel: "Abrir configurações", icon: ChatCircleText }]} completedStepIds={[...(whatsappSessionReady ? ["connect"] : []), ...(whatsappReady ? ["activate"] : [])]} title="Configure o WhatsApp" triggerIcon={WhatsappLogo} triggerLabel="Iniciar configuração do WhatsApp" />}
           </div>
+          {role === "director" && branches.length > 0 ? <select aria-label="Filtrar por unidade" className="h-7 rounded-md border border-border bg-muted/50 px-2 text-[11px] font-medium text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/15" value={branchFilter} onChange={(event) => setBranchFilter(event.target.value)}><option value="all">Todas unidades ({branchCounts.get("all") ?? 0})</option>{branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name} ({branchCounts.get(branch.id) ?? 0})</option>)}</select> : null}
           <div className="flex items-center gap-1.5" role="group" aria-label="Filtrar conversas">
             <Tooltip><TooltipTrigger render={<FilterChip active={filter === "all"} label="Todas" count={conversations.length} onClick={() => setFilter("all")} />} /><TooltipContent side="bottom">Todas as conversas do seu escopo</TooltipContent></Tooltip>
             <Tooltip><TooltipTrigger render={<FilterChip active={filter === "with_messages"} label="Com msgs" count={conversations.filter((c) => c.messages.length > 0).length} onClick={() => setFilter("with_messages")} />} /><TooltipContent side="bottom">Contatos com histórico de mensagens</TooltipContent></Tooltip>
@@ -173,68 +196,50 @@ export function ConversationsWorkspace({
           <div className="relative min-w-[14rem] flex-1 lg:max-w-sm"><MagnifyingGlass aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input aria-label="Buscar conversa por nome, telefone ou e-mail" className="h-9 pl-8" onChange={(event) => setQuery(event.target.value)} placeholder="Buscar conversa" value={query} /></div>
           <Button className="ml-auto gap-1.5" render={<Link href="/leads" />} size="sm" variant="outline"><UserList className="size-3.5" />Leads</Button>
         </div>
-        {!whatsappReady ? <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2.5 text-xs"><div><p className="font-medium text-foreground">WhatsApp ainda não conectado</p><p className="mt-0.5 text-muted-foreground">Você pode consultar os atendimentos, mas o envio fica bloqueado até conectar seu número.</p></div><Button render={<Link href="/settings?tab=whatsapp" />} size="xs" variant="outline"><WhatsappLogo /> Conectar agora</Button></div> : null}
+        {!whatsappReady ? <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-accent/50 px-3 py-2.5 text-xs"><div><p className="font-medium text-foreground">WhatsApp não configurado</p><p className="mt-0.5 text-muted-foreground">Você precisa conectar seu WhatsApp para enviar mensagens. A configuração é rápida — leia o QR Code com seu celular.</p></div><Button render={<Link href={`/settings/whatsapp?returnTo=${encodeURIComponent("/conversas")}`} />} size="xs" variant="outline"><WhatsappLogo /> Conectar agora</Button></div> : null}
       </header>
       <div className={cn("grid min-h-0 flex-1 lg:grid-cols-[minmax(14rem,0.5fr)_minmax(0,1.9fr)]", profileOpen ? "2xl:grid-cols-[minmax(14rem,0.5fr)_minmax(0,1.9fr)_19rem]" : "2xl:grid-cols-[minmax(14rem,0.5fr)_minmax(0,2.35fr)]")}>
 
-      <section className={cn("flex min-h-0 flex-col border-r border-border bg-card", selected && "max-[559px]:hidden")} aria-label="Lista de conversas">
-        <div className="hidden">
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold tracking-tight">Mensagens</h2>
-            <div className="flex items-center gap-2">
-              {whatsappReady ? (
-                <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="size-1.5 rounded-full bg-success" aria-hidden="true" />WhatsApp</span>
-              ) : (
-                <Button className="h-5 gap-1 px-1.5 text-[10px]" render={<Link href="/settings/whatsapp" />} size="sm" variant="ghost"><span className="size-1.5 rounded-full bg-muted-foreground" aria-hidden="true" />Conectar</Button>
-              )}
-              <Button className="h-5 gap-1 px-1.5 text-[10px]" render={<Link href="/leads" />} size="sm" variant="ghost"><UserList className="size-3" />Leads</Button>
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Tooltip><TooltipTrigger render={<FilterChip active={filter === "all"} label="Todas" count={conversations.length} onClick={() => setFilter("all")} />} /><TooltipContent side="bottom">Todas as conversas do seu escopo</TooltipContent></Tooltip>
-            <Tooltip><TooltipTrigger render={<FilterChip active={filter === "with_messages"} label="Com msgs" count={conversations.filter((c) => c.messages.length > 0).length} onClick={() => setFilter("with_messages")} />} /><TooltipContent side="bottom">Contatos que já possuem histórico de mensagens</TooltipContent></Tooltip>
-            <Tooltip><TooltipTrigger render={<FilterChip active={filter === "without_messages"} label="Sem conversa" count={conversations.filter((c) => c.messages.length === 0).length} onClick={() => setFilter("without_messages")} />} /><TooltipContent side="bottom">Contatos sem nenhuma mensagem trocada ainda</TooltipContent></Tooltip>
-          </div>
-          <div className="relative"><MagnifyingGlass aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input aria-label="Buscar conversa por nome, telefone ou e-mail" className="pl-8" onChange={(event) => setQuery(event.target.value)} placeholder="Buscar conversa" value={query} /></div>
-        </div>
-        <ScrollArea className="min-h-0 flex-1 bg-muted/10">
-          <div className="p-2.5">
-            {filtered.map((conversation) => <ConversationRow key={conversation.id} active={conversation.id === selected?.id} conversation={conversation} onClick={() => void selectConversation(conversation.id)} />)}
-            {!filtered.length ? <div className="p-8 text-center"><p className="text-sm font-medium">Nenhum contato encontrado</p><p className="mt-1 text-xs text-muted-foreground">Ajuste a busca ou o filtro de conversas.</p></div> : null}
-          </div>
-        </ScrollArea>
-      </section>
-
-      <section className={cn("flex min-h-0 flex-col", !selected && "max-[559px]:hidden")} aria-live="polite">
-        {selected ? <>
-          <header className="flex items-center justify-between gap-3 border-b border-border bg-card px-5 py-3.5">
-            <div className="flex min-w-0 items-center gap-2"><Button aria-label="Voltar para conversas" className="max-[559px]:inline-flex lg:hidden" onClick={() => setSelectedId(null)} size="icon-sm" type="button" variant="ghost"><ChevronRightIcon className="rotate-180" /></Button><ContactAvatar name={selected.nome} /><div className="min-w-0"><h2 className="truncate text-sm font-semibold tracking-tight">{selected.nome}</h2><div className="mt-0.5 flex items-center gap-2"><p className="truncate text-xs text-muted-foreground">{selected.telefone}</p><Badge variant="outline">{LEAD_STATUS_LABELS[selected.status] ?? selected.status}</Badge></div></div></div>
-            <div className="flex items-center gap-1"><Button aria-label="Ligar para cliente" render={<a href={`tel:${selected.telefone.replace(/\D/g, "")}`} />} size="icon-sm" variant="ghost"><Phone /></Button><Button aria-label="Abrir WhatsApp Web" render={<a href={`https://wa.me/${selected.telefone.replace(/\D/g, "")}`} rel="noreferrer" target="_blank" />} size="icon-sm" variant="ghost"><WhatsappLogo /></Button><Button aria-label="Ver lead completo" render={<Link href={`/leads/${selected.id}`} />} size="icon-sm" variant="ghost"><ArrowSquareOut /></Button></div>
-            <div className="ml-auto hidden items-center gap-1 border-l border-border pl-2 2xl:flex">
-              {profileOpen ? <Button aria-label="Recolher painel do cliente" onClick={() => setProfileOpen(false)} size="icon-sm" type="button" variant="ghost"><PanelLeftIcon className="rotate-180" /></Button> : <Button aria-label="Mostrar painel do cliente" onClick={() => setProfileOpen(true)} size="icon-sm" type="button" variant="ghost"><PanelLeftIcon /></Button>}
-            </div>
-          </header>
-          <ScrollArea className="min-h-0 flex-1 bg-muted/20">
-            <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 p-5 lg:p-7">
-              <div className="self-center rounded-full border border-border bg-card px-3 py-1 text-[11px] font-medium text-muted-foreground">Histórico da conversa</div>
-              {loadingThread ? <p className="text-center text-xs text-muted-foreground">Atualizando mensagens...</p> : null}
-              {selected.messages.map((message) => <MessageBubble key={message.id} message={message} name={selected.nome} />)}
-              {!selected.messages.length ? <div className="mx-auto max-w-sm py-12 text-center"><div className="mx-auto grid size-10 place-items-center rounded-full bg-muted"><ChatCircleText className="text-muted-foreground" /></div><p className="mt-3 text-sm font-medium">Ainda não há mensagens</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">Use uma ação rápida ou escreva a primeira mensagem para este cliente.</p></div> : null}
+        <section className={cn("flex min-h-0 flex-col border-r border-border bg-card", selected && "max-lg:hidden")} aria-label="Lista de conversas">
+          <ScrollArea className="min-h-0 flex-1 bg-muted/10">
+            <div className="p-2.5">
+              {filtered.map((conversation) => <ConversationRow key={conversation.id} active={conversation.id === selected?.id} conversation={conversation} onClick={() => void selectConversation(conversation.id)} />)}
+              {!filtered.length ? <div className="p-8 text-center"><p className="text-sm font-medium">Nenhum contato encontrado</p><p className="mt-1 text-xs text-muted-foreground">Ajuste a busca ou o filtro de conversas.</p></div> : null}
             </div>
           </ScrollArea>
-          <footer className="relative border-t border-border bg-card p-3">
-            <div className="mb-2 flex flex-wrap gap-1.5"><Button disabled={!canSend} onClick={() => insertTemplate("Olá! Preparei uma cotação para você. Posso enviar os detalhes?")} size="xs" variant="outline"><Calculator /> Enviar cotação</Button><Button disabled={!canSend} onClick={() => insertTemplate("Olá! Posso encaminhar o contrato para sua análise. Qual é o melhor horário para conversarmos?")} size="xs" variant="outline"><FileText /> Enviar contrato</Button><Button aria-expanded={plansOpen} onClick={togglePlans} size="xs" variant="outline"><ListChecks /> Lista de planos</Button></div>
-            {plansOpen ? <div className="t-panel-slide absolute inset-x-3 bottom-full z-10 mb-2 rounded-lg border border-border bg-popover p-2 shadow-lg" data-open="true"><div className="mb-2 flex items-center justify-between"><p className="text-xs font-medium">Planos ativos do catálogo</p><Button render={<Link href={`/cotacoes?leadId=${selected.id}`} />} size="xs" variant="link">Criar cotação <ArrowSquareOut /></Button></div><div className="grid gap-1 sm:grid-cols-2">{plans.slice(0, 6).map((plan) => <Button className="h-auto justify-start whitespace-normal py-2 text-left" key={plan.id} onClick={() => insertTemplate(`Tenho uma opção da ${plan.carrierName}: ${plan.name}. Posso explicar a cobertura?`)} size="xs" variant="ghost"><span className="min-w-0"><span className="block truncate font-medium">{plan.name}</span><span className="block truncate text-muted-foreground">{plan.carrierName}</span></span></Button>)}{!plans.length ? <p className="px-2 py-3 text-xs text-muted-foreground">Nenhum plano ativo está disponível no catálogo.</p> : null}</div></div> : null}
-            {!canSend ? <ContextNote className="mb-2" title="Envio restrito ao responsável" variant="warning">Somente o corretor responsável pode enviar mensagens neste atendimento.</ContextNote> : null}
-            {!whatsappReady ? <ContextNote className="mb-2" title="WhatsApp desconectado" variant="info">O envio ficará disponível quando o WhatsApp deste corretor estiver conectado.</ContextNote> : null}
-            <div className="flex items-end gap-2"><Button aria-label="Adicionar modelo de mensagem" disabled={!canSend} onClick={() => insertTemplate("Olá! Como posso ajudar hoje?")} size="icon-sm" type="button" variant="outline"><Plus /></Button><Textarea aria-label="Escrever mensagem" className="min-h-10 max-h-28 resize-none" disabled={!canSend || !whatsappReady || pending} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); sendMessage(); } }} placeholder={canSend ? "Escreva uma mensagem..." : "Aguardando responsável"} value={draft} /><Button aria-label="Enviar mensagem" disabled={!draft.trim() || !canSend || !whatsappReady || pending} onClick={sendMessage} size="icon" type="button"><PaperPlaneTilt /></Button></div>
-          </footer>
-        </> : <EmptyConversation />}
-      </section>
+        </section>
 
-      <aside className={cn("hidden min-h-0 border-l border-border bg-muted/10 2xl:flex 2xl:flex-col", !profileOpen && "2xl:hidden")} aria-label="Perfil do cliente">
-        {selected ? <ClientProfile client={selected} onShowPlans={togglePlans} /> : null}
-      </aside>
+        <section className={cn("flex min-h-0 flex-col", !selected && "max-lg:hidden")} aria-live="polite">
+          {selected ? <>
+            <header className="flex items-center justify-between gap-3 border-b border-border bg-card px-5 py-3.5">
+              <div className="flex min-w-0 items-center gap-2"><Button aria-label="Voltar para conversas" className="max-lg:inline-flex lg:hidden" onClick={() => setSelectedId(null)} size="icon-sm" type="button" variant="ghost"><ChevronRightIcon className="rotate-180" /></Button><ContactAvatar name={selected.nome} /><div className="min-w-0"><h2 className="truncate text-sm font-semibold tracking-tight">{selected.nome}</h2><div className="mt-0.5 flex items-center gap-2"><p className="truncate text-xs text-muted-foreground">{selected.telefone}</p><Badge variant="outline">{LEAD_STATUS_LABELS[selected.status] ?? selected.status}</Badge></div></div></div>
+              <div className="flex items-center gap-1"><Button aria-label="Ligar para cliente" render={<a href={`tel:${selected.telefone.replace(/\D/g, "")}`} />} size="icon-sm" variant="ghost"><Phone /></Button><Button aria-label="Abrir WhatsApp Web" render={<a href={`https://wa.me/${selected.telefone.replace(/\D/g, "")}`} rel="noreferrer" target="_blank" />} size="icon-sm" variant="ghost"><WhatsappLogo /></Button><Button aria-label="Ver lead completo" render={<Link href={`/leads/${selected.id}`} />} size="icon-sm" variant="ghost"><ArrowSquareOut /></Button></div>
+              <div className="ml-auto hidden items-center gap-1 border-l border-border pl-2 2xl:flex">
+                {profileOpen ? <Button aria-label="Recolher painel do cliente" onClick={() => setProfileOpen(false)} size="icon-sm" type="button" variant="ghost"><PanelLeftIcon className="rotate-180" /></Button> : <Button aria-label="Mostrar painel do cliente" onClick={() => setProfileOpen(true)} size="icon-sm" type="button" variant="ghost"><PanelLeftIcon /></Button>}
+              </div>
+            </header>
+            <ScrollArea className="min-h-0 flex-1 bg-muted/20">
+              <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 p-5 lg:p-7">
+                <div className="self-center rounded-full border border-border bg-card px-3 py-1 text-[11px] font-medium text-muted-foreground">Histórico da conversa</div>
+                {loadingThread ? <p className="text-center text-xs text-muted-foreground">Atualizando mensagens...</p> : null}
+                {selected.messages.map((message) => <MessageBubble key={message.id} message={message} name={selected.nome} />)}
+                <div ref={messagesEndRef} />
+                {!selected.messages.length ? <div className="mx-auto max-w-sm py-12 text-center"><div className="mx-auto grid size-10 place-items-center rounded-full bg-muted"><ChatCircleText className="text-muted-foreground" /></div><p className="mt-3 text-sm font-medium">{role === "broker" ? "Ainda não há mensagens" : "WhatsApp do corretor ainda não sincronizado"}</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">{role === "broker" ? "Use uma ação rápida ou escreva a primeira mensagem para este cliente." : "As mensagens aparecerão aqui quando o corretor responsável conectar e sincronizar o WhatsApp no CorreTop."}</p></div> : null}
+              </div>
+            </ScrollArea>
+            <footer className="relative border-t border-border bg-card p-3">
+              <div className="mb-2 flex flex-wrap gap-1.5"><Button disabled={!canSend} onClick={() => insertTemplate("Olá! Preparei uma cotação para você. Posso enviar os detalhes?")} size="xs" variant="outline"><Calculator /> Enviar cotação</Button><Button disabled={!canSend} onClick={() => insertTemplate("Olá! Posso encaminhar o contrato para sua análise. Qual é o melhor horário para conversarmos?")} size="xs" variant="outline"><FileText /> Enviar contrato</Button><Button aria-expanded={plansOpen} onClick={togglePlans} size="xs" variant="outline"><ListChecks /> Lista de planos</Button></div>
+              {plansOpen ? <div className="t-panel-slide absolute inset-x-3 bottom-full z-10 mb-2 rounded-lg border border-border bg-popover p-2 shadow-lg" data-open="true"><div className="mb-2 flex items-center justify-between"><p className="text-xs font-medium">Planos ativos do catálogo</p><Button render={<Link href={`/cotacoes?leadId=${selected.id}`} />} size="xs" variant="link">Criar cotação <ArrowSquareOut /></Button></div><div className="grid gap-1 sm:grid-cols-2">{plans.slice(0, 6).map((plan) => <Button className="h-auto justify-start whitespace-normal py-2 text-left" key={plan.id} onClick={() => insertTemplate(`Tenho uma opção da ${plan.carrierName}: ${plan.name}. Posso explicar a cobertura?`)} size="xs" variant="ghost"><span className="min-w-0"><span className="block truncate font-medium">{plan.name}</span><span className="block truncate text-muted-foreground">{plan.carrierName}</span></span></Button>)}{!plans.length ? <p className="px-2 py-3 text-xs text-muted-foreground">Nenhum plano ativo está disponível no catálogo.</p> : null}</div></div> : null}
+              {!canSend ? <ContextNote className="mb-2" title="Envio restrito ao responsável" variant="warning">Somente o corretor responsável pode enviar mensagens neste atendimento.</ContextNote> : null}
+              {!whatsappReady ? <ContextNote className="mb-2" title="WhatsApp desconectado" variant="info">O envio ficará disponível quando o WhatsApp deste corretor estiver conectado.</ContextNote> : null}
+              <div className="flex items-end gap-2"><Button aria-label="Adicionar modelo de mensagem" disabled={!canSend} onClick={() => insertTemplate("Olá! Como posso ajudar hoje?")} size="icon-sm" type="button" variant="outline"><Plus /></Button><Textarea aria-label="Escrever mensagem" className="min-h-10 max-h-28 resize-none" disabled={!canSend || !whatsappReady || pending} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); sendMessage(); } }} placeholder={canSend ? "Escreva uma mensagem..." : "Aguardando responsável"} value={draft} /><Button aria-label="Enviar mensagem" disabled={!draft.trim() || !canSend || !whatsappReady || pending} onClick={sendMessage} size="icon" type="button"><PaperPlaneTilt /></Button></div>
+            </footer>
+          </> : <EmptyConversation />}
+        </section>
+
+        <aside className={cn("hidden min-h-0 border-l border-border bg-muted/10 2xl:flex 2xl:flex-col", !profileOpen && "2xl:hidden")} aria-label="Perfil do cliente">
+          {selected ? <ClientProfile client={selected} onShowPlans={togglePlans} /> : null}
+        </aside>
       </div>
     </section>
   );
@@ -265,7 +270,7 @@ function ClientProfile({ client, onShowPlans }: { client: ConversationItem; onSh
         <ContactAvatar className="size-11 text-sm" name={client.nome} />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2"><div className="min-w-0"><h2 className="truncate text-sm font-semibold tracking-tight">{client.nome}</h2><p className="mt-0.5 truncate text-xs text-muted-foreground">{client.telefone}</p></div><Badge className="shrink-0" variant="outline">{LEAD_STATUS_LABELS[client.status] ?? client.status}</Badge></div>
-          <p className="mt-2 text-xs leading-5 text-muted-foreground">{client.corretorNome ? `Responsável: ${client.corretorNome}` : "Aguardando atribuição"}</p>
+          <p className="mt-2 text-xs leading-5 text-muted-foreground"><OwnershipContext brokerName={client.corretorNome} branchName={client.branchName} /></p>
         </div>
       </div>
       <div className="mt-4 grid grid-cols-3 gap-2">
@@ -294,12 +299,12 @@ function ClientProfile({ client, onShowPlans }: { client: ConversationItem; onSh
 
 function ConversationProfileSection({ action, children, title }: { action?: React.ReactNode; children: React.ReactNode; title: string }) { return <section><div className="flex items-center justify-between gap-2"><h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{title}</h3>{action}</div><div className="mt-2.5">{children}</div></section>; }
 function ProfileAction({ children, label, render }: { children: React.ReactNode; label: string; render: React.ReactElement }) { return <Button className="h-auto min-h-14 flex-col gap-1.5 px-2 py-2 text-[11px]" render={render} size="sm" variant="outline">{children}<span className="truncate">{label}</span></Button>; }
-function ProfileMetric({ label, tone, value }: { label: string; tone?: "warning"; value: number }) { return <div className={cn("rounded-lg border px-2.5 py-2", tone === "warning" ? "border-warning/20 bg-warning/5" : "border-border bg-muted/30")}><p className="text-[11px] text-muted-foreground">{label}</p><p className={cn("mt-1 text-lg font-semibold tabular-nums", tone === "warning" && "text-warning")}>{value}</p></div>; }
+function ProfileMetric({ label, tone, value }: { label: string; tone?: "warning"; value: number }) { return <div className={cn("rounded-lg border px-2.5 py-2", tone === "warning" ? "border-warning/20 bg-accent/5" : "border-border bg-muted/30")}><p className="text-[11px] text-muted-foreground">{label}</p><p className={cn("mt-1 text-lg font-semibold tabular-nums", tone === "warning" && "text-warning")}>{value}</p></div>; }
 function documentStatusLabel(status: string) { return status === "approved" ? "Aprovado" : status === "pending" ? "Em análise" : status === "rejected" ? "Rejeitado" : status; }
 function getSharedMedia(messages: ConversationMessage[]) { const found = new Map<string, { url: string; label: string; sentAt: string }>(); for (const message of messages) { for (const match of message.body.matchAll(/https?:\/\/[^\s<]+/g)) { const url = match[0].replace(/[),.!?]+$/, ""); if (found.has(url)) continue; try { const hostname = new URL(url).hostname.replace(/^www\./, ""); found.set(url, { url, label: hostname, sentAt: message.sentAt }); } catch { /* Ignore malformed URLs. */ } } } return [...found.values()]; }
 
 export function LegacyClientProfile({ client }: { client: ConversationItem }) {
-  return <><div className="border-b border-border px-5 py-6 text-center"><ContactAvatar className="mx-auto size-14 text-base" name={client.nome} /><h2 className="mt-3 text-sm font-semibold tracking-tight">{client.nome}</h2><p className="mt-1 text-xs leading-5 text-muted-foreground">Lead em atendimento</p><div className="mt-4 flex justify-center gap-2"><Button aria-label="Ligar" render={<a href={`tel:${client.telefone.replace(/\D/g, "")}`} />} size="icon-sm" variant="outline"><Phone /></Button><Button aria-label="Abrir WhatsApp" render={<a href={`https://wa.me/${client.telefone.replace(/\D/g, "")}`} rel="noreferrer" target="_blank" />} size="icon-sm" variant="outline"><WhatsappLogo /></Button><Button aria-label="Abrir lead completo" render={<Link href={`/leads/${client.id}`} />} size="icon-sm" variant="outline"><ArrowSquareOut /></Button></div></div><ScrollArea className="min-h-0 flex-1"><div className="space-y-6 p-5"><ProfileSection title="Contato"><ProfileLine label="Telefone" value={client.telefone} /><ProfileLine label="E-mail" value={client.email ?? "Não informado"} /></ProfileSection><ProfileSection title="Atendimento"><ProfileLine label="Status" value={LEAD_STATUS_LABELS[client.status] ?? client.status} /><ProfileLine label="Responsável" value={client.corretorNome ?? "Aguardando atribuição"} /><ProfileLine label="Origem" value={client.origem} /><ProfileLine label="LGPD" value={client.consentimentoLgpd ? "Consentimento registrado" : "Consentimento não registrado"} /></ProfileSection><ProfileSection title="Plano de interesse"><ProfileLine label="Plano" value={client.planName ?? "Não informado"} />{client.carrierName ? <ProfileLine label="Operadora" value={client.carrierName} /> : null}</ProfileSection><Button className="w-full" render={<Link href={`/leads/${client.id}`} />} size="sm" variant="outline"><ArrowSquareOut /> Ver perfil completo</Button><Button className="w-full" render={<Link href={`/cotacoes?leadId=${client.id}`} />} size="sm"><Calculator /> Criar cotação</Button></div></ScrollArea></>;
+  return <><div className="border-b border-border px-5 py-6 text-center"><ContactAvatar className="mx-auto size-14 text-base" name={client.nome} /><h2 className="mt-3 text-sm font-semibold tracking-tight">{client.nome}</h2><p className="mt-1 text-xs leading-5 text-muted-foreground">Lead em atendimento</p><div className="mt-2 text-xs"><OwnershipContext brokerName={client.corretorNome} branchName={client.branchName} /></div><div className="mt-4 flex justify-center gap-2"><Button aria-label="Ligar" render={<a href={`tel:${client.telefone.replace(/\D/g, "")}`} />} size="icon-sm" variant="outline"><Phone /></Button><Button aria-label="Abrir WhatsApp" render={<a href={`https://wa.me/${client.telefone.replace(/\D/g, "")}`} rel="noreferrer" target="_blank" />} size="icon-sm" variant="outline"><WhatsappLogo /></Button><Button aria-label="Abrir lead completo" render={<Link href={`/leads/${client.id}`} />} size="icon-sm" variant="outline"><ArrowSquareOut /></Button></div></div><ScrollArea className="min-h-0 flex-1"><div className="space-y-6 p-5"><ProfileSection title="Contato"><ProfileLine label="Telefone" value={client.telefone} /><ProfileLine label="E-mail" value={client.email ?? "Não informado"} /></ProfileSection><ProfileSection title="Atendimento"><ProfileLine label="Status" value={LEAD_STATUS_LABELS[client.status] ?? client.status} /><ProfileLine label="Responsável" value={[client.corretorNome ?? "Aguardando atribuição", client.branchName ?? "Sem unidade"].join(" · ")} /><ProfileLine label="Origem" value={client.origem} /><ProfileLine label="LGPD" value={client.consentimentoLgpd ? "Consentimento registrado" : "Consentimento não registrado"} /></ProfileSection><ProfileSection title="Plano de interesse"><ProfileLine label="Plano" value={client.planName ?? "Não informado"} />{client.carrierName ? <ProfileLine label="Operadora" value={client.carrierName} /> : null}</ProfileSection><Button className="w-full" render={<Link href={`/leads/${client.id}`} />} size="sm" variant="outline"><ArrowSquareOut /> Ver perfil completo</Button><Button className="w-full" render={<Link href={`/cotacoes?leadId=${client.id}`} />} size="sm"><Calculator /> Criar cotação</Button></div></ScrollArea></>;
 }
 
 function ProfileSection({ children, title }: { children: React.ReactNode; title: string }) { return <section><h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{title}</h3><dl className="mt-2.5 space-y-3.5">{children}</dl></section>; }

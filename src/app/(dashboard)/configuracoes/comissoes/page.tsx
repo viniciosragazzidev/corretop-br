@@ -4,14 +4,17 @@ import { DashboardHeader } from "@/components/dashboard-header";
 import { CommissionRulesManager } from "@/features/commissions/components/commission-rules-manager";
 import { getCommissionRules, getCarrierOptions } from "@/features/commissions/queries";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
+import { getPostSaleSettings } from "@/features/post-sale/queries";
+import { PostSaleSettings } from "@/features/post-sale/components/post-sale-settings";
 
 export default async function CommissionRulesPage() {
   const context = await getRequiredTenantContext();
   if (context.role !== "director") redirect("/access-denied");
 
-  const [rules, carriers] = await Promise.all([
+  const [rules, carriers, postSaleSettings] = await Promise.all([
     getCommissionRules(),
     getCarrierOptions(),
+    getPostSaleSettings(),
   ]);
 
   return (
@@ -30,6 +33,7 @@ export default async function CommissionRulesPage() {
         </div>
 
         <CommissionRulesManager rules={rules} carriers={carriers} />
+        <PostSaleSettings {...postSaleSettings} />
       </main>
     </>
   );

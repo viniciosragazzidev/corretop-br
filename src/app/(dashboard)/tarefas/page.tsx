@@ -10,6 +10,7 @@ import { ContextNote } from "@/components/ui/context-note";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
+import { OwnershipContext } from "@/components/ownership-context";
 
 export default async function TasksPage({ searchParams }: { searchParams: Promise<{ attention?: string; leadId?: string }> }) {
   const { attention, leadId } = await searchParams;
@@ -35,11 +36,13 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
       dueAt: schema.leadTasks.dueAt,
       completedAt: schema.leadTasks.completedAt,
       assigneeName: schema.user.name,
+      branchName: schema.branches.name,
     })
     .from(schema.leadTasks)
     .innerJoin(schema.leads, eq(schema.leadTasks.leadId, schema.leads.id))
     .leftJoin(schema.leadTaskAssignees, eq(schema.leadTaskAssignees.taskId, schema.leadTasks.id))
     .leftJoin(schema.user, eq(schema.leadTasks.assignedTo, schema.user.id))
+    .leftJoin(schema.branches, eq(schema.leads.branchId, schema.branches.id))
     .where(and(
       eq(schema.leadTasks.tenantId, context.tenantId),
       eq(schema.leads.tenantId, context.tenantId),
@@ -82,7 +85,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
                   </div>
                   <div className="mt-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
                     <span>{task.dueAt ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(task.dueAt) : "Sem prazo"}</span>
-                    <span className="truncate">{task.assigneeName ?? "Equipe"}</span>
+                    <OwnershipContext brokerName={task.assigneeName} branchName={task.branchName} className="truncate text-xs" emptyLabel="Equipe" />
                   </div>
                 </Link>
               ))}
@@ -106,7 +109,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
                     </TableCell>
                     <TableCell className="text-muted-foreground">{task.dueAt ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(task.dueAt) : "Sem prazo"}</TableCell>
                     <TableCell><Badge className={task.priority === "urgent" ? "border-destructive/30 bg-destructive/10 text-destructive" : "border-border"} variant="outline">{task.priority === "urgent" ? "Urgente" : task.priority === "low" ? "Baixa" : "Normal"}</Badge></TableCell>
-                    <TableCell className="hidden md:table-cell">{task.assigneeName ?? "Equipe"}</TableCell>
+                    <TableCell className="hidden md:table-cell"><OwnershipContext brokerName={task.assigneeName} branchName={task.branchName} emptyLabel="Equipe" /></TableCell>
                     <TableCell className="pr-5 text-right"><Button render={<Link href={`/leads/${task.leadId}`} />} size="sm" variant="outline">{task.leadName}</Button></TableCell>
                   </TableRow>
                 ))}

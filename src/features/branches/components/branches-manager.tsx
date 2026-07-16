@@ -2,7 +2,8 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
-import { PencilSimple, Plus, Power, WifiHigh, XCircle } from "@/components/huge-icons";
+import Link from "next/link";
+import { ArrowSquareOut, PencilSimple, Plus, Power, WifiHigh, XCircle } from "@/components/huge-icons";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -84,7 +85,16 @@ function BranchRow({ branch, index }: { branch: Branch; index?: number }) {
       <TableCell><span className="text-sm">{branch.memberCount}</span><span className="ml-1 text-xs text-muted-foreground">membro(s)</span></TableCell>
       <TableCell><Badge variant="outline" className={branch.status === "active" ? "border-emerald-500/40 text-emerald-500" : "text-muted-foreground"}>{branch.status === "active" ? "Ativa" : "Inativa"}</Badge></TableCell>
       <TableCell><AcceptingLeadsToggle branch={branch} /></TableCell>
-      <TableCell className="pr-5 text-right"><form action={toggleAction}><input type="hidden" name="branchId" value={branch.id} /><Button type="submit" size="sm" variant="ghost" disabled={togglePending}><Power size={15} />{branch.status === "active" ? "Desativar" : "Ativar"}</Button></form><ActionFeedback state={toggleState} /></TableCell>
+      <TableCell className="pr-5 text-right">
+        <div className="flex items-center justify-end gap-1">
+          <Button render={<Link href={`/unidades/${branch.id}`} />} size="sm" variant="ghost" className="gap-1.5">
+            <ArrowSquareOut size={14} aria-hidden="true" />
+            Ver perfil
+          </Button>
+          <form action={toggleAction}><input type="hidden" name="branchId" value={branch.id} /><Button type="submit" size="sm" variant="ghost" disabled={togglePending}><Power size={15} />{branch.status === "active" ? "Desativar" : "Ativar"}</Button></form>
+          <ActionFeedback state={toggleState} />
+        </div>
+      </TableCell>
     </>
   );
 
@@ -170,7 +180,7 @@ export function BranchesManager({ branches }: { branches: Branch[] }) {
                   <TableHead>Equipe</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Receber leads</TableHead>
-                  <TableHead className="pr-5 text-right">Ações</TableHead>
+                  <TableHead className="pr-5 text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <motion.tbody

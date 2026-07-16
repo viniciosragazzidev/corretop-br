@@ -17,6 +17,16 @@ import { runSlaSweep } from "@/features/leads/sla";
 import { sql } from "drizzle-orm";
 import { getRequiredPlatformAdmin } from "@/shared/auth/platform-admin";
 import { setSystemSetting } from "@/features/system-settings/queries";
+import { notificationCapabilities, notificationCapabilitySettingKey } from "@/features/notifications/catalog";
+import { resetPlatformUserRouteOnboarding } from "@/features/onboarding/route-onboarding-service";
+
+export async function resetUserRouteOnboardingAction(formData: FormData) {
+  const userId = String(formData.get("userId") ?? "").trim();
+  const tenantId = String(formData.get("tenantId") ?? "").trim();
+  if (!userId || !tenantId) throw new Error("Usuário e corretora são obrigatórios.");
+  await resetPlatformUserRouteOnboarding(userId, tenantId);
+  revalidatePath("/super-admin/onboarding");
+}
 
 export async function updateCentralAtencaoSettingsAction(formData: FormData) {
   const admin = await getRequiredPlatformAdmin();
@@ -54,6 +64,34 @@ export async function updateGlobalSearchSettingsAction(formData: FormData) {
   const now = new Date();
   await setSystemSetting("feature_global_search_enabled", enabled, now);
   await db.insert(schema.platformAuditLogs).values({ id: crypto.randomUUID(), actorUserId: admin.userId, action: "update_global_search_settings", targetType: "system_settings", targetId: "global_search", metadata: { enabled }, createdAt: now });
+  revalidatePath("/super-admin/settings");
+}
+
+export async function updateMetaCloudWhatsAppSettingsAction(formData: FormData) {
+  const admin = await getRequiredPlatformAdmin();
+  const enabled = formData.get("metaCloudWhatsAppEnabled") === "true" ? "true" : "false";
+  const now = new Date();
+  await setSystemSetting("feature_whatsapp_meta_cloud_enabled", enabled, now);
+  await getDatabase().insert(schema.platformAuditLogs).values({
+    id: crypto.randomUUID(), actorUserId: admin.userId, action: "meta_cloud_whatsapp_feature.updated",
+    targetType: "system_settings", targetId: "whatsapp_meta_cloud", metadata: { enabled }, createdAt: now,
+  });
+  revalidatePath("/super-admin/settings");
+  revalidatePath("/settings/whatsapp");
+}
+
+export async function updateNotificationCapabilityAction(formData: FormData) {
+  const admin = await getRequiredPlatformAdmin();
+  const capabilityId = String(formData.get("capabilityId") ?? "");
+  const capability = notificationCapabilities.find((item) => item.id === capabilityId);
+  if (!capability) throw new Error("Capacidade de notificação inválida.");
+  const enabled = formData.get("enabled") === "true" ? "true" : "false";
+  const now = new Date();
+  await setSystemSetting(notificationCapabilitySettingKey(capability.id), enabled, now);
+  await getDatabase().insert(schema.platformAuditLogs).values({
+    id: crypto.randomUUID(), actorUserId: admin.userId, action: "notification_capability.updated",
+    targetType: "notification_capability", targetId: capability.id, metadata: { enabled }, createdAt: now,
+  });
   revalidatePath("/super-admin/settings");
 }
 
@@ -209,9 +247,54 @@ export async function getSystemMetricsAction() {
       activeConnections: Number(connectionsResult[0]?.active_connections || 0),
       env: process.env.NODE_ENV,
       authProvider: "BetterAuth (Local & Postgres Store)",
-      neonStatus: "Operacional (Conectado via neon-serverless)"
+      databaseStatus: "Operacional (Conectado via Supabase)"
     };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "Erro ao coletar métricas." };
   }
+}
+
+export async function updateAiSettingsAction(formData: FormData) {
+  const admin = await getRequiredPlatformAdmin();
+  const db = getDatabase();
+  const now = new Date();
+
+  const enabled = formData.get("aiEnabled") === "true" ? "true" : "false";
+  const primaryProvider = String(formData.get("primaryProvider") ?? "groq").trim();
+  const primaryModel = String(formData.get("primaryModel") ?? "").trim();
+  const fallbackProvider = String(formData.get("fallbackProvider") ?? "none").trim();
+  const fallbackModel = String(formData.get("fallbackModel") ?? "").trim();
+  const temperature = String(formData.get("temperature") ?? "0.7").trim();
+  const maxTokens = String(formData.get("maxTokens") ?? "1024").trim();
+  const systemPrompt = String(formData.get("systemPrompt") ?? "").trim();
+  const groqApiKey = String(formData.get("groqApiKey") ?? "").trim();
+  const openaiApiKey = String(formData.get("openaiApiKey") ?? "").trim();
+  const googleApiKey = String(formData.get("googleApiKey") ?? "").trim();
+  const openrouterApiKey = String(formData.get("openrouterApiKey") ?? "").trim();
+
+  await setSystemSetting("ai_enabled", enabled, now);
+  await setSystemSetting("ai_primary_provider", primaryProvider, now);
+  await setSystemSetting("ai_primary_model", primaryModel, now);
+  await setSystemSetting("ai_fallback_provider", fallbackProvider, now);
+  await setSystemSetting("ai_fallback_model", fallbackModel, now);
+  await setSystemSetting("ai_temperature", temperature, now);
+  await setSystemSetting("ai_max_tokens", maxTokens, now);
+  await setSystemSetting("ai_system_prompt", systemPrompt, now);
+
+  if (groqApiKey) await setSystemSetting("ai_groq_api_key", groqApiKey, now);
+  if (openaiApiKey) await setSystemSetting("ai_openai_api_key", openaiApiKey, now);
+  if (googleApiKey) await setSystemSetting("ai_google_api_key", googleApiKey, now);
+  if (openrouterApiKey) await setSystemSetting("ai_openrouter_api_key", openrouterApiKey, now);
+
+  await db.insert(schema.platformAuditLogs).values({
+    id: crypto.randomUUID(),
+    actorUserId: admin.userId,
+    action: "update_ai_settings",
+    targetType: "system_settings",
+    targetId: "ai_engine",
+    metadata: { enabled, primaryProvider, primaryModel, fallbackProvider },
+    createdAt: now,
+  });
+
+  revalidatePath("/super-admin/settings");
 }

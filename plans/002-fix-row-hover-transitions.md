@@ -30,7 +30,7 @@ For `clientes-list.tsx`:
             hidden: { opacity: 0, y: 8 },
             visible: { opacity: 1, y: 0, transition: { duration: 0.18, ease: [0, 0, 0.2, 1] } },
           }}
-          className="group/card flex cursor-default flex-col gap-2 px-5 py-4 transition-colors duration-200 hover:bg-[var(--sidebar-accent)] sm:flex-row sm:items-center sm:justify-between"
+          className="group/card flex cursor-default flex-col gap-2 px-5 py-4 transition-colors duration-200 hover:bg-[var(--sidebar-warning)] sm:flex-row sm:items-center sm:justify-between"
         >
 ```
 
@@ -48,7 +48,7 @@ For `team-members-table.tsx`:
                       transition: { duration: 0.15, ease: [0, 0, 0.2, 1], delay: Math.min(index * 0.03, 0.25) },
                     }),
                   }}
-                  className="group/card cursor-default transition-colors duration-200 hover:bg-[var(--sidebar-accent)]"
+                  className="group/card cursor-default transition-colors duration-200 hover:bg-[var(--sidebar-warning)]"
                 >
 ```
 
@@ -61,7 +61,7 @@ For `team-members-table.tsx`:
 
 1. In [clientes-list.tsx](file:///c:/Users/kyper/Desktop/Kyper/Projects/corretopV2/corretop/src/app/(dashboard)/clientes/clientes-list.tsx), locate line 46:
    ```tsx
-   whileHover={{ x: 4, backgroundColor: "var(--sidebar-accent)", transition: { duration: 0.2, ease: [0, 0, 0.2, 1] } }}
+   whileHover={{ x: 4, backgroundColor: "var(--sidebar-warning)", transition: { duration: 0.2, ease: [0, 0, 0.2, 1] } }}
    ```
    Delete this `whileHover` attribute entirely.
 2. Update the `className` attribute on the same `<motion.div>` (line 47) from:
@@ -70,11 +70,11 @@ For `team-members-table.tsx`:
    ```
    to:
    ```tsx
-   className="group/card flex cursor-default flex-col gap-2 px-5 py-4 transition-colors duration-200 hover:bg-[var(--sidebar-accent)] sm:flex-row sm:items-center sm:justify-between"
+   className="group/card flex cursor-default flex-col gap-2 px-5 py-4 transition-colors duration-200 hover:bg-[var(--sidebar-warning)] sm:flex-row sm:items-center sm:justify-between"
    ```
 3. In [team-members-table.tsx](file:///c:/Users/kyper/Desktop/Kyper/Projects/corretopV2/corretop/src/app/(dashboard)/equipe/team-members-table.tsx), locate line 108:
    ```tsx
-   whileHover={{ backgroundColor: "var(--sidebar-accent)" }}
+   whileHover={{ backgroundColor: "var(--sidebar-warning)" }}
    ```
    Delete this `whileHover` attribute entirely.
 4. Update the `className` attribute on the same `<motion.tr>` (line 109) from:
@@ -83,7 +83,7 @@ For `team-members-table.tsx`:
    ```
    to:
    ```tsx
-   className="group/card cursor-default transition-colors duration-200 hover:bg-[var(--sidebar-accent)]"
+   className="group/card cursor-default transition-colors duration-200 hover:bg-[var(--sidebar-warning)]"
    ```
 5. On line 119 in `team-members-table.tsx`, remove the transition classes from the `<Badge>`:
    Change:
@@ -111,4 +111,4 @@ For `team-members-table.tsx`:
   - Verify that hovering a row in "Clientes" no longer shifts the row horizontally.
   - Verify that hover in "Equipe" no longer causes the status badge to scale.
 - **Done when**:
-  - Row hovers use standard tailwind `hover:bg-[var(--sidebar-accent)]` transition-colors instead of JS-driven properties, and badge scaling is removed.
+  - Row hovers use standard tailwind `hover:bg-[var(--sidebar-warning)]` transition-colors instead of JS-driven properties, and badge scaling is removed.

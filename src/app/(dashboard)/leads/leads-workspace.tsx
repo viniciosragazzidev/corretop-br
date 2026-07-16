@@ -28,6 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { LEAD_STATUS_LABELS } from "@/features/leads/lead-status-constants";
+import { OwnershipContext } from "@/components/ownership-context";
 
 export type LeadWorkspaceItem = {
   id: string;
@@ -37,29 +38,30 @@ export type LeadWorkspaceItem = {
   origem: string;
   createdAt: string;
   corretorNome: string | null;
+  branchName: string | null;
 };
 
 const kanbanStatuses = ["new", "in_contact", "quote_sent", "negotiation", "converted"];
 
-const kanbanTone: Record<string, { accent: string; count: string }> = {
+const kanbanTone: Record<string, { warning: string; count: string }> = {
   new: {
-    accent: "bg-sky-500",
+    warning: "bg-sky-500",
     count: "border-sky-500/25 bg-sky-500/10 text-sky-700 dark:text-sky-300",
   },
   in_contact: {
-    accent: "bg-violet-500",
+    warning: "bg-violet-500",
     count: "border-violet-500/25 bg-violet-500/10 text-violet-700 dark:text-violet-300",
   },
   quote_sent: {
-    accent: "bg-amber-500",
+    warning: "bg-amber-500",
     count: "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300",
   },
   negotiation: {
-    accent: "bg-orange-500",
+    warning: "bg-orange-500",
     count: "border-orange-500/25 bg-orange-500/10 text-orange-700 dark:text-orange-300",
   },
   converted: {
-    accent: "bg-emerald-500",
+    warning: "bg-emerald-500",
     count: "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
   },
 };
@@ -114,7 +116,7 @@ export function LeadsWorkspace({
                       </span>
                       <span className="mt-2 flex items-center gap-2">
                         <StatusBadge status={lead.status} />
-                        <span className="truncate text-xs text-muted-foreground">{lead.corretorNome ?? "Sem responsável"}</span>
+                        <OwnershipContext brokerName={lead.corretorNome} branchName={lead.branchName} className="truncate text-xs" />
                       </span>
                     </span>
                     <ArrowUpRight aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
@@ -150,7 +152,7 @@ export function LeadsWorkspace({
                         <StatusBadge status={lead.status} />
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
-                        {lead.corretorNome ?? "Aguardando distribuição"}
+                        <OwnershipContext brokerName={lead.corretorNome} branchName={lead.branchName} className="text-sm" />
                       </TableCell>
                       <TableCell className="hidden text-muted-foreground lg:table-cell">
                         {formatDate(lead.createdAt)}
@@ -233,7 +235,7 @@ export function LeadsWorkspace({
                         </div>
                       </div>
                       <dl className="mt-4 space-y-3">
-                        <DetailRow label="Responsável" value={selectedLead.corretorNome ?? "Aguardando distribuição"} />
+                        <DetailRow label="Responsável" value={[selectedLead.corretorNome ?? "Aguardando distribuição", selectedLead.branchName ?? "Sem unidade"].join(" · ")} />
                         <DetailRow label="Origem" value={selectedLead.origem === "manual" ? "Manual" : "Webhook"} />
                         <DetailRow label="Entrada" value={formatDate(selectedLead.createdAt)} />
                       </dl>
@@ -286,7 +288,7 @@ function KanbanColumn({
       aria-labelledby={`kanban-${status}`}
     >
       <div className="flex min-w-0 items-center gap-2 border-b border-border/70 pb-3">
-        <span aria-hidden="true" className={`size-2 shrink-0 rounded-full ${tone.accent}`} />
+        <span aria-hidden="true" className={`size-2 shrink-0 rounded-full ${tone.warning}`} />
         <h2 id={`kanban-${status}`} className="min-w-0 flex-1 truncate text-sm font-semibold">
           {statusLabel(status)}
         </h2>
@@ -328,7 +330,7 @@ function KanbanLeadCard({
             {lead.nome}
           </p>
           <p className="mt-1 truncate text-xs text-muted-foreground">
-            {lead.corretorNome ?? "Sem responsável"}
+            <OwnershipContext brokerName={lead.corretorNome} branchName={lead.branchName} className="text-xs" />
           </p>
         </div>
         <ArrowUpRight className="mt-0.5 size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />

@@ -1,12 +1,13 @@
 "use client";
 
-import { Bell, BookOpen } from "@/components/huge-icons";
+import { BookOpen } from "@/components/huge-icons";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { GlobalSearch } from "@/components/global-search";
+import { NotificationPopover } from "@/components/notification-popover";
 
 type DashboardHeaderProps = {
   breadcrumb: string;
@@ -39,9 +40,7 @@ export function DashboardHeader({
       <Button aria-label="Abrir guia do sistema" title="Guia do sistema" render={<Link href="/guia" />} size="icon" variant="ghost">
         <BookOpen aria-hidden="true" />
       </Button>
-      <Button aria-label="Abrir notificacoes" render={<Link href="/notificacoes" />} size="icon" variant="ghost">
-        <Bell aria-hidden="true" />
-      </Button>
+      <NotificationPopover />
     </header>
   );
 }

@@ -18,6 +18,7 @@ const requirementInput = z.object({
   name: z.string().trim().min(2, "Informe o nome do documento.").max(100),
   description: z.string().trim().max(250).optional(),
   required: z.coerce.boolean().optional(),
+  appliesPerBeneficiary: z.coerce.boolean().optional(),
 });
 
 export type DocumentActionState = { success?: boolean; error?: string };
@@ -35,6 +36,7 @@ export async function createRequirementAction(
     name: formData.get("name"),
     description: formData.get("description") || undefined,
     required: formData.get("required") === "true",
+    appliesPerBeneficiary: formData.get("appliesPerBeneficiary") === "true",
   });
 
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
@@ -49,6 +51,7 @@ export async function createRequirementAction(
       name: parsed.data.name,
       description: parsed.data.description || null,
       required: parsed.data.required ?? true,
+      appliesPerBeneficiary: parsed.data.appliesPerBeneficiary ?? false,
     });
 
     revalidatePath("/documentos");
@@ -94,6 +97,7 @@ export async function getDocumentRequirements() {
       name: schema.documentRequirements.name,
       description: schema.documentRequirements.description,
       required: schema.documentRequirements.required,
+      appliesPerBeneficiary: schema.documentRequirements.appliesPerBeneficiary,
       carrierId: schema.documentRequirements.carrierId,
       carrierName: schema.carriers.name,
       planId: schema.documentRequirements.planId,
@@ -119,6 +123,7 @@ export async function getLeadDocuments(leadId: string) {
       fileUrl: schema.leadDocuments.fileUrl,
       status: schema.leadDocuments.status,
       requirementId: schema.leadDocuments.requirementId,
+      beneficiaryId: schema.leadDocuments.beneficiaryId,
       requirementName: schema.documentRequirements.name,
       uploadedBy: schema.leadDocuments.uploadedBy,
       createdAt: schema.leadDocuments.createdAt,
@@ -143,11 +148,13 @@ export async function getLeadDocuments(leadId: string) {
 export async function confirmDocumentUploadAction({
   leadId,
   requirementId,
+  beneficiaryId,
   filename,
   fileUrl,
 }: {
   leadId: string;
   requirementId: string | null;
+  beneficiaryId?: string | null;
   filename: string;
   fileUrl: string;
 }): Promise<DocumentActionState> {
@@ -176,6 +183,11 @@ export async function confirmDocumentUploadAction({
       if (!requirement) return { error: "Requisito de documento inválido." };
     }
 
+    if (beneficiaryId) {
+      const [beneficiary] = await db.select({ id: schema.leadBeneficiaries.id }).from(schema.leadBeneficiaries).where(and(eq(schema.leadBeneficiaries.id, beneficiaryId), eq(schema.leadBeneficiaries.leadId, leadId), eq(schema.leadBeneficiaries.tenantId, context.tenantId))).limit(1);
+      if (!beneficiary) return { error: "Beneficiário inválido para este lead." };
+    }
+
     const docId = randomUUID();
     await db.transaction(async (tx) => {
       await tx.insert(schema.leadDocuments).values({
@@ -183,6 +195,7 @@ export async function confirmDocumentUploadAction({
         tenantId: context.tenantId,
         leadId,
         requirementId,
+        beneficiaryId: beneficiaryId || null,
         filename,
         fileUrl,
         status: "pending",
@@ -286,10 +299,12 @@ export async function getPendingDocuments() {
       corretorNome: schema.user.name,
       requirementName: schema.documentRequirements.name,
       branchId: schema.leads.branchId,
+      branchName: schema.branches.name,
     })
     .from(schema.leadDocuments)
     .innerJoin(schema.leads, eq(schema.leadDocuments.leadId, schema.leads.id))
     .leftJoin(schema.user, eq(schema.leads.corretorId, schema.user.id))
+    .leftJoin(schema.branches, eq(schema.leads.branchId, schema.branches.id))
     .leftJoin(schema.documentRequirements, eq(schema.leadDocuments.requirementId, schema.documentRequirements.id))
     .where(
       and(

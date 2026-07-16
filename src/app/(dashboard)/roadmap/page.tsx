@@ -88,7 +88,7 @@ export default async function RoadmapPage() {
         )
       )
       .orderBy(asc(schema.leads.createdAt));
-    
+
     leadsSemContatoCount = leadsSemContato.length;
     if (leadsSemContatoCount > 0) {
       leadsSemContatoAge = leadsSemContato[0].createdAt;
@@ -251,43 +251,43 @@ export default async function RoadmapPage() {
           </TabsList>
 
           <TabsContent className="space-y-6" value="implemented">
-          {roadmapDays.map((day) => {
-            const dayDone = day.items.filter((item) => item.status === "done").length;
-            return (
-              <section key={day.day} className="space-y-3">
-                <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-3">
-                  <div>
-                    <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">Dia {day.day}</p>
-                    <h2 className="mt-1 text-lg font-semibold tracking-tight">{day.title}</h2>
-                    <p className="mt-1 text-sm text-muted-foreground">{day.objective}</p>
+            {roadmapDays.map((day) => {
+              const dayDone = day.items.filter((item) => item.status === "done").length;
+              return (
+                <section key={day.day} className="space-y-3">
+                  <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-3">
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">Dia {day.day}</p>
+                      <h2 className="mt-1 text-lg font-semibold tracking-tight">{day.title}</h2>
+                      <p className="mt-1 text-sm text-muted-foreground">{day.objective}</p>
+                    </div>
+                    <span className="font-mono text-xs text-muted-foreground">{dayDone}/{day.items.length} feitos</span>
                   </div>
-                  <span className="font-mono text-xs text-muted-foreground">{dayDone}/{day.items.length} feitos</span>
-                </div>
-                <div className="grid gap-2">
-                  {day.items.map((roadmapItem) => {
-                    const config = statusConfig[roadmapItem.status];
-                    const Icon = config.icon;
-                    return (
-                      <Card key={roadmapItem.id} size="sm" className="border-border bg-card shadow-none transition-colors hover:bg-muted/30">
-                        <CardContent className="flex items-start gap-3 py-4">
-                          <Icon size={20} weight={roadmapItem.status === "done" ? "fill" : "regular"} className={`mt-0.5 shrink-0 ${config.className}`} />
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="font-mono text-xs text-muted-foreground">{roadmapItem.id}</span>
-                              <p className={`text-sm font-medium ${roadmapItem.status === "done" ? "text-foreground" : ""}`}>{roadmapItem.title}</p>
+                  <div className="grid gap-2">
+                    {day.items.map((roadmapItem) => {
+                      const config = statusConfig[roadmapItem.status];
+                      const Icon = config.icon;
+                      return (
+                        <Card key={roadmapItem.id} size="sm" className="border-border bg-card shadow-none transition-colors hover:bg-muted/30">
+                          <CardContent className="flex items-start gap-3 py-4">
+                            <Icon size={20} weight={roadmapItem.status === "done" ? "fill" : "regular"} className={`mt-0.5 shrink-0 ${config.className}`} />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="font-mono text-xs text-muted-foreground">{roadmapItem.id}</span>
+                                <p className={`text-sm font-medium ${roadmapItem.status === "done" ? "text-foreground" : ""}`}>{roadmapItem.title}</p>
+                              </div>
+                              <p className="mt-1 text-xs leading-5 text-muted-foreground">{roadmapItem.description}</p>
+                              <p className="mt-1 text-[11px] leading-5 text-muted-foreground/70"><span className="font-medium text-muted-foreground">Resumo:</span> {roadmapItem.summary}</p>
                             </div>
-                            <p className="mt-1 text-xs leading-5 text-muted-foreground">{roadmapItem.description}</p>
-                            <p className="mt-1 text-[11px] leading-5 text-muted-foreground/70"><span className="font-medium text-muted-foreground">Resumo:</span> {roadmapItem.summary}</p>
-                          </div>
-                          <Badge variant="outline" className={`text-[10px] ${priorityClass[roadmapItem.priority]}`}><Flag size={11} className="mr-1" />{roadmapItem.priority}</Badge>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-              </section>
-            );
-          })}
+                            <Badge variant="outline" className={`text-[10px] ${priorityClass[roadmapItem.priority]}`}><Flag size={11} className="mr-1" />{roadmapItem.priority}</Badge>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </section>
+              );
+            })}
           </TabsContent>
 
           <TabsContent className="space-y-4" value="new">

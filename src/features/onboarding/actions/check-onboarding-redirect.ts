@@ -4,7 +4,7 @@ import "server-only";
 
 import { and, eq } from "drizzle-orm";
 import { getDatabase, schema } from "@/shared/db";
-import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
+import { getRequiredTenantContext, type TenantContext } from "@/shared/auth/tenant-context";
 import type { TenantRole } from "@/shared/db/schema";
 
 const ROLE_DASHBOARD: Record<TenantRole, string> = {
@@ -23,7 +23,7 @@ const ROLE_DASHBOARD: Record<TenantRole, string> = {
 export async function checkOnboardingRedirect(): Promise<{
   redirectTo: string;
 }> {
-  let context;
+  let context: TenantContext;
   try {
     context = await getRequiredTenantContext();
   } catch {

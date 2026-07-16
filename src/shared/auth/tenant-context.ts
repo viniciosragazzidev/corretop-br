@@ -5,6 +5,7 @@ import { getDatabase, schema } from "@/shared/db";
 import { AuthorizationError } from "./errors";
 import { getRequiredSession } from "./session";
 import type { TenantContext } from "./types";
+export type { TenantContext };
 
 export async function getRequiredTenantContext(): Promise<TenantContext> {
   const { user: sessionUser } = await getRequiredSession();

@@ -94,7 +94,7 @@ Before: a tree of function calls rendered as nested boxes. After: the same tree 
 ## Style guidance
 
 - Lean editorial, not corporate-dashboard. Generous whitespace. Serif optional for headings (`font-serif` works well with stone/slate).
-- Colour sparingly: one accent (emerald or indigo) plus red for leakage and amber for warnings.
+- Colour sparingly: one warning (emerald or indigo) plus red for leakage and amber for warnings.
 - Keep diagrams ~320px tall so before/after sits comfortably side by side without scrolling.
 - Use `text-xs uppercase tracking-wider` for module labels inside diagrams — they should read as schematic, not as UI.
 - The only scripts are the Tailwind CDN and the Mermaid ESM import. The report is otherwise static — no app code, no interactivity beyond Mermaid's own rendering.

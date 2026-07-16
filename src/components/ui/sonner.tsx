@@ -48,7 +48,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
           closeButton: "ct-toast__close",
           actionButton: "ct-toast__action",
           cancelButton: "ct-toast__cancel",
-          success: "ct-toast--accent",
+          success: "ct-toast--warning",
           error: "ct-toast--error",
           info: "ct-toast--info",
           warning: "ct-toast--warning",

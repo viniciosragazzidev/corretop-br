@@ -63,7 +63,7 @@ export default async function IntegrityPage() {
         and(
           eq(schema.leads.tenantId, context.tenantId),
           inArray(schema.leads.status, activeLeadStatuses),
-          sql`${schema.leads.stageEnteredAt} < ${new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000)}`,
+          sql`${schema.leads.stageEnteredAt} < ${new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString()}`,
         ),
       ),
     db
@@ -73,7 +73,7 @@ export default async function IntegrityPage() {
         and(
           eq(schema.leads.tenantId, context.tenantId),
           eq(schema.leads.status, "distributed"),
-          sql`${schema.leads.assignedAt} < ${new Date(now.getTime() - 15 * 60 * 1000)}`,
+          sql`${schema.leads.assignedAt} < ${new Date(now.getTime() - 15 * 60 * 1000).toISOString()}`,
         ),
       ),
   ]);
@@ -136,19 +136,19 @@ export default async function IntegrityPage() {
         {/* Status Summary */}
         <section className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           {alerts.map((alert) => {
-            const isWarning = alert.type === "warning";
+            const iswarning = alert.type === "warning";
             const isDanger = alert.type === "danger";
-            const alertColor = isWarning
-              ? "border-warning/30 bg-warning/5"
+            const alertColor = iswarning
+              ? "border-warning/30 bg-accent/5"
               : isDanger
                 ? "border-destructive/30 bg-destructive/5"
                 : "border-border/40 bg-muted/20";
-            const textColor = isWarning
+            const textColor = iswarning
               ? "text-warning"
               : isDanger
                 ? "text-destructive"
                 : "text-foreground";
-            const Icon = isWarning
+            const Icon = iswarning
               ? Warning
               : isDanger
                 ? XCircle
@@ -161,7 +161,7 @@ export default async function IntegrityPage() {
                 <div className="flex items-center gap-2">
                   <Icon
                     className={`size-4 ${textColor}`}
-                    weight={isWarning || isDanger ? "fill" : "regular"}
+                    weight={iswarning || isDanger ? "fill" : "regular"}
                   />
                   <span className="text-xs text-muted-foreground">
                     {alert.label}

@@ -19,6 +19,17 @@ para ADR se aplicável.
 | DEC-015 | shadcn é obrigatório para primitivas de UI; `dashboard-01` é a base de dashboards e Unlumen complementa estados e feedback animados. | Aprovada — 2026-07-11 | Solicitação do projeto |
 | DEC-025 | CorreTop adota evolução modular Plugin First: domínios expõem use cases públicos; páginas e Workspace são hosts; plugins não acessam banco; comunicação entre módulos usa eventos; toda capacidade é multi-tenant, auditável, governável e preparada para feature flags. A migração será incremental, começando por Lead e Financeiro. | Aprovada — 2026-07-15 | Solicitação do projeto |
 
+| DEC-026 | O pós-venda distingue data de registro, início de vigência, valor aprovado e evidência da operadora; cancelamento nunca desconta valores automaticamente. A janela de chargeback é configurável por tenant, inicia em 90 dias e toda alteração é auditada. | Aprovada como política de segurança — 2026-07-16 | Simulação ponta a ponta e solução de beneficiários |
+| DEC-027 | No estouro do SLA de primeiro contato, o owner anterior é removido antes de qualquer nova atribuição. Leads originados pelo Diretor usam a fila central da corretora mãe: tentam outro corretor elegível na unidade e, se não houver, retornam à fila central para nova distribuição. Leads originados pelo Gestor permanecem na fila da unidade para distribuição manual. A origem é persistida, toda transição é auditada e o corretor que perdeu o SLA é excluído da tentativa imediata. | Aprovada — 2026-07-16 | Solicitação do usuário; implementação de `feedback-sla` e distribuição |
+| DEC-028 | Notificações operacionais devem ser publicadas por um serviço central com registro in-app/Realtime e push coordenados. Cada capacidade possui uma chave global reversível controlada pelo Super-admin; quando desativada, nenhum dos dois canais é emitido para o evento. O catálogo e a auditoria da configuração são obrigatórios. | Aprovada — 2026-07-16 | Solicitação do usuário; correção de toast junto com push |
+
+## DEC-033 — WhatsApp Cloud API oficial com Embedded Signup
+
+**Estado:** Aceita
+**Data:** 2026-07-16
+
+O CorreTop migra de OpenWA para a Cloud API oficial da Meta em etapas. `communication_channels` é o domínio do canal; o webhook confirma assinatura HMAC e resolve o tenant pelo `phone_number_id`. Diretor conecta/pausa canais do seu tenant, Super-admin controla a capacidade global e OpenWA permanece apenas como fallback reversível durante a transição. Tokens são cifrados em repouso e nunca chegam ao frontend.
+
 ## Pendentes bloqueantes
 
 | ID | Decisão necessária | Impacto | Dono sugerido |
@@ -46,3 +57,28 @@ para ADR se aplicável.
 |---|---|---|---|
 | DEC-023A | White-label usa nome, logo e uma cor primÃ¡ria por tenant; o servidor valida hex e assets, o shell calcula foreground legÃ­vel e a alteraÃ§Ã£o Ã© auditada. | Aprovada â€” 2026-07-13 | Settings, AppShell e sidebar |
 | DEC-024 | TOTP Ã© opcional por usuÃ¡rio; ativaÃ§Ã£o e desativaÃ§Ã£o exigem senha, login aceita aplicativo autenticador ou cÃ³digo de recuperaÃ§Ã£o e a geraÃ§Ã£o de novos cÃ³digos invalida os anteriores. | Aprovada â€” 2026-07-13 | Better Auth two-factor, /settings e /2fa |
+## DEC-029 — Onboarding contextual por rota
+
+Estado: aprovada em 2026-07-16. A apresentação é persistida por tenant, usuário e rota; o Super-admin pode desativar globalmente ou reiniciar o conjunto de rotas de um usuário. A operação gera auditoria.
+
+## DEC-030 — Lembrete de feedback configurável por tenant com push
+
+Estado: aprovada em 2026-07-16. O lembrete de feedback agora opera com intervalo configurável por tenant (default 30 min), máximo de tentativas (default 5), e flags independentes para push e toast. O job roda a cada N minutos em vez de 1x/dia. Quando o limite de tentativas é excedido, a urgência da mensagem escala. O push respeita a capacidade global DEC-028.
+
+## DEC-031 — Catálogo oficial global com extensão privada por corretora
+
+**Estado:** Aceita
+**Data:** 2026-07-16
+
+O CorreTop manterá uma base oficial global de operadoras, planos, tabelas e versões comerciais, publicada exclusivamente pelo Super-admin. Cada corretora pode manter uma extensão privada para acordos exclusivos, isolada pelo seu `tenant_id` e administrada somente pelo Diretor. A consulta de cotação usará um resolvedor único que combina itens oficiais publicados e permitidos para tenant/unidade com itens privados do próprio tenant.
+
+Tabelas comerciais serão versionadas e vigentes; registros históricos devem manter snapshot e referência da versão utilizada. Importação assistida por IA poderá gerar propostas de alteração, mas jamais publicar ou alterar o catálogo sem revisão explícita do Super-admin.
+
+**Consequência:** o CRUD legado por tenant permanece apenas como adaptador de migração. Nenhum consumidor novo deve consultar as tabelas legadas diretamente.
+
+## DEC-032 — Termos públicos de uso e responsabilidade do CRM
+
+**Estado:** Aceita como versão operacional
+**Data:** 2026-07-16
+
+O CorreTop disponibilizará uma rota pública de termos que explica o uso permitido do CRM, a responsabilidade da corretora sobre seus usuários e dados de clientes, os limites da plataforma e orientações gerais de proteção de dados. O texto não substitui contrato, política de privacidade específica, definição formal de controlador/operador nem revisão jurídica. A versão jurídica definitiva exigirá identificação da pessoa jurídica, canal de privacidade e política de retenção aprovados.
