@@ -71,14 +71,9 @@ export function RealtimeSyncProvider({
 
           if (payload.eventType === "INSERT" && newRow) {
             if (role === "broker" && newRow.corretor_id === userId) {
-              playSoundRef.current?.("success");
-              toast.success("Novo lead recebido!", {
-                description: `O lead "${newRow.nome}" foi atribuído a você.`,
-                action: {
-                  label: "Abrir",
-                  onClick: () => router.push(`/leads/${newRow.id}`),
-                },
-              });
+              // Toast + sound são disparados pela subscription `notifications`
+              // (notifyNewLead() ou o serviço de distribuição inserem o registro).
+              // Mantemos apenas o refresh para atualizar a lista.
               router.refresh();
             } else if (role === "manager" && newRow.branch_id === branchId) {
               playSoundRef.current?.("chime");

@@ -13,7 +13,8 @@ export type BrokerDashboardData = {
   availabilityStatus: "available" | "paused";
   leads: Array<{ id: string; name: string; phone: string; source: string; status: string; createdAt: Date; lastInteractionAt: Date | null }>;
   activeLeads: Array<{ id: string; name: string; status: string; serviceStartedAt: Date | null }>;
-  totals: { all: number; active: number; new: number; inContact: number; converted: number };
+  totals: { all: number; active: number; new: number; distributed: number; inContact: number; lost: number; converted: number };
+  pendingStaleness: { oldestMinutes: number | null; overdueCount: number };
 };
 
 export async function getBrokerDashboardData(): Promise<BrokerDashboardData> {
@@ -22,11 +23,24 @@ export async function getBrokerDashboardData(): Promise<BrokerDashboardData> {
   const [user, membership, leads] = await Promise.all([
     db.select({ name: schema.user.name }).from(schema.user).where(eq(schema.user.id, context.userId)).limit(1),
     db.select({ availabilityStatus: schema.tenantMemberships.availabilityStatus, branchName: schema.branches.name }).from(schema.tenantMemberships).leftJoin(schema.branches, eq(schema.tenantMemberships.branchId, schema.branches.id)).where(and(eq(schema.tenantMemberships.tenantId, context.tenantId), eq(schema.tenantMemberships.userId, context.userId))).limit(1),
-    db.select({ id: schema.leads.id, name: schema.leads.nome, phone: schema.leads.telefone, source: schema.leads.origem, status: schema.leads.status, createdAt: schema.leads.createdAt, serviceStartedAt: schema.leads.serviceStartedAt }).from(schema.leads).where(and(eq(schema.leads.tenantId, context.tenantId), eq(schema.leads.corretorId, context.userId))).orderBy(desc(schema.leads.createdAt)),
+    db.select({ id: schema.leads.id, name: schema.leads.nome, phone: schema.leads.telefone, source: schema.leads.origem, status: schema.leads.status, createdAt: schema.leads.createdAt, assignedAt: schema.leads.assignedAt, serviceStartedAt: schema.leads.serviceStartedAt }).from(schema.leads).where(and(eq(schema.leads.tenantId, context.tenantId), eq(schema.leads.corretorId, context.userId))).orderBy(desc(schema.leads.createdAt)),
   ]);
   const interactions = leads.length ? await db.select({ leadId: schema.leadInteractions.leadId, createdAt: schema.leadInteractions.createdAt }).from(schema.leadInteractions).where(inArray(schema.leadInteractions.leadId, leads.map((lead) => lead.id))).orderBy(desc(schema.leadInteractions.createdAt)) : [];
   const latest = new Map<string, Date>();
   for (const interaction of interactions) if (!latest.has(interaction.leadId)) latest.set(interaction.leadId, interaction.createdAt);
+
+  const nowMs = Date.now();
+  const distributedLeads = leads.filter((lead) => lead.status === "distributed");
+  const pendingStaleness = {
+    oldestMinutes: distributedLeads.length > 0 && distributedLeads.some((l) => l.assignedAt)
+      ? Math.round(distributedLeads.reduce((max, lead) => {
+          const diff = lead.assignedAt ? nowMs - lead.assignedAt.getTime() : 0;
+          return diff > max ? diff : max;
+        }, 0) / 60_000)
+      : null,
+    overdueCount: distributedLeads.filter((lead) => lead.assignedAt && nowMs - lead.assignedAt.getTime() > 15 * 60 * 1000).length,
+  };
+
   return {
     userName: user[0]?.name ?? "Corretor",
     branchName: membership[0]?.branchName ?? "Unidade não identificada",
@@ -37,9 +51,12 @@ export async function getBrokerDashboardData(): Promise<BrokerDashboardData> {
       all: leads.length,
       active: leads.filter((lead) => (activeLeadStatuses as readonly string[]).includes(lead.status)).length,
       new: leads.filter((lead) => lead.status === "new").length,
+      distributed: distributedLeads.length,
       inContact: leads.filter((lead) => lead.status === "in_contact").length,
+      lost: leads.filter((lead) => lead.status === "lost").length,
       converted: leads.filter((lead) => lead.status === "converted").length,
     },
+    pendingStaleness,
   };
 }
 

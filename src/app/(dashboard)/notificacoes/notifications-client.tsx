@@ -503,7 +503,7 @@ export function NotificationsClient({
   }, [notifications, optimisticReads, addOptimisticRead]);
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 pb-8 pt-4 lg:px-6 lg:pt-6">
+    <main className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 pb-8 pt-4 lg:px-6 lg:pt-6">
       {/* Header */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>

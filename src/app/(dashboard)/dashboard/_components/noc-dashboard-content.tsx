@@ -168,10 +168,8 @@ function NocMetricCard({
       initial="hidden"
       animate="visible"
       transition={{ delay: delay / 1000 }}
-      whileHover={{ y: -2, transition: { duration: 0.2, ease: [0, 0, 0.2, 1] } }}
-      whileTap={{ scale: 0.995, transition: { duration: 0.1 } }}
     >
-      <Card className="group/card rounded-xl border-border/70 bg-card shadow-none transition-all duration-200 hover:border-primary/25 hover:shadow-sm hover:shadow-primary/5">
+      <Card className="group/card rounded-xl border-border/70 bg-card shadow-none transition-all duration-200">
         <CardHeader className="pb-1">
           <div className="flex items-center justify-between gap-3">
             <span className="text-sm text-muted-foreground transition-colors duration-200 group-hover/card:text-foreground">{label}</span>
@@ -459,14 +457,14 @@ function DirectorNocContent({ data }: { data: DirectorDashboardData }) {
         >
         <Card className="rounded-xl border-border/70 bg-card shadow-none">
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <CardTitle>Funil Comercial</CardTitle>
                 <CardDescription>
                   Leads por etapa no tenant
                 </CardDescription>
               </div>
-              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                 {funnelChartData.map((d) => (
                   <span
                     key={d.name}
@@ -1140,6 +1138,66 @@ function BrokerNocContent({ data }: { data: BrokerDashboardData }) {
         </div>
       </section>
 
+      {/* Quick-action cards for pending items */}
+      <section className="grid gap-3 sm:grid-cols-3">
+        <Link
+          href="/leads?status=distributed"
+          className="group rounded-xl border border-warning/30 bg-warning/[0.04] p-4 outline-none transition-colors hover:border-warning/50 hover:bg-warning/[0.07] focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex size-8 items-center justify-center rounded-lg bg-warning/10">
+              <Warning className="size-4 text-warning" weight="fill" />
+            </div>
+            <ArrowUpRight className="size-4 shrink-0 text-muted-foreground transition-transform duration-150 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+          </div>
+          <p className="mt-4 text-sm font-medium">Pendentes</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums">{data.totals.distributed}</p>
+          <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1">
+              <span className={`size-1.5 rounded-full ${data.pendingStaleness.overdueCount > 0 ? "bg-destructive" : "bg-muted-foreground/40"}`} />
+              {data.pendingStaleness.overdueCount} {data.pendingStaleness.overdueCount === 1 ? "venceu" : "venceram"} o SLA
+            </span>
+            {data.pendingStaleness.oldestMinutes !== null && (
+              <>
+                <span>·</span>
+                <span>mais antigo: {data.pendingStaleness.oldestMinutes} min</span>
+              </>
+            )}
+          </div>
+          <p className="mt-1.5 text-xs leading-4 text-muted-foreground/70">Leads atribuídos aguardando primeiro contato</p>
+        </Link>
+
+        <Link
+          href="/leads?status=lost"
+          className="group rounded-xl border border-destructive/20 bg-destructive/[0.03] p-4 outline-none transition-colors hover:border-destructive/40 hover:bg-destructive/[0.06] focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex size-8 items-center justify-center rounded-lg bg-destructive/10">
+              <XCircle className="size-4 text-destructive" weight="fill" />
+            </div>
+            <ArrowUpRight className="size-4 shrink-0 text-muted-foreground transition-transform duration-150 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+          </div>
+          <p className="mt-4 text-sm font-medium">Perdidos</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums">{data.totals.lost}</p>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">Leads perdidos — podem ser reativados</p>
+        </Link>
+
+        <Link
+          href="/leads"
+          className="group rounded-xl border border-border/60 bg-muted/20 p-4 outline-none transition-colors hover:border-primary/30 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex size-8 items-center justify-center rounded-lg bg-chart-3/10">
+              <UserList className="size-4 text-chart-3" weight="fill" />
+            </div>
+            <ArrowUpRight className="size-4 shrink-0 text-muted-foreground transition-transform duration-150 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+          </div>
+          <p className="mt-4 text-sm font-medium">Precisa de ação</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums">{data.totals.active}</p>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">Leads em atendimento que precisam de retorno</p>
+        </Link>
+      </section>
+
       {/* Metric Cards */}
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <NocMetricCard
@@ -1157,10 +1215,10 @@ function BrokerNocContent({ data }: { data: BrokerDashboardData }) {
           delay={80}
         />
         <NocMetricCard
-          label="Novos"
-          value={data.totals.new}
-          change="aguardando contato"
-          description="Leads sem interação"
+          label="Pendentes"
+          value={data.totals.distributed}
+          change="sem primeiro contato"
+          description="Aguardando contato inicial"
           delay={160}
         />
         <NocMetricCard
@@ -1329,9 +1387,12 @@ function BrokerNocContent({ data }: { data: BrokerDashboardData }) {
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export default function NocDashboardContent(props: RoleProps) {
+  const [mounted, setMounted] = useState(false);
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
 
   useEffect(() => {
+    setMounted(true);
+    setCurrentTime(new Date());
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
@@ -1363,14 +1424,20 @@ export default function NocDashboardContent(props: RoleProps) {
         title={title}
         rightSlot={
           <div className="flex items-center gap-3">
-            <div className="hidden items-center gap-2 rounded-lg border border-border/60 bg-muted/40 px-3 py-1.5 text-xs tabular-nums sm:flex">
+            <div className="hidden items-center gap-2 rounded-lg border border-border/60 bg-muted/40 px-3 py-1.5 text-xs tabular-nums sm:flex min-w-[280px] justify-center">
               <WifiHigh className="size-3.5 text-success" weight="fill" />
-              <span className="text-muted-foreground">
-                {formattedDate ?? "Carregando..."}
-              </span>
-              <span className="font-medium text-foreground">
-                {formattedTime ?? "--:--:--"}
-              </span>
+              {mounted && currentTime ? (
+                <>
+                  <span className="text-muted-foreground">
+                    {formattedDate}
+                  </span>
+                  <span className="font-medium text-foreground">
+                    {formattedTime}
+                  </span>
+                </>
+              ) : (
+                <span className="text-muted-foreground animate-pulse">Sincronizando relógio...</span>
+              )}
             </div>
             <Badge className="gap-1.5 rounded-md text-xs" variant="success">
               <span className="relative flex size-2">

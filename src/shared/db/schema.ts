@@ -1,6 +1,7 @@
 import { relations, sql } from "drizzle-orm";
 import {
   boolean,
+  date,
   foreignKey,
   index,
   integer,
@@ -54,6 +55,8 @@ export const webhookDeliveryStatus = pgEnum("webhook_delivery_status", webhookDe
 
 export const quoteStatusValues = ["draft", "shared", "sent", "accepted", "expired"] as const;
 export const quoteStatus = pgEnum("quote_status", quoteStatusValues);
+export const beneficiaryRelationshipValues = ["titular", "conjuge", "filho", "outro"] as const;
+export const beneficiaryRelationship = pgEnum("beneficiary_relationship", beneficiaryRelationshipValues);
 export const taskPriorityValues = ["low", "normal", "urgent"] as const;
 export const taskPriority = pgEnum("task_priority", taskPriorityValues);
 
@@ -330,6 +333,25 @@ export const leads = pgTable(
   ],
 );
 
+export const leadBeneficiaries = pgTable(
+  "lead_beneficiaries",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    leadId: text("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    birthDate: date("birth_date", { mode: "string" }).notNull(),
+    relationship: beneficiaryRelationship("relationship").notNull().default("outro"),
+    isHolder: boolean("is_holder").notNull().default(false),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("lead_beneficiaries_tenant_lead_idx").on(table.tenantId, table.leadId),
+    index("lead_beneficiaries_lead_holder_idx").on(table.leadId, table.isHolder),
+  ],
+);
+
 export const leadQueues = pgTable(
   "lead_queues",
   {
@@ -529,6 +551,25 @@ export const quoteItems = pgTable(
   (table) => [index("quote_items_quote_idx").on(table.quoteId)],
 );
 
+export const quoteLineItems = pgTable(
+  "quote_line_items",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    quoteId: text("quote_id").notNull().references(() => quotes.id, { onDelete: "cascade" }),
+    beneficiaryId: text("beneficiary_id").notNull().references(() => leadBeneficiaries.id, { onDelete: "restrict" }),
+    planId: text("plan_id").notNull().references(() => carrierPlans.id),
+    calculatedValue: numeric("calculated_value", { precision: 12, scale: 2 }).notNull(),
+    ageAtQuote: integer("age_at_quote").notNull(),
+    snapshot: jsonb("snapshot").notNull().default({}),
+    createdAt,
+  },
+  (table) => [
+    index("quote_line_items_tenant_quote_idx").on(table.tenantId, table.quoteId),
+    uniqueIndex("quote_line_items_quote_beneficiary_plan_unique").on(table.quoteId, table.beneficiaryId, table.planId),
+  ],
+);
+
 export const carrierPlanPrices = pgTable(
   "carrier_plan_prices",
   {
@@ -593,6 +634,32 @@ export const notifications = pgTable(
     createdAt,
   },
   (table) => [index("notifications_recipient_created_idx").on(table.recipientUserId, table.createdAt), index("notifications_tenant_idx").on(table.tenantId)],
+);
+
+export const dutyRosterAssignments = pgTable(
+  "duty_roster_assignments",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    branchId: text("branch_id").notNull().references(() => branches.id, { onDelete: "cascade" }),
+    scheduleId: text("schedule_id").notNull().references(() => unitDutySchedules.id, { onDelete: "cascade" }),
+    brokerId: text("broker_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+    dayOfWeek: integer("day_of_week").notNull(),
+    startsAt: text("starts_at").notNull(),
+    endsAt: text("ends_at").notNull(),
+    validFrom: timestamp("valid_from", { withTimezone: true }).notNull(),
+    validUntil: timestamp("valid_until", { withTimezone: true }),
+    status: text("status").notNull().default("active"),
+    createdBy: text("created_by").notNull().references(() => user.id),
+    updatedBy: text("updated_by").notNull().references(() => user.id),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("duty_roster_assignments_tenant_branch_idx").on(table.tenantId, table.branchId, table.dayOfWeek, table.startsAt),
+    index("duty_roster_assignments_broker_idx").on(table.tenantId, table.brokerId, table.dayOfWeek),
+    index("duty_roster_assignments_schedule_idx").on(table.scheduleId, table.status),
+  ],
 );
 
 export const leadFeedbacks = pgTable(
@@ -849,16 +916,18 @@ export const tenantMembershipRelations = relations(
 );
 
 export const commissionRuleTypeValues = ["unica", "escalonada"] as const;
-export const commissionScheduleStatusValues = ["pending", "paid", "cancelled"] as const;
+export const commissionScheduleStatusValues = ["pending", "paid", "cancelled", "chargeback_pending"] as const;
 export const goalScopeValues = ["broker", "team", "branch", "tenant"] as const;
 export const goalTargetTypeValues = ["sales_count", "revenue", "conversion_rate", "leads_contacted"] as const;
 export const saleStatusValues = ["active", "cancelled"] as const;
+export const activeCustomerStatusValues = ["active", "cancelled"] as const;
 
 export const commissionRuleType = pgEnum("commission_rule_type", commissionRuleTypeValues);
 export const commissionScheduleStatus = pgEnum("commission_schedule_status", commissionScheduleStatusValues);
 export const goalScope = pgEnum("goal_scope", goalScopeValues);
 export const goalTargetType = pgEnum("goal_target_type", goalTargetTypeValues);
 export const saleStatus = pgEnum("sale_status", saleStatusValues);
+export const activeCustomerStatus = pgEnum("active_customer_status", activeCustomerStatusValues);
 
 export const documentStatusValues = ["pending", "approved", "rejected"] as const;
 export const documentStatus = pgEnum("document_status", documentStatusValues);
@@ -875,6 +944,7 @@ export const documentRequirements = pgTable(
     name: text("name").notNull(),
     description: text("description"),
     required: boolean("required").notNull().default(true),
+    appliesPerBeneficiary: boolean("applies_per_beneficiary").notNull().default(false),
     createdAt,
     updatedAt,
   },
@@ -894,6 +964,7 @@ export const leadDocuments = pgTable(
       .notNull()
       .references(() => leads.id, { onDelete: "cascade" }),
     requirementId: text("requirement_id").references(() => documentRequirements.id, { onDelete: "set null" }),
+    beneficiaryId: text("beneficiary_id").references(() => leadBeneficiaries.id, { onDelete: "set null" }),
     filename: text("filename").notNull(),
     fileUrl: text("file_url").notNull(),
     status: documentStatus("status").notNull().default("pending"),
@@ -955,6 +1026,10 @@ export const sales = pgTable(
     commissionRuleId: text("commission_rule_id").references(() => commissionRules.id),
     saleDate: timestamp("sale_date", { withTimezone: true }).notNull(),
     saleValue: numeric("sale_value", { precision: 12, scale: 2 }).notNull(),
+    policyNumber: text("policy_number"),
+    coverageStartDate: date("coverage_start_date", { mode: "string" }),
+    approvedValue: numeric("approved_value", { precision: 12, scale: 2 }),
+    confirmationDocumentId: text("confirmation_document_id").references(() => leadDocuments.id, { onDelete: "set null" }),
     status: saleStatus("status").notNull().default("active"),
     notes: text("notes"),
     createdBy: text("created_by")
@@ -998,6 +1073,45 @@ export const commissionSchedule = pgTable(
     index("commission_schedule_ref_month_idx").on(table.referenceMonth),
     index("commission_schedule_status_idx").on(table.status),
   ],
+);
+
+export const activeCustomers = pgTable(
+  "active_customers",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    saleId: text("sale_id").notNull().references(() => sales.id, { onDelete: "cascade" }),
+    clientId: text("client_id").references(() => clients.id, { onDelete: "set null" }),
+    leadId: text("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+    brokerId: text("broker_id").notNull().references(() => user.id),
+    branchId: text("branch_id").references(() => branches.id),
+    status: activeCustomerStatus("status").notNull().default("active"),
+    coverageStartDate: date("coverage_start_date", { mode: "string" }).notNull(),
+    contractAnniversary: date("contract_anniversary", { mode: "string" }).notNull(),
+    cancellationDate: date("cancellation_date", { mode: "string" }),
+    cancellationReason: text("cancellation_reason"),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    uniqueIndex("active_customers_sale_unique").on(table.saleId),
+    index("active_customers_tenant_status_idx").on(table.tenantId, table.status),
+    index("active_customers_branch_idx").on(table.branchId),
+  ],
+);
+
+export const postSaleSettings = pgTable(
+  "post_sale_settings",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    chargebackWindowDays: integer("chargeback_window_days").notNull().default(90),
+    active: boolean("active").notNull().default(true),
+    updatedBy: text("updated_by").references(() => user.id),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [uniqueIndex("post_sale_settings_tenant_unique").on(table.tenantId)],
 );
 
 /* ─── Goals ─── */

@@ -36,7 +36,7 @@ export type SaleCommissionDetail = {
     dueDate: Date | null;
     percentage: string;
     amount: string;
-    status: "pending" | "paid" | "cancelled";
+      status: "pending" | "paid" | "cancelled" | "chargeback_pending";
     paidAt: Date | null;
     paidByName: string | null;
   }>;

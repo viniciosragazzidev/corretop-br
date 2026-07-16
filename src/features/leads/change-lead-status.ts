@@ -58,17 +58,24 @@ async function assertCanChangeStatus(
     throw new AuthorizationError("Seu papel não pode alterar status de leads.");
   }
 
-  // Corretor: só pode alterar leads onde é o responsável
-  if (context.role === "broker" && context.userId !== lead.corretorId) {
-    throw new AuthorizationError("Você só pode alterar status dos seus próprios leads.");
+  // Se o lead tem um corretor responsável, apenas esse corretor pode alterar o status
+  if (lead.corretorId) {
+    if (context.userId !== lead.corretorId) {
+      throw new AuthorizationError("Apenas o corretor responsável por este lead pode alterar o seu status.");
+    }
+  } else {
+    // Se não tem corretor, apenas gestores/diretores podem alterar (corretores não)
+    if (context.role === "broker") {
+      throw new AuthorizationError("Este lead não está atribuído a você.");
+    }
   }
 
   if (context.role === "broker" && lead.status === "distributed") {
     throw new AuthorizationError("Inicie o atendimento antes de alterar o status deste lead.");
   }
 
-  // Gestor: só pode alterar leads da sua filial
-  if (context.role === "manager") {
+  // Gestor: só pode alterar leads da sua filial (caso não haja corretor atribuído)
+  if (context.role === "manager" && !lead.corretorId) {
     if (!lead.branchId || !context.branchId || context.branchId !== lead.branchId) {
       throw new AuthorizationError("Você só pode alterar status de leads da sua filial.");
     }
@@ -117,7 +124,7 @@ export async function changeLeadStatus(
   // ─── Validações de transição ─────────────────────────────────────────
 
   // 1. convertido: não pode ser selecionado manualmente
-  if (false && newStatus === "converted") {
+  if (newStatus === "converted") {
     throw new Error(
       "O status 'Convertido' não pode ser definido manualmente. Ele é atribuído automaticamente ao registrar uma venda.",
     );

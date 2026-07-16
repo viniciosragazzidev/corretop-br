@@ -1,7 +1,7 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
-import { and, asc, count, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, count, eq, gt, inArray, isNull, lte, or } from "drizzle-orm";
 import { getDatabase, schema } from "@/shared/db";
 import { AuthorizationError } from "@/shared/auth/errors";
 import type { TenantContext } from "@/shared/auth/types";
@@ -16,6 +16,23 @@ function canManage(context: TenantContext) {
 
 function assertBranchScope(context: TenantContext, branchId: string) {
   if (context.role === "manager" && context.branchId !== branchId) throw new AuthorizationError("Você só pode operar leads da sua unidade.");
+}
+
+function getLocalDutyParts(date: Date) {
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/Sao_Paulo", weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(date);
+  const weekday = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }[parts.find((part) => part.type === "weekday")?.value as "Sun" | "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat"] ?? 0;
+  const hour = parts.find((part) => part.type === "hour")?.value ?? "00";
+  const minute = parts.find((part) => part.type === "minute")?.value ?? "00";
+  return { weekday, time: `${hour === "24" ? "00" : hour}:${minute}` };
+}
+
+async function getRosterBrokerIds(tenantId: string, branchId: string, date = new Date()) {
+  const db = getDatabase();
+  const local = getLocalDutyParts(date);
+  const assignments = await db.select({ brokerId: schema.dutyRosterAssignments.brokerId })
+    .from(schema.dutyRosterAssignments)
+    .where(and(eq(schema.dutyRosterAssignments.tenantId, tenantId), eq(schema.dutyRosterAssignments.branchId, branchId), eq(schema.dutyRosterAssignments.dayOfWeek, local.weekday), eq(schema.dutyRosterAssignments.status, "active"), lte(schema.dutyRosterAssignments.startsAt, local.time), gt(schema.dutyRosterAssignments.endsAt, local.time), lte(schema.dutyRosterAssignments.validFrom, date), or(isNull(schema.dutyRosterAssignments.validUntil), gt(schema.dutyRosterAssignments.validUntil, date))));
+  return assignments.length ? new Set(assignments.map((assignment) => assignment.brokerId)) : null;
 }
 
 async function ensureDefaultQueue(tenantId: string, branchId: string, actorId: string) {
@@ -81,7 +98,9 @@ export async function processQueuedLead(context: TenantContext, leadId: string):
   if (!branch.autoDistribute) return { status: "queued", leadId, reason: "A distribuição automática está desativada nesta unidade." };
   const [queue] = lead.queueId ? await db.select({ strategy: schema.leadQueues.assignmentStrategy, mode: schema.leadQueues.assignmentMode, capacityEnabled: schema.leadQueues.capacityEnabled, capacity: schema.leadQueues.capacityPerBroker }).from(schema.leadQueues).where(and(eq(schema.leadQueues.id, lead.queueId), eq(schema.leadQueues.tenantId, context.tenantId), eq(schema.leadQueues.status, "active"))).limit(1) : [];
   if (queue?.mode === "manual") return { status: "queued", leadId, reason: "A fila está em modo manual." };
-  const brokers = await db.select({ id: schema.user.id, createdAt: schema.user.createdAt }).from(schema.tenantMemberships).innerJoin(schema.user, eq(schema.tenantMemberships.userId, schema.user.id)).where(and(eq(schema.tenantMemberships.tenantId, context.tenantId), eq(schema.tenantMemberships.branchId, lead.branchId), eq(schema.tenantMemberships.role, "broker"), eq(schema.tenantMemberships.status, "active"), eq(schema.tenantMemberships.availabilityStatus, "available"), eq(schema.user.active, true), eq(schema.user.status, "active"))).orderBy(asc(schema.user.createdAt));
+  const allBrokers = await db.select({ id: schema.user.id, createdAt: schema.user.createdAt }).from(schema.tenantMemberships).innerJoin(schema.user, eq(schema.tenantMemberships.userId, schema.user.id)).where(and(eq(schema.tenantMemberships.tenantId, context.tenantId), eq(schema.tenantMemberships.branchId, lead.branchId), eq(schema.tenantMemberships.role, "broker"), eq(schema.tenantMemberships.status, "active"), eq(schema.tenantMemberships.availabilityStatus, "available"), eq(schema.user.active, true), eq(schema.user.status, "active"))).orderBy(asc(schema.user.createdAt));
+  const rosterBrokerIds = await getRosterBrokerIds(context.tenantId, lead.branchId);
+  const brokers = rosterBrokerIds ? allBrokers.filter((broker) => rosterBrokerIds.has(broker.id)) : allBrokers;
   const ids = brokers.map((broker) => broker.id);
   if (!ids.length) return { status: "queued", leadId, reason: "Nenhum corretor elegível nesta unidade." };
   const loads = await db.select({ brokerId: schema.leads.corretorId, total: count(schema.leads.id) }).from(schema.leads).where(and(eq(schema.leads.tenantId, context.tenantId), inArray(schema.leads.corretorId, ids), inArray(schema.leads.status, activeCommercialStatuses))).groupBy(schema.leads.corretorId);

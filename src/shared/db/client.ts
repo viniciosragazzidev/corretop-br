@@ -49,11 +49,18 @@ export async function ensureRuntimeSchema() {
         "updated_at" timestamptz NOT NULL DEFAULT now()
       )
     `);
+    const tables = ["leads", "notifications"] as const;
+    for (const table of tables) {
+      try {
+        await db.execute(sql`ALTER PUBLICATION supabase_realtime ADD TABLE ${sql.identifier(table)}`);
+      } catch {
+        // Já adicionada ou não estamos no Supabase — falha silenciosa
+      }
+    }
     try {
-      await db.execute(sql`ALTER PUBLICATION supabase_realtime ADD TABLE leads`);
       await db.execute(sql`ALTER TABLE leads REPLICA IDENTITY FULL`);
     } catch {
-      // Fail silently if not running on Supabase or table is already added
+      // Falha silenciosa
     }
   })().catch((error) => {
     runtimeSchemaPromise = undefined;
