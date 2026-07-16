@@ -46,7 +46,9 @@ rastreabilidade. Pendências que impedem uma implementação definitiva ficam no
 
 | ID | Regra | Gatilho → resultado | Origem |
 |---|---|---|---|
-| BR-030 | Catálogo pode ser global ou exclusivo do tenant; ambos seguem o mesmo fluxo de cotação. | Consulta de catálogo → retorna global + itens do tenant autorizados. | RF140–142 |
+| BR-030 | O catálogo efetivo combina apenas planos oficiais publicados e autorizados pelo Super-admin com extensões privadas do próprio tenant. | Consulta de catálogo → aplica vigência, disponibilidade por tenant/unidade e origem; nenhum item privado vaza para outro tenant. | DEC-031, RF140–142 |
+| BR-030A | Preço e condições comerciais são versionados; proposta, PDF e venda preservam a versão usada. | Publicação de tabela nova → novas cotações usam a versão vigente, sem recalcular registros anteriores. | DEC-031 |
+| BR-030B | Catálogo oficial e extensão privada possuem administração separada e auditável. | Mudança oficial → somente Super-admin; mudança privada → somente Diretor do tenant, com auditoria. | DEC-031 |
 | BR-031 | Atualização manual de tabela é o fallback obrigatório; scraping é complementar. | Falha/desatualização do scraper → alerta e manutenção manual disponível. | RF030–032 |
 | BR-032 | Cada cotação é imutável como versão histórica. | Nova cotação → cria novo registro e mantém as anteriores. | RF033–034, RF150–151 |
 | BR-033 | Checklist documental depende de operadora/tipo de plano. | Solicitação de documentos → checklist aplicável é materializado e acompanhado. | RF040–041 |
@@ -78,6 +80,7 @@ rastreabilidade. Pendências que impedem uma implementação definitiva ficam no
 | BR-054 | Taxa de perda anormal compara corretor com referência configurável da equipe/filial. | Desvio excede limite → alerta para Gestor/Diretor. | RF193, RF199–200 |
 | BR-055 | Reengajamento de perdido obedece prazo e canal aprovados, com conteúdo neutro. | Prazo configurado alcançado → cria ação de reengajamento auditável. | RF195 |
 | BR-056 | Relatório de evidências preserva timeline, status e mensagens autorizadas do lead. | Solicitação autorizada → gera exportação auditada e limitada ao escopo. | RF197 |
+| BR-057 | A plataforma deve disponibilizar termos públicos que delimitem uso do CRM, responsabilidades operacionais e tratamento de dados. | Acesso a `/termos` → informa a versão, uso permitido, papéis de proteção de dados e canal a ser formalizado pelo contratante. | DEC-032 |
 
 ## Regras que exigem decisão antes do código
 
@@ -87,4 +90,13 @@ rastreabilidade. Pendências que impedem uma implementação definitiva ficam no
 - Fórmula, vigência e reversão de comissões (DEC-004).
 - Base legal, retenção e consentimento LGPD (DEC-005).
 - Canal, aprovação e opt-out do reengajamento (DEC-006).
-| BR-030 | A apresentaÃ§Ã£o de uma rota Ã© exibida uma vez por usuÃ¡rio e tenant, e pode ser reativada pelo Super-admin. | Primeira visita sem conclusÃ£o â†’ dialog contextual; conclusÃ£o/dispensa â†’ progresso persistido; reset administrativo â†’ todas as rotas voltam a ficar disponÃ­veis e a aÃ§Ã£o Ã© auditada. | DEC-029 |
+
+## Feedback e lembretes
+
+| ID | Regra | Gatilho → resultado | Origem |
+|---|---|---|---|
+| BR-046 | Lembrete de feedback usa intervalo configurável por tenant. | Job roda a cada ciclo → notifica corretores com leads ativos sem feedback no período. | DEC-030 |
+| BR-047 | Número máximo de lembretes por lead é configurável por tenant. | Contador de notificações no intervalo ≥ máximo → mensagem escala para urgente. | DEC-030 |
+| BR-048 | Push de lembrete de feedback respeita flag por tenant e capacidade global. | Flag do tenant + capacidade global ativas → push enviado; qualquer uma desativada → apenas toast/in-app. | DEC-030 / DEC-028 |
+| BR-049 | Toast de lembrete de feedback respeita flag por tenant. | Flag desativada → notificação in-app não é criada. | DEC-030 |
+| BR-050 | Após exceder tentativas máximas, o lembrete altera título para "urgente" e avisa sobre risco de redistribuição. | Tentativas ≥ máximo → notificação com tom de urgência elevado. | DEC-030 |

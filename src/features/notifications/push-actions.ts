@@ -2,6 +2,7 @@
 
 import { randomUUID } from "node:crypto";
 import { eq, and } from "drizzle-orm";
+import { z } from "zod";
 
 import webpush from "web-push";
 
@@ -28,61 +29,96 @@ type PushSubscriptionJSON = {
   };
 };
 
-export async function subscribeUserAction(sub: PushSubscriptionJSON) {
+const pushSubscriptionSchema = z.object({
+  endpoint: z.string().url(),
+  keys: z.object({
+    p256dh: z.string().min(1),
+    auth: z.string().min(1),
+  }),
+});
+
+export async function subscribeUserAction(input: unknown) {
+  const parsed = pushSubscriptionSchema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false as const, error: "Inscrição de push inválida." };
+  }
+
+  const sub = parsed.data satisfies PushSubscriptionJSON;
   const context = await getRequiredTenantContext();
   const db = getDatabase();
   const now = new Date();
 
   // Check if already subscribed with this endpoint
   const existing = await db
-    .select({ id: schema.pushSubscriptions.id })
+    .select({
+      id: schema.pushSubscriptions.id,
+      userId: schema.pushSubscriptions.userId,
+      tenantId: schema.pushSubscriptions.tenantId,
+    })
     .from(schema.pushSubscriptions)
     .where(eq(schema.pushSubscriptions.endpoint, sub.endpoint))
     .limit(1);
 
   if (existing.length > 0) {
-    // Update existing subscription
-    await db
-      .update(schema.pushSubscriptions)
-      .set({
-        p256dh: sub.keys.p256dh,
-        auth: sub.keys.auth,
-        userAgent: null, // userAgent não disponível em server actions; pode ser passado como parâmetro se necessário
-        updatedAt: now,
-      })
-      .where(eq(schema.pushSubscriptions.id, existing[0].id));
-    return { success: true };
+    if (existing[0].userId !== context.userId || existing[0].tenantId !== context.tenantId) {
+      return { success: false as const, error: "Esta inscrição pertence a outra conta." };
+    }
+
+    await db.transaction(async (tx) => {
+      await tx
+        .update(schema.pushSubscriptions)
+        .set({ p256dh: sub.keys.p256dh, auth: sub.keys.auth, userAgent: null, updatedAt: now })
+        .where(eq(schema.pushSubscriptions.id, existing[0].id));
+      await tx.insert(schema.auditLogs).values({
+        id: randomUUID(), userId: context.userId, entidade: "push_subscription",
+        entidadeId: existing[0].id, acao: "atualizou_notificacoes_push",
+      });
+    });
+    return { success: true as const };
   }
 
-  // Create new subscription
-  await db.insert(schema.pushSubscriptions).values({
-    id: randomUUID(),
-    userId: context.userId,
-    tenantId: context.tenantId,
-    endpoint: sub.endpoint,
-    p256dh: sub.keys.p256dh,
-    auth: sub.keys.auth,        userAgent: null, // userAgent não disponível em server actions
-    createdAt: now,
-    updatedAt: now,
+  const subscriptionId = randomUUID();
+  await db.transaction(async (tx) => {
+    await tx.insert(schema.pushSubscriptions).values({
+      id: subscriptionId, userId: context.userId, tenantId: context.tenantId,
+      endpoint: sub.endpoint, p256dh: sub.keys.p256dh, auth: sub.keys.auth,
+      userAgent: null, createdAt: now, updatedAt: now,
+    });
+    await tx.insert(schema.auditLogs).values({
+      id: randomUUID(), userId: context.userId, entidade: "push_subscription",
+      entidadeId: subscriptionId, acao: "ativou_notificacoes_push",
+    });
   });
 
-  return { success: true };
+  return { success: true as const };
 }
 
-export async function unsubscribeUserAction(endpoint: string) {
+export async function unsubscribeUserAction(input: unknown) {
+  const parsed = z.string().url().safeParse(input);
+  if (!parsed.success) return { success: false as const, error: "Inscrição de push inválida." };
+
   const context = await getRequiredTenantContext();
   const db = getDatabase();
+  const subscriptions = await db
+    .select({ id: schema.pushSubscriptions.id })
+    .from(schema.pushSubscriptions)
+    .where(and(
+      eq(schema.pushSubscriptions.endpoint, parsed.data),
+      eq(schema.pushSubscriptions.userId, context.userId),
+      eq(schema.pushSubscriptions.tenantId, context.tenantId),
+    ));
 
-  await db
-    .delete(schema.pushSubscriptions)
-    .where(
-      and(
-        eq(schema.pushSubscriptions.endpoint, endpoint),
-        eq(schema.pushSubscriptions.userId, context.userId),
-      ),
-    );
+  if (subscriptions.length === 0) return { success: true as const };
 
-  return { success: true };
+  await db.transaction(async (tx) => {
+    await tx.delete(schema.pushSubscriptions).where(eq(schema.pushSubscriptions.id, subscriptions[0].id));
+    await tx.insert(schema.auditLogs).values({
+      id: randomUUID(), userId: context.userId, entidade: "push_subscription",
+      entidadeId: subscriptions[0].id, acao: "desativou_notificacoes_push",
+    });
+  });
+
+  return { success: true as const };
 }
 
 export async function sendTestNotificationAction(message: string) {
@@ -131,9 +167,14 @@ export async function sendTestNotificationAction(message: string) {
       );
       results.push({ endpoint: sub.endpoint, sent: true });
     } catch (error) {
-      const err = error as any;
+      const statusCode =
+        error instanceof Error &&
+        "statusCode" in error &&
+        typeof error.statusCode === "number"
+          ? error.statusCode
+          : undefined;
       // If subscription is invalid (410 Gone), remove it
-      if (err.statusCode === 410) {
+      if (statusCode === 410) {
         await db
           .delete(schema.pushSubscriptions)
           .where(eq(schema.pushSubscriptions.id, sub.id));

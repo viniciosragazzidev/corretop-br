@@ -196,6 +196,17 @@ A rota `/notificacoes` passou a priorizar triagem e continuidade do trabalho, co
 *   **Push**: card lateral visível quando inativo; após ativação, o estado fica resumido e os controles de teste/desativação ficam sob demanda.
 *   **Popover**: renderizado por portal em `document.body`, ancorado por coordenadas do sino e com backdrop adaptado ao tema. Isso remove a herança de stacking context do header que fazia a superfície parecer transparente.
 
+### 6.3 Carregamento do popover e convite contextual de Push
+O sino agora consulta as notificações recentes sempre que é aberto, usando a mesma fonte escopada por tenant e usuário da inbox completa. O convite de Push também passou a aparecer dentro do próprio popover quando o navegador atual ainda não está inscrito.
+
+*   **Arquivos modificados**:
+    *   `src/components/notification-popover.tsx`
+    *   `src/features/notifications/components/push-notification-manager.tsx`
+    *   `src/features/notifications/push-actions.ts`
+*   **Ativação**: o CTA “Ativar” só solicita a permissão nativa após clique explícito no sino/convite; navegadores não aceitam um pedido confiável e respeitoso de permissão disparado automaticamente no carregamento.
+*   **Escopo e auditoria**: a leitura de inscrição considera o `PushSubscription` do navegador atual, enquanto as Server Actions validam o payload, impedem reutilização de endpoint de outra conta/tenant e registram ativação, atualização e desativação em `audit_logs`.
+*   **Validação**: lint dirigido, 71 testes Vitest, type-check e build de produção concluídos em 16/07/2026.
+
 ## 7. Refinamento operacional do detalhe do Lead
 
 O detalhe em `/leads/[id]` foi reorganizado para reduzir a disputa entre informações, ações e formulários.
@@ -204,3 +215,13 @@ O detalhe em `/leads/[id]` foi reorganizado para reduzir a disputa entre informa
 *   **Área de trabalho primeiro**: próxima ação e abas operacionais ocupam a coluna principal; contato, dados organizados, beneficiários e intervenções ficam no contexto lateral.
 *   **Gestão sem concorrência**: reatribuição e investigação agora são dois fluxos exclusivos dentro do mesmo cartão, com impacto explicado antes da confirmação.
 *   **Superfícies**: fundos reduzidos a `card` e `muted` semânticos, bordas mais leves e menor altura entre blocos para preservar a informação importante acima da dobra.
+
+## 8. Fundação do catálogo global e extensões privadas
+
+O domínio de catálogo passa a ter uma separação explícita entre a base oficial da plataforma e acordos exclusivos de cada corretora.
+
+* **Migração `0045_global_catalog_foundation`**: cria entidades globais, tabelas/preços versionados, allow-list por tenant, restrição por unidade, lotes de importação, change sets e auditoria de catálogo. O conteúdo legado é copiado de forma idempotente para a extensão privada, preservando IDs para a transição.
+* **Administração**: `/super-admin/catalogo` permite controlar capacidades, cadastrar/publicar operadoras, planos e primeira tabela oficial, além de liberá-los por corretora com auditoria de plataforma.
+* **Corretora**: `/catalogo/interno` é exclusivo ao Diretor e permite cadastrar operadora, plano e tabela de acordo privado; Gestor e Corretor recebem acesso negado.
+* **Contrato público**: `listAvailableCatalogPlans()` resolve planos oficiais autorizados, respeita restrição de filial e acrescenta somente os itens privados do tenant autenticado.
+* **Estado**: primeira fase entregue. A troca gradual dos consumidores legados (cotador, documentos, vendas, comissões e PDFs) continua registrada no roadmap N32 para evitar alterações históricas involuntárias.

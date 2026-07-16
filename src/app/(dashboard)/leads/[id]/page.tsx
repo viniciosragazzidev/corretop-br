@@ -140,15 +140,15 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
 
               {/* Quick Header Actions */}
               <div id="lead-actions" className="flex flex-wrap items-center gap-2 sm:justify-end">
+                {context.role === "broker" && context.userId === lead.corretorId && lead.status === "distributed" && (
+                  <StartServiceButton leadId={lead.id} />
+                )}
                 {lead.status !== "distributed" && (
                   <QuoteModalButton leadId={lead.id} plans={plans.map((p) => ({ id: p.id, name: p.name, carrierName: p.carrierName, coverage: p.type }))} />
                 )}
                 <Badge className={slaUrgent ? "border-warning/30 bg-warning/[0.08] text-warning" : "border-border/80"} variant="outline">
                   {lead.status === "distributed" ? `SLA: ${remainingMinutes > 0 ? `expira em ${remainingMinutes}min` : "expirado"}` : "SLA em acompanhamento"}
                 </Badge>
-                {context.role === "broker" && context.userId === lead.corretorId && lead.status === "distributed" && (
-                  <StartServiceButton leadId={lead.id} />
-                )}
                 {/* Render status selector if allowed */}
                 {(lead.corretorId
                   ? (context.userId === lead.corretorId && lead.status !== "distributed")

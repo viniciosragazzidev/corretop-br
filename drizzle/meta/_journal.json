@@ -57,6 +57,27 @@
       "when": 1784722300000,
       "tag": "0043_route_onboarding_progress",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1784722400000,
+      "tag": "0044_feedback_reminder_config",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1784811600000,
+      "tag": "0045_global_catalog_foundation",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1784812600000,
+      "tag": "0046_feedback_checklists",
+      "breakpoints": true
     }
   ]
 }

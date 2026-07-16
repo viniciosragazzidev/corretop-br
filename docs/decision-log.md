@@ -53,3 +53,25 @@ para ADR se aplicável.
 ## DEC-029 — Onboarding contextual por rota
 
 Estado: aprovada em 2026-07-16. A apresentação é persistida por tenant, usuário e rota; o Super-admin pode desativar globalmente ou reiniciar o conjunto de rotas de um usuário. A operação gera auditoria.
+
+## DEC-030 — Lembrete de feedback configurável por tenant com push
+
+Estado: aprovada em 2026-07-16. O lembrete de feedback agora opera com intervalo configurável por tenant (default 30 min), máximo de tentativas (default 5), e flags independentes para push e toast. O job roda a cada N minutos em vez de 1x/dia. Quando o limite de tentativas é excedido, a urgência da mensagem escala. O push respeita a capacidade global DEC-028.
+
+## DEC-031 — Catálogo oficial global com extensão privada por corretora
+
+**Estado:** Aceita
+**Data:** 2026-07-16
+
+O CorreTop manterá uma base oficial global de operadoras, planos, tabelas e versões comerciais, publicada exclusivamente pelo Super-admin. Cada corretora pode manter uma extensão privada para acordos exclusivos, isolada pelo seu `tenant_id` e administrada somente pelo Diretor. A consulta de cotação usará um resolvedor único que combina itens oficiais publicados e permitidos para tenant/unidade com itens privados do próprio tenant.
+
+Tabelas comerciais serão versionadas e vigentes; registros históricos devem manter snapshot e referência da versão utilizada. Importação assistida por IA poderá gerar propostas de alteração, mas jamais publicar ou alterar o catálogo sem revisão explícita do Super-admin.
+
+**Consequência:** o CRUD legado por tenant permanece apenas como adaptador de migração. Nenhum consumidor novo deve consultar as tabelas legadas diretamente.
+
+## DEC-032 — Termos públicos de uso e responsabilidade do CRM
+
+**Estado:** Aceita como versão operacional
+**Data:** 2026-07-16
+
+O CorreTop disponibilizará uma rota pública de termos que explica o uso permitido do CRM, a responsabilidade da corretora sobre seus usuários e dados de clientes, os limites da plataforma e orientações gerais de proteção de dados. O texto não substitui contrato, política de privacidade específica, definição formal de controlador/operador nem revisão jurídica. A versão jurídica definitiva exigirá identificação da pessoa jurídica, canal de privacidade e política de retenção aprovados.

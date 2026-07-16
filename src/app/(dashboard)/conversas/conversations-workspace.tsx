@@ -224,7 +224,7 @@ export function ConversationsWorkspace({
                 {loadingThread ? <p className="text-center text-xs text-muted-foreground">Atualizando mensagens...</p> : null}
                 {selected.messages.map((message) => <MessageBubble key={message.id} message={message} name={selected.nome} />)}
                 <div ref={messagesEndRef} />
-                {!selected.messages.length ? <div className="mx-auto max-w-sm py-12 text-center"><div className="mx-auto grid size-10 place-items-center rounded-full bg-muted"><ChatCircleText className="text-muted-foreground" /></div><p className="mt-3 text-sm font-medium">Ainda não há mensagens</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">Use uma ação rápida ou escreva a primeira mensagem para este cliente.</p></div> : null}
+                {!selected.messages.length ? <div className="mx-auto max-w-sm py-12 text-center"><div className="mx-auto grid size-10 place-items-center rounded-full bg-muted"><ChatCircleText className="text-muted-foreground" /></div><p className="mt-3 text-sm font-medium">{role === "broker" ? "Ainda não há mensagens" : "WhatsApp do corretor ainda não sincronizado"}</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">{role === "broker" ? "Use uma ação rápida ou escreva a primeira mensagem para este cliente." : "As mensagens aparecerão aqui quando o corretor responsável conectar e sincronizar o WhatsApp no CorreTop."}</p></div> : null}
               </div>
             </ScrollArea>
             <footer className="relative border-t border-border bg-card p-3">
