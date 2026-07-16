@@ -1,13 +1,12 @@
 import { and, asc, desc, eq, inArray, isNotNull, lt, sql } from "drizzle-orm";
 
 import { DashboardHeader } from "@/components/dashboard-header";
-import { ConversationsWorkspace, type ConversationItem, type ConversationMessage, type PlanSuggestion } from "./conversations-workspace";
+import { ConversationsWorkspace, type ConversationItem, type ConversationMessage } from "./conversations-workspace";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
-import { getPreferredMetaCloudChannel } from "@/features/communication-channels/service";
 
-export default async function ConversationsPage({ searchParams }: { searchParams: Promise<{ leadId?: string; setup?: string }> }) {
-  const { leadId, setup } = await searchParams;
+export default async function ConversationsPage({ searchParams }: { searchParams: Promise<{ leadId?: string }> }) {
+  const { leadId } = await searchParams;
   const context = await getRequiredTenantContext();
   const db = getDatabase();
 
@@ -18,7 +17,7 @@ export default async function ConversationsPage({ searchParams }: { searchParams
       ? eq(schema.leads.branchId, context.branchId)
       : undefined;
 
-  const [leads, availablePlans, connection, branches, officialChannel] = await Promise.all([
+  const [leads, branches] = await Promise.all([
     db
       .select({
         id: schema.leads.id,
@@ -45,18 +44,6 @@ export default async function ConversationsPage({ searchParams }: { searchParams
       .where(and(eq(schema.leads.tenantId, context.tenantId), isNotNull(schema.leads.serviceStartedAt), ...(scope ? [scope] : [])))
       .orderBy(desc(schema.leads.stageEnteredAt))
       .limit(100),
-    db
-      .select({ id: schema.carrierPlans.id, name: schema.carrierPlans.name, carrierName: schema.carriers.name })
-      .from(schema.carrierPlans)
-      .innerJoin(schema.carriers, eq(schema.carrierPlans.carrierId, schema.carriers.id))
-      .where(and(eq(schema.carrierPlans.tenantId, context.tenantId), eq(schema.carrierPlans.active, true), eq(schema.carriers.status, "active")))
-      .orderBy(schema.carriers.name, schema.carrierPlans.name)
-      .limit(30),
-    db
-      .select({ active: schema.whatsappConnections.chatInternoAtivo, status: schema.whatsappConnections.status })
-      .from(schema.whatsappConnections)
-      .where(and(eq(schema.whatsappConnections.tenantId, context.tenantId), eq(schema.whatsappConnections.userId, context.userId)))
-      .limit(1),
     isDirector
       ? db
           .select({ id: schema.branches.id, name: schema.branches.name })
@@ -64,7 +51,6 @@ export default async function ConversationsPage({ searchParams }: { searchParams
           .where(and(eq(schema.branches.tenantId, context.tenantId), eq(schema.branches.status, "active")))
           .orderBy(asc(schema.branches.name))
       : Promise.resolve([] as { id: string; name: string }[]),
-    getPreferredMetaCloudChannel({ tenantId: context.tenantId, branchId: context.branchId, userId: context.userId }),
   ]);
 
   const leadIds = leads.map((lead) => lead.id);
@@ -139,10 +125,6 @@ export default async function ConversationsPage({ searchParams }: { searchParams
     };
   });
 
-  const plans: PlanSuggestion[] = availablePlans;
-  const whatsappSessionReady = Boolean(officialChannel) || connection[0]?.status === "ready";
-  const whatsappReady = Boolean(officialChannel) || (connection[0]?.active === true && connection[0]?.status === "ready");
-
   return (
     <>
       <DashboardHeader breadcrumb="Atendimento" title="Conversas" />
@@ -150,13 +132,8 @@ export default async function ConversationsPage({ searchParams }: { searchParams
         <ConversationsWorkspace
           role={context.role}
           branches={branches}
-          canSend={context.role === "broker"}
           conversations={conversations}
           initialLeadId={leadId}
-          plans={plans}
-          whatsappReady={whatsappReady}
-          whatsappSessionReady={whatsappSessionReady}
-          setupOpen={setup === "whatsapp"}
         />
       </main>
     </>
