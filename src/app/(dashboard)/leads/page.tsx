@@ -18,10 +18,15 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
   const db = getDatabase();
   const configuredStagnantDays = Number(await getSystemSetting("feature_central_atencao_stagnant_days") ?? 3);
   const stagnantDays = Number.isInteger(configuredStagnantDays) && configuredStagnantDays >= 1 && configuredStagnantDays <= 30 ? configuredStagnantDays : 3;
-  const attention = filters.attention === "unworked" || filters.attention === "stalled" ? filters.attention : null;
+  const attention = (filters.attention === "unworked" || filters.attention === "stalled") 
+    ? filters.attention 
+    : (filters.status === "stalled" || filters.status === "unworked")
+    ? (filters.status as "unworked" | "stalled")
+    : null;
   const stalledSince = sql<Date>`now() - (${stagnantDays} * interval '1 day')`;
   const attentionNote = attention === "unworked" ? "Exibindo leads novos ou distribuídos que ainda aguardam o primeiro atendimento." : attention === "stalled" ? `Exibindo leads ativos sem avanço de etapa há mais de ${stagnantDays} dias.` : null;
-  const statusFilter = attention === "unworked" ? and(inArray(schema.leads.status, ["new", "distributed"]), isNull(schema.leads.serviceStartedAt)) : attention === "stalled" ? and(inArray(schema.leads.status, ["in_contact", "quote_sent", "negotiation", "documentation_pending", "under_analysis"]), lt(schema.leads.stageEnteredAt, stalledSince)) : filters.status ? eq(schema.leads.status, filters.status as typeof schema.leadStatusValues[number]) : null;
+  const isValidStatus = filters.status && (schema.leadStatusValues as readonly string[]).includes(filters.status);
+  const statusFilter = attention === "unworked" ? and(inArray(schema.leads.status, ["new", "distributed"]), isNull(schema.leads.serviceStartedAt)) : attention === "stalled" ? and(inArray(schema.leads.status, ["in_contact", "quote_sent", "negotiation", "documentation_pending", "under_analysis"]), lt(schema.leads.stageEnteredAt, stalledSince)) : isValidStatus ? eq(schema.leads.status, filters.status as typeof schema.leadStatusValues[number]) : null;
   const searchFilter = filters.search ? or(ilike(schema.leads.nome, `%${filters.search}%`), ilike(schema.leads.telefone, `%${filters.search}%`)) : null;
   const branchFilter = context.role === "manager" && context.branchId ? eq(schema.leads.branchId, context.branchId) : context.role === "broker" ? eq(schema.leads.corretorId, context.userId) : filters.branch ? eq(schema.leads.branchId, filters.branch) : null;
   const where = and(eq(schema.leads.tenantId, context.tenantId), ...(statusFilter ? [statusFilter] : []), ...(searchFilter ? [searchFilter] : []), ...(branchFilter ? [branchFilter] : []));

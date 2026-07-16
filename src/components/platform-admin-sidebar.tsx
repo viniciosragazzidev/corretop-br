@@ -1,6 +1,6 @@
 "use client";
 
-import { Buildings, Gear, House, RoadHorizon, ShieldStar, SignOut, Clock, ShieldWarning, RocketLaunch } from "@/components/huge-icons";
+import { Buildings, Gear, House, RoadHorizon, ShieldStar, SignOut, Clock, ShieldWarning, RocketLaunch, FileText } from "@/components/huge-icons";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -66,6 +66,17 @@ export function PlatformAdminSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent className="mt-1.5">
             <SidebarMenu className="gap-1">
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={pathname === "/super-admin/catalogo"}
+                  render={<Link href="/super-admin/catalogo" prefetch />}
+                  tooltip="Catálogo global"
+                  className="px-3.5 py-2 text-xs font-medium"
+                >
+                  <FileText className="size-4" />
+                  <span>Catálogo global</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
                   isActive={pathname === "/super-admin/onboarding"}

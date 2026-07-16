@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import Link from "next/link";
 import { Eye, EyeSlash } from "@/components/huge-icons";
 import { toast } from "sonner";
 
@@ -121,9 +122,9 @@ export default function LoginPage() {
 
       <p className="text-center text-[10px] leading-relaxed text-zinc-400 dark:text-zinc-500">
         Ao acessar a plataforma, você concorda com os nossos{" "}
-        <a href="#" className="underline hover:text-zinc-600 dark:hover:text-zinc-300" onClick={(e) => e.preventDefault()}>Termos de Uso</a>
+        <Link href="/termos" className="underline hover:text-zinc-600 dark:hover:text-zinc-300">Termos de Uso</Link>
         {" "}e{" "}
-        <a href="#" className="underline hover:text-zinc-600 dark:hover:text-zinc-300" onClick={(e) => e.preventDefault()}>Políticas de Privacidade</a>.
+        <Link href="/termos#privacidade" className="underline hover:text-zinc-600 dark:hover:text-zinc-300">Política de Privacidade</Link>.
       </p>
     </div>
   );

@@ -23,7 +23,15 @@ function urlBase64ToArrayBuffer(base64String: string): ArrayBuffer {
   return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
 }
 
-export function PushNotificationManager() {
+type PushNotificationManagerProps = {
+  variant?: "card" | "compact";
+  onSubscribed?: () => void;
+};
+
+export function PushNotificationManager({
+  variant = "card",
+  onSubscribed,
+}: PushNotificationManagerProps) {
   const reduceMotion = useReducedMotion();
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [subscriptionCount, setSubscriptionCount] = useState(0);
@@ -31,12 +39,18 @@ export function PushNotificationManager() {
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
   const [showControls, setShowControls] = useState(false);
+  const [permission, setPermission] = useState<NotificationPermission | "unsupported">("default");
 
   const checkSubscription = useCallback(async () => {
     try {
-      const status = await getSubscriptionStatusAction();
-      setIsSubscribed(status.subscribed);
+      const registration = await navigator.serviceWorker.ready;
+      const [status, browserSubscription] = await Promise.all([
+        getSubscriptionStatusAction(),
+        registration.pushManager.getSubscription(),
+      ]);
+      setIsSubscribed(Boolean(browserSubscription));
       setSubscriptionCount(status.count);
+      setPermission(Notification.permission);
     } catch {
       toast.error("Não foi possível verificar o status das notificações.");
     } finally {
@@ -45,7 +59,7 @@ export function PushNotificationManager() {
   }, []);
 
   useEffect(() => {
-    const supported = "serviceWorker" in navigator && "PushManager" in window;
+    const supported = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
     const timeout = window.setTimeout(() => {
       if (supported) void checkSubscription();
       else setChecking(false);
@@ -57,6 +71,14 @@ export function PushNotificationManager() {
     if (!("serviceWorker" in navigator && "PushManager" in window)) return;
     setLoading(true);
     try {
+      if (Notification.permission === "denied") {
+        setPermission("denied");
+        toast.error("As notificações estão bloqueadas neste navegador.", {
+          description: "Libere a permissão nas configurações do navegador para ativá-las.",
+        });
+        return;
+      }
+
       const registration = await navigator.serviceWorker.ready;
       const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
       if (!vapidKey) {
@@ -70,12 +92,14 @@ export function PushNotificationManager() {
       });
       const result = await subscribeUserAction(JSON.parse(JSON.stringify(subscription)));
       if (!result.success) {
-        toast.error("Não foi possível ativar as notificações.");
+        toast.error(result.error ?? "Não foi possível ativar as notificações.");
         return;
       }
 
       setIsSubscribed(true);
       setSubscriptionCount(1);
+      setPermission(Notification.permission);
+      onSubscribed?.();
       toast.success("Notificações ativadas", {
         description: "Você receberá alertas mesmo com o CorreTop fechado.",
       });
@@ -127,7 +151,36 @@ export function PushNotificationManager() {
     }
   };
 
-  const isSupported = typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window;
+  const isSupported = typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+
+  if (variant === "compact") {
+    if (checking || !isSupported || isSubscribed) return null;
+
+    const isBlocked = permission === "denied";
+    return (
+      <div className="mx-4 my-3 flex items-center gap-3 rounded-xl border border-primary/15 bg-primary/[0.035] px-3 py-3">
+        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+          <BellRinging className="size-4" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold text-foreground">
+            {isBlocked ? "Alertas bloqueados neste navegador" : "Não perca o próximo alerta"}
+          </p>
+          <p className="mt-0.5 text-[11px] leading-4 text-muted-foreground">
+            {isBlocked
+              ? "Libere as notificações nas configurações do navegador para receber novos leads e tarefas."
+              : "Ative agora para receber novos leads e tarefas mesmo com o sistema fechado."}
+          </p>
+        </div>
+        {!isBlocked && (
+          <Button size="xs" onClick={() => void subscribe()} disabled={loading} className="shrink-0 gap-1.5">
+            <BellRinging className="size-3" />
+            {loading ? "Ativando" : "Ativar"}
+          </Button>
+        )}
+      </div>
+    );
+  }
 
   if (checking) {
     return (

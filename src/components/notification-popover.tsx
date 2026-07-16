@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useNotificationCount } from "@/components/providers/notification-count-provider";
+import { PushNotificationManager } from "@/features/notifications/components/push-notification-manager";
 import { createClient } from "@/utils/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -555,7 +556,13 @@ export function NotificationPopover() {
       <div ref={triggerRef}>
         <button
           type="button"
-          onClick={() => setOpen((prev) => !prev)}
+          onClick={() => {
+            setOpen((previous) => {
+              const next = !previous;
+              if (next) void fetchRecent();
+              return next;
+            });
+          }}
           className={cn(
             "group/notif-trigger relative inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-all duration-150",
             "hover:bg-muted hover:text-foreground",
@@ -671,6 +678,8 @@ export function NotificationPopover() {
               </div>
 
               <Separator className="mx-4 w-[calc(100%-2rem)]" />
+
+              <PushNotificationManager variant="compact" />
 
               {/* Content */}
               <ScrollArea className="max-h-[320px] sm:max-h-[360px]">

@@ -8,6 +8,7 @@ import { TenantOnboardingDialogLoader } from "@/features/onboarding/components/t
 import { DirectorWizardLoader } from "@/features/onboarding/components/director-wizard-loader";
 import { RealtimeSyncProvider } from "@/components/providers/realtime-sync-provider";
 import { NotificationCountProvider } from "@/components/providers/notification-count-provider";
+import { FeedbackToastHandler } from "@/features/leads/components/feedback-toast-handler";
 import { RouteOnboardingLoader } from "@/features/onboarding/components/route-onboarding-loader";
 
 export default async function DashboardLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -48,6 +49,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
         branchId={context.branchId}
       >
         <NotificationCountProvider userId={context.userId}>
+          <FeedbackToastHandler userId={context.userId} />
           {children}
         </NotificationCountProvider>
       </RealtimeSyncProvider>

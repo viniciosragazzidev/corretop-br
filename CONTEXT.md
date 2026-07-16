@@ -7,6 +7,11 @@
 - **Beneficiário**: pessoa incluída na contratação de um lead. Todo lead deve ter um titular; dependentes são beneficiários adicionais.
 - **Titular**: beneficiário marcado como responsável principal pela contratação. Há exatamente um titular por lead.
 - **Cotação**: versão histórica e imutável de uma proposta para um lead; seus itens detalham plano, beneficiário e valor calculado.
+- **Catálogo oficial**: base de operadoras, planos, tabelas e versões comerciais mantida pela plataforma. Não pertence a uma corretora e somente o Super-admin pode publicá-la.
+- **Extensão privada de catálogo**: operadora ou plano de acordo exclusivo de uma corretora. Pertence a exatamente um tenant, não é compartilhável e pode ser administrada apenas pelo Diretor desse tenant.
+- **Tabela comercial**: identidade lógica das condições de um plano; não é o preço em si.
+- **Versão de tabela**: publicação imutável de uma tabela comercial, com vigência e valores por faixa. Cotação, venda e PDF devem guardar a versão usada.
+- **Disponibilidade de catálogo**: decisão administrativa que habilita um plano oficial para um tenant e, opcionalmente, o restringe em uma unidade. Uma restrição nunca reabilita um item oculto acima dela.
 - **Documento por beneficiário**: evidência individual, como identidade ou declaração de saúde. Documentos familiares, como comprovante de residência, não precisam apontar para uma pessoa.
 - **Venda**: registro da contratação aprovada pela operadora; a data de registro, o início da vigência e o valor aprovado são fatos diferentes.
 - **Cliente ativo**: vínculo pós-venda criado a partir de uma venda aprovada, com vigência e aniversário contratual próprios.

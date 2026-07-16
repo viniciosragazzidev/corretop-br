@@ -667,13 +667,18 @@ function Footer() {
               Empresa
             </h4>
             <ul className="space-y-2">
-              {["Sobre", "Blog", "Contato", "Privacidade"].map((item) => (
-                <li key={item}>
+              {[
+                { label: "Sobre", href: "#" },
+                { label: "Blog", href: "#" },
+                { label: "Contato", href: "#" },
+                { label: "Termos e privacidade", href: "/termos" },
+              ].map((item) => (
+                <li key={item.label}>
                   <Link
-                    href="#"
+                    href={item.href}
                     className="text-sm text-foreground/70 transition-colors hover:text-foreground"
                   >
-                    {item}
+                    {item.label}
                   </Link>
                 </li>
               ))}

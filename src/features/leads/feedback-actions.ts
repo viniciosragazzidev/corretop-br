@@ -14,17 +14,28 @@ const feedbackInput = z.object({
   content: z.string().trim().max(1000).optional(),
   nextAction: z.string().trim().max(200).optional(),
   nextActionAt: z.string().optional(),
+  checklistId: z.string().optional(),
+  answers: z.string().optional(), // JSON string -> JSONB
 });
 
 export type LeadFeedbackState = { success?: boolean; error?: string };
 
 export async function submitLeadFeedbackAction(_previous: LeadFeedbackState, formData: FormData): Promise<LeadFeedbackState> {
+  const answersRaw = String(formData.get("answers") ?? "");
+  let parsedAnswers: Record<string, string | number | boolean> | undefined;
+  if (answersRaw) {
+    try { parsedAnswers = JSON.parse(answersRaw); }
+    catch { return { error: "Respostas do checklist inválidas." }; }
+  }
+
   const parsed = feedbackInput.safeParse({
     leadId: formData.get("leadId"),
     type: formData.get("type"),
     content: String(formData.get("content") ?? "") || undefined,
     nextAction: String(formData.get("nextAction") ?? "") || undefined,
     nextActionAt: String(formData.get("nextActionAt") ?? "") || undefined,
+    checklistId: String(formData.get("checklistId") ?? "") || undefined,
+    answers: answersRaw || undefined,
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Informe um feedback válido." };
 
@@ -50,7 +61,10 @@ export async function submitLeadFeedbackAction(_previous: LeadFeedbackState, for
       await tx.insert(schema.leadFeedbacks).values({
         id: randomUUID(), tenantId: context.tenantId, leadId: lead.id, brokerId: lead.corretorId!,
         type: parsed.data.type, content: parsed.data.content ?? null, nextAction: parsed.data.nextAction ?? null,
-        nextActionAt: parsed.data.nextActionAt ? new Date(parsed.data.nextActionAt) : null, createdAt: now,
+        nextActionAt: parsed.data.nextActionAt ? new Date(parsed.data.nextActionAt) : null,
+        checklistId: parsed.data.checklistId ?? null,
+        answers: parsedAnswers ?? null,
+        createdAt: now,
       });
       if (attempt) await tx.update(schema.leadAssignmentAttempts).set({ status: "submitted", firstContactAt: now }).where(eq(schema.leadAssignmentAttempts.id, attempt.id));
       await tx.insert(schema.leadInteractions).values({ id: randomUUID(), leadId: lead.id, userId: context.userId, tipo: "note", conteudo: `Feedback registrado: ${parsed.data.type}${parsed.data.content ? ` — ${parsed.data.content}` : ""}` });
