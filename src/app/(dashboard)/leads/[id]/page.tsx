@@ -27,6 +27,7 @@ import { getRequirementsForLead, getLeadDocuments } from "@/features/documents/a
 import { LeadDocumentsSection } from "@/features/documents/components/lead-documents-section";
 import { LeadActionHub } from "@/features/leads/components/lead-action-hub";
 import { LeadReminder } from "@/features/leads/components/lead-reminder";
+import { LeadFeedbackForm } from "./lead-feedback-form";
 
 function getCurrentTimestamp() {
   return Date.now();
@@ -125,6 +126,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
           nextTask={(() => { const task = tasks.find((item) => !item.completedAt); return task ? { title: task.title, dueAt: task.dueAt?.toISOString() ?? null, priority: task.priority, assigneeName: task.assigneeName } : null; })()}
           status={lead.status}
         />
+        {context.role === "broker" && context.userId === lead.corretorId && lead.status !== "lost" && lead.status !== "converted" ? <LeadFeedbackForm leadId={lead.id} /> : null}
 
         <Tabs defaultValue="summary" className="min-h-0">
           <TabsList aria-label="Seções do detalhe do lead" className="w-full justify-start overflow-x-auto" variant="line">
