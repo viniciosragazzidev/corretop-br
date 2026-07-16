@@ -1,9 +1,8 @@
 "use client";
 
-import { Bell } from "@/components/huge-icons";
-
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { NotificationPopover } from "@/components/notification-popover";
 
 export function PlatformAdminHeader({
   breadcrumb,
@@ -20,9 +19,7 @@ export function PlatformAdminHeader({
         <p className="text-xs text-muted-foreground">{breadcrumb}</p>
         <h1 className="truncate text-sm font-semibold">{title}</h1>
       </div>
-      <Button aria-label="Notificações" size="icon" variant="ghost">
-        <Bell />
-      </Button>
+      <NotificationPopover />
     </header>
   );
 }

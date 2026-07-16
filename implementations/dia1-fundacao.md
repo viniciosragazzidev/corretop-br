@@ -127,7 +127,7 @@ Durante a verificação final, 3 erros de lint (nova regra `react-hooks/set-stat
 - `src/features/leads/webhooks/services/authenticate-lead-webhook.ts` — Removido `and` não utilizado
 - `src/features/leads/webhooks/services/receive-lead-webhook.ts` — Removidos imports não utilizados
 - `src/features/leads/webhooks/tests/lead-webhook.test.ts` — Removido `NormalizedLeadData` não utilizado
-- `src/features/leads/components/lead-timeline.tsx` — Removido `WarningCircle` não utilizado
+- `src/features/leads/components/lead-timeline.tsx` — Removido `warningCircle` não utilizado
 - `src/app/(dashboard)/leads/status-actions.ts` — Removido `result` não utilizado
 - `src/app/(dashboard)/settings/_components/color-picker.tsx` — `aria-checked` → `aria-pressed`
 

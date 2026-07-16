@@ -38,7 +38,7 @@ export function PlatformAdminShell({ children }: { children: ReactNode }) {
               href={railAreas[0].href}
               aria-label={railAreas[0].label}
               title={railAreas[0].label}
-              className="grid size-10 place-items-center rounded-xl border border-transparent text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              className="grid size-10 place-items-center rounded-xl border border-transparent text-sidebar-foreground/60 transition-colors hover:bg-sidebar-warning hover:text-sidebar-warning-foreground"
             >
               <SquaresFour size={19} />
             </Link>
@@ -52,7 +52,7 @@ export function PlatformAdminShell({ children }: { children: ReactNode }) {
                 "grid size-10 place-items-center rounded-xl transition-all duration-180",
                 pathname.startsWith("/super-admin")
                   ? "border border-primary/20 bg-primary/10 text-primary shadow-sm"
-                  : "border border-transparent text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  : "border border-transparent text-sidebar-foreground/60 hover:bg-sidebar-warning hover:text-sidebar-warning-foreground"
               )}
             >
               <ShieldStar size={19} weight="duotone" />

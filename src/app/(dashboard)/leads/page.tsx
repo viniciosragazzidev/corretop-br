@@ -37,7 +37,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
     <>
       <DashboardHeader breadcrumb="Operação comercial" title="Leads" />
       <main className="flex min-h-0 flex-1 flex-col gap-6 bg-background p-4 lg:p-6">
-        
+
         {/* Header Section */}
         <section className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
@@ -53,7 +53,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
 
         {/* Paused Branch Alert (Refined with theme tokens) */}
         {isDirector && pausedBranchCount > 0 ? (
-          <div className="flex flex-col gap-3 rounded-lg border border-warning/20 bg-warning/5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 rounded-lg border border-warning/20 bg-accent/5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <WifiHigh className="size-5 shrink-0 text-warning" />
               <div className="min-w-0 flex-1">

@@ -25,6 +25,7 @@ export const userStatusValues = ["pending", "active", "disabled"] as const;
 export const leadStatusValues = ["new", "distributed", "in_contact", "quote_sent", "negotiation", "documentation_pending", "under_analysis", "converted", "lost"] as const;
 export const leadOriginValues = ["manual", "webhook"] as const;
 export const leadDistributionStatusValues = ["unassigned", "awaiting_unit", "queued", "assigning", "assigned", "distribution_failed", "returned_to_queue"] as const;
+export const leadDistributionOriginValues = ["parent", "unit"] as const;
 export const assignmentSourceValues = ["manual_director", "manual_manager", "automatic", "duty_schedule", "redistribution", "system_recovery"] as const;
 export const leadInteractionTypeValues = [
   "status_change",
@@ -307,6 +308,7 @@ export const leads = pgTable(
     origem: leadOrigin("origem").notNull().default("manual"),
     status: leadStatus("status").notNull().default("new"),
     distributionStatus: text("distribution_status").notNull().default("unassigned"),
+    distributionOrigin: text("distribution_origin"),
     queueId: text("queue_id"),
     unitAssignedAt: timestamp("unit_assigned_at", { withTimezone: true }),
     assignmentSource: text("assignment_source"),
@@ -634,6 +636,27 @@ export const notifications = pgTable(
     createdAt,
   },
   (table) => [index("notifications_recipient_created_idx").on(table.recipientUserId, table.createdAt), index("notifications_tenant_idx").on(table.tenantId)],
+);
+
+export const routeOnboardingProgress = pgTable(
+  "route_onboarding_progress",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+    routeKey: text("route_key").notNull(),
+    enabled: boolean("enabled").notNull().default(true),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
+    resetAt: timestamp("reset_at", { withTimezone: true }),
+    version: integer("version").notNull().default(1),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    uniqueIndex("route_onboarding_progress_user_route_unique").on(table.tenantId, table.userId, table.routeKey),
+    index("route_onboarding_progress_user_idx").on(table.tenantId, table.userId),
+  ],
 );
 
 export const dutyRosterAssignments = pgTable(

@@ -45,8 +45,8 @@ const roleConfig = {
   director: {
     label: "Diretor",
     icon: ChartLineUp,
-    accent: "from-violet-500 to-purple-600",
-    accentLight: "bg-violet-50 text-violet-700 dark:bg-violet-950/50 dark:text-violet-300",
+    warning: "from-violet-500 to-purple-600",
+    warningLight: "bg-violet-50 text-violet-700 dark:bg-violet-950/50 dark:text-violet-300",
     borderGlow: "shadow-violet-500/20",
     message:
       "Configure sua corretora, organize filiais, convide sua equipe e acompanhe os resultados do negócio em tempo real.",
@@ -61,8 +61,8 @@ const roleConfig = {
   manager: {
     label: "Gestor",
     icon: Users,
-    accent: "from-blue-500 to-cyan-600",
-    accentLight: "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300",
+    warning: "from-blue-500 to-cyan-600",
+    warningLight: "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300",
     borderGlow: "shadow-blue-500/20",
     message:
       "Acompanhe o desempenho da sua filial, distribua leads para a equipe e garanta que nada passe despercebido.",
@@ -77,8 +77,8 @@ const roleConfig = {
   broker: {
     label: "Corretor",
     icon: Target,
-    accent: "from-emerald-500 to-teal-600",
-    accentLight: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300",
+    warning: "from-emerald-500 to-teal-600",
+    warningLight: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300",
     borderGlow: "shadow-emerald-500/20",
     message:
       "Organize seus leads, atenda clientes pelo WhatsApp, acompanhe suas metas e feche mais negócios.",
@@ -135,28 +135,28 @@ function FloatingDots() {
   );
 }
 
-// ─── Accent decoration ──────────────────────────────────────────────────────
+// ─── Gradient decoration ─────────────────────────────────────────────────────
 
-function AccentShapes({ accent }: { accent: string }) {
+function WarningShapes({ warning }: { warning: string }) {
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
       <motion.div
-        className={`absolute -right-32 -top-32 size-80 rounded-full bg-gradient-to-br ${accent} opacity-[0.03] dark:opacity-[0.06]`}
+        className={`absolute -right-32 -top-32 size-80 rounded-full bg-gradient-to-br ${warning} opacity-[0.03] dark:opacity-[0.06]`}
         animate={{ scale: [1, 1.05, 1], rotate: [0, 5, 0] }}
         transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
-        className={`absolute -bottom-40 -left-40 size-96 rounded-full bg-gradient-to-tr ${accent} opacity-[0.02] dark:opacity-[0.04]`}
+        className={`absolute -bottom-40 -left-40 size-96 rounded-full bg-gradient-to-tr ${warning} opacity-[0.02] dark:opacity-[0.04]`}
         animate={{ scale: [1, 1.08, 1], rotate: [0, -5, 0] }}
         transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
-        className={`absolute left-1/4 top-1/3 size-2 rounded-full bg-gradient-to-r ${accent} opacity-20`}
+        className={`absolute left-1/4 top-1/3 size-2 rounded-full bg-gradient-to-r ${warning} opacity-20`}
         animate={{ y: [0, -8, 0], opacity: [0.2, 0.5, 0.2] }}
         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
-        className={`absolute right-1/3 top-2/3 size-1.5 rounded-full bg-gradient-to-r ${accent} opacity-20`}
+        className={`absolute right-1/3 top-2/3 size-1.5 rounded-full bg-gradient-to-r ${warning} opacity-20`}
         animate={{ y: [0, 6, 0], opacity: [0.2, 0.4, 0.2] }}
         transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
       />
@@ -172,13 +172,12 @@ function StepDots({ current, total }: { current: number; total: number }) {
       {Array.from({ length: total }, (_, i) => (
         <motion.div
           key={i}
-          className={`h-1.5 rounded-full transition-all duration-300 ${
-            i < current
+          className={`h-1.5 rounded-full transition-all duration-300 ${i < current
               ? "bg-foreground w-1.5"
               : i === current
                 ? "bg-foreground w-6"
                 : "bg-foreground/10 w-1.5"
-          }`}
+            }`}
           animate={i === current ? { scale: [1, 1.1, 1] } : { scale: 1 }}
           transition={{ duration: 0.3, ease: [0, 0, 0.2, 1] }}
         />
@@ -250,11 +249,10 @@ function OnboardingStepsCard({
             <StepIcon status={step.status} />
             <div className="min-w-0 flex-1">
               <p
-                className={`text-sm font-medium ${
-                  step.status === "unavailable"
+                className={`text-sm font-medium ${step.status === "unavailable"
                     ? "text-muted-foreground/50"
                     : "text-foreground"
-                }`}
+                  }`}
               >
                 {step.title}
               </p>
@@ -328,7 +326,7 @@ export function WelcomeScreen({
   return (
     <div className="relative flex min-h-svh w-full items-center justify-center overflow-hidden bg-background p-4">
       {/* Background decorative elements */}
-      <AccentShapes accent={config.accent} />
+      <WarningShapes warning={config.warning} />
       <FloatingDots />
 
       {/* Main content container */}
@@ -342,8 +340,8 @@ export function WelcomeScreen({
         <div
           className={`relative overflow-hidden rounded-2xl border border-border/60 bg-card shadow-xl ${config.borderGlow} shadow-black/5`}
         >
-          {/* Accent top bar */}
-          <div className={`h-1.5 w-full bg-gradient-to-r ${config.accent}`} />
+          {/* warning top bar */}
+          <div className={`h-1.5 w-full bg-gradient-to-r ${config.warning}`} />
 
           <div className="p-8 sm:p-10">
             {/* Brand + Role */}
@@ -363,7 +361,7 @@ export function WelcomeScreen({
               </div>
               <Badge
                 variant="outline"
-                className={`gap-1.5 rounded-full border-0 px-3 py-1 text-xs font-medium ${config.accentLight}`}
+                className={`gap-1.5 rounded-full border-0 px-3 py-1 text-xs font-medium ${config.warningLight}`}
               >
                 <svg className="size-3" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M10.1 2.3a.9.9 0 0 1 1.8 0l.8 3.6a4.8 4.8 0 0 0 3.8 3.8l3.6.8a.9.9 0 0 1 0 1.8l-3.6.8a4.8 4.8 0 0 0-3.8 3.8l-.8 3.6a.9.9 0 0 1-1.8 0l-.8-3.6a4.8 4.8 0 0 0-3.8-3.8l-3.6-.8a.9.9 0 0 1 0-1.8l3.6-.8a4.8 4.8 0 0 0 3.8-3.8l.8-3.6Z" />
@@ -436,7 +434,7 @@ export function WelcomeScreen({
                 {hasPendingEssential && firstPending ? (
                   <Button
                     size="lg"
-                    className={`group relative overflow-hidden bg-gradient-to-r ${config.accent} px-6 text-white shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]`}
+                    className={`group relative overflow-hidden bg-gradient-to-r ${config.warning} px-6 text-white shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]`}
                     onClick={() => handleStepNavigate(firstPending.href!)}
                   >
                     <span className="relative z-10 flex items-center gap-2">
@@ -449,7 +447,7 @@ export function WelcomeScreen({
                   <Link href={config.ctaHref}>
                     <Button
                       size="lg"
-                      className={`group relative overflow-hidden bg-gradient-to-r ${config.accent} px-6 text-white shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]`}
+                      className={`group relative overflow-hidden bg-gradient-to-r ${config.warning} px-6 text-white shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]`}
                     >
                       <span className="relative z-10 flex items-center gap-2">
                         {config.cta}
@@ -475,7 +473,7 @@ export function WelcomeScreen({
               {availableSteps > 0 && (
                 <div className="relative h-1.5 overflow-hidden rounded-full bg-muted">
                   <motion.div
-                    className={`absolute inset-y-0 left-0 rounded-full bg-gradient-to-r ${config.accent}`}
+                    className={`absolute inset-y-0 left-0 rounded-full bg-gradient-to-r ${config.warning}`}
                     initial={{ width: 0 }}
                     animate={{ width: `${progressPct}%` }}
                     transition={{ duration: 1, ease: [0, 0, 0.2, 1] }}

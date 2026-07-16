@@ -197,21 +197,19 @@ export function CommissionDetails({ data }: Props) {
       <div className="flex items-center gap-6 border-b border-border">
         <button
           onClick={() => setView("sales")}
-          className={`pb-3 text-sm font-medium transition-colors ${
-            view === "sales"
-              ? "border-b-2 border-primary text-foreground"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
+          className={`pb-3 text-sm font-medium transition-colors ${view === "sales"
+            ? "border-b-2 border-primary text-foreground"
+            : "text-muted-foreground hover:text-foreground"
+            }`}
         >
           Por venda
         </button>
         <button
           onClick={() => setView("brokers")}
-          className={`pb-3 text-sm font-medium transition-colors ${
-            view === "brokers"
-              ? "border-b-2 border-primary text-foreground"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
+          className={`pb-3 text-sm font-medium transition-colors ${view === "brokers"
+            ? "border-b-2 border-primary text-foreground"
+            : "text-muted-foreground hover:text-foreground"
+            }`}
         >
           Por corretor
         </button>

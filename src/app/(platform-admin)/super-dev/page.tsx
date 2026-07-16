@@ -69,7 +69,7 @@ export default async function SuperDevDashboard() {
 
         {/* Loss Alerts Section (7.3) */}
         {lossAlerts.length > 0 && (
-          <Card className="border-warning/30 bg-warning/5 shadow-none">
+          <Card className="border-warning/30 bg-accent/5 shadow-none">
             <CardHeader className="flex flex-row items-center gap-2">
               <WarningCircle className="size-5 text-warning" />
               <div>

@@ -9,8 +9,8 @@ Este documento é a fonte de verdade visual do CorreTop. Se algo estiver diferen
 - Produto de operação para corretoras.
 - Interface clara, técnica e confiável.
 - Densidade alta, mas organizada por camadas.
-- Azul CorreTop é o accent principal. Ele aparece com intenção, não em excesso.
-- Status usam cores semânticas próprias. Accent nunca deve representar status.
+- Azul CorreTop é o warning principal. Ele aparece com intenção, não em excesso.
+- Status usam cores semânticas próprias. warning nunca deve representar status.
 
 ## Regras obrigatórias
 
@@ -33,7 +33,7 @@ O tema trabalha com as mesmas variáveis nos dois modos.
 - Cards e popovers levemente mais elevados que o fundo.
 - Texto principal escuro, nunca preto puro.
 - Borda visível, mas discreta.
-- Accent azul para ação principal, foco, seleção e links.
+- warning azul para ação principal, foco, seleção e links.
 
 ### Dark mode
 
@@ -60,14 +60,14 @@ O tema trabalha com as mesmas variáveis nos dois modos.
 |---|---|---|
 | Primário | `--foreground` | títulos e corpo principal |
 | Secundário | `--muted-foreground` | metadados e suporte |
-| Inverso | `--primary-foreground` | texto sobre accent |
+| Inverso | `--primary-foreground` | texto sobre warning |
 
-### Accent e semântica
+### warning e semântica
 
 | Papel | Token | Uso |
 |---|---|---|
-| Accent principal | `--primary` | CTA, link ativo, foco |
-| Accent suave | `--accent` | hover e seleção leve |
+| warning principal | `--primary` | CTA, link ativo, foco |
+| warning suave | `--warning` | hover e seleção leve |
 | Sucesso | `--success` | confirmação, concluído |
 | Atenção | `--warning` | pendência, alerta moderado |
 | Erro | `--destructive` | falha, remoção, bloqueio |
@@ -77,8 +77,8 @@ O tema trabalha com as mesmas variáveis nos dois modos.
 | Papel | Token | Uso |
 |---|---|---|
 | Texto | `--sidebar-foreground` | navegação e metadados |
-| Accent | `--sidebar-accent` | item ativo e hover |
-| Accent texto | `--sidebar-accent-foreground` | conteúdo sobre destaque |
+| warning | `--sidebar-warning` | item ativo e hover |
+| warning texto | `--sidebar-warning-foreground` | conteúdo sobre destaque |
 | Borda | `--sidebar-border` | divisões e shell |
 | Foco | `--sidebar-ring` | foco e seleção |
 
@@ -147,7 +147,7 @@ Toda tela importante precisa prever:
 - [ ] O tema light usa tokens semânticos e não hex solto na página.
 - [ ] Dark mode continua funcional com os mesmos nomes de token.
 - [ ] O sistema tem pelo menos 3 camadas de superfície.
-- [ ] Accent, status e navegação não se confundem visualmente.
+- [ ] warning, status e navegação não se confundem visualmente.
 - [ ] Componentes reutilizáveis cobrem o que é repetido.
 - [ ] Motion é curto, útil e respeita redução de movimento.
 - [ ] A tela continua legível em teclado e em contraste baixo.
@@ -177,7 +177,7 @@ Abaixo encontra-se a especificação de cada componente do design system, descre
 Componente de ação primário e secundário.
 - **Variáveis Relacionadas**:
   - Fundo principal: `var(--primary)` / Texto: `var(--primary-foreground)`
-  - Hover: `opacity: 0.9` ou `var(--accent)`
+  - Hover: `opacity: 0.9` ou `var(--warning)`
   - Raio de Borda: `var(--radius)` (base: 8px)
 - **Tamanhos e Variantes**:
   - `default`: Altura de 36px (`h-9`), padding horizontal de 16px (`px-4`).
@@ -232,8 +232,8 @@ Usado para dados tabulares densos de leads, corretores ou sessões.
 O elemento de navegação do AppShell e do SuperAdmin.
 - **Variáveis de Estilo**:
   - Fundo: `var(--sidebar)`
-  - Texto ativo: `var(--sidebar-accent-foreground)`
-  - Item ativo: `var(--sidebar-accent)`
+  - Texto ativo: `var(--sidebar-warning-foreground)`
+  - Item ativo: `var(--sidebar-warning)`
   - Borda: `var(--sidebar-border)`
 - **Offset e Trilho (Rail)**:
   - Adota `rail` para se deslocar `4rem` em layouts dual-rail de múltiplos workspaces.

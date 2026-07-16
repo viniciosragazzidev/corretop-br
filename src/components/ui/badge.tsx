@@ -17,7 +17,7 @@ const badgeVariants = cva(
         success:
           "border-success/15 bg-success/10 text-success [a]:hover:bg-success/15",
         warning:
-          "border-warning/15 bg-warning/10 text-warning [a]:hover:bg-warning/15",
+          "border-warning/15 bg-accent/10 text-warning [a]:hover:bg-accent/15",
         destructive:
           "bg-destructive/10 text-destructive focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:focus-visible:ring-destructive/40 [a]:hover:bg-destructive/20",
         info:

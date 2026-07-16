@@ -2,6 +2,7 @@ import { and, count, eq, sql } from "drizzle-orm";
 import Link from "next/link";
 
 import { DashboardHeader } from "@/components/dashboard-header";
+import { ViewScopeContext } from "@/components/ownership-context";
 import {
   ArrowUpRight,
   ChartBar,
@@ -145,6 +146,7 @@ export default async function ReportsPage() {
               Consolide indicadores de leads, conversão, produção e desempenho
               da corretora em um só lugar.
             </p>
+            <div className="mt-3"><ViewScopeContext role={context.role} /></div>
           </div>
         </section>
 
@@ -223,7 +225,7 @@ export default async function ReportsPage() {
 
         {/* Report Cards Grid */}
         <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {reportCards.map((report, i) => {
+          {reportCards.map((report) => {
             const Icon = report.icon;
             return (
               <Link

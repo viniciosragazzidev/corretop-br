@@ -70,34 +70,9 @@ export function RealtimeSyncProvider({
           const oldRow = payload.old as Partial<LeadRow> | null;
 
           if (payload.eventType === "INSERT" && newRow) {
-            if (role === "broker" && newRow.corretor_id === userId) {
-              // Toast + sound são disparados pela subscription `notifications`
-              // (notifyNewLead() ou o serviço de distribuição inserem o registro).
-              // Mantemos apenas o refresh para atualizar a lista.
-              router.refresh();
-            } else if (role === "manager" && newRow.branch_id === branchId) {
-              playSoundRef.current?.("chime");
-              toast.info("Novo lead na unidade!", {
-                description: newRow.corretor_id
-                  ? `"${newRow.nome}" chegou e foi distribuído.`
-                  : `"${newRow.nome}" chegou e aguarda distribuição.`,
-                action: {
-                  label: "Visualizar",
-                  onClick: () => router.push(`/leads/${newRow.id}`),
-                },
-              });
-              router.refresh();
-            } else if (role === "director") {
-              playSoundRef.current?.("chime");
-              toast.info("Novo lead na corretora!", {
-                description: `"${newRow.nome}" foi recebido no sistema.`,
-                action: {
-                  label: "Visualizar",
-                  onClick: () => router.push(`/leads/${newRow.id}`),
-                },
-              });
-              router.refresh();
-            }
+            // Toast, sound and push are coordinated by the notifications table.
+            // This lead event only reconciles server-rendered lists.
+            if (role === "director" || (role === "manager" && newRow.branch_id === branchId) || (role === "broker" && newRow.corretor_id === userId)) router.refresh();
           }
 
           if (payload.eventType === "UPDATE" && newRow) {

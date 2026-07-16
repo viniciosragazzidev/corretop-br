@@ -196,50 +196,50 @@ export function ConversationsWorkspace({
           <div className="relative min-w-[14rem] flex-1 lg:max-w-sm"><MagnifyingGlass aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input aria-label="Buscar conversa por nome, telefone ou e-mail" className="h-9 pl-8" onChange={(event) => setQuery(event.target.value)} placeholder="Buscar conversa" value={query} /></div>
           <Button className="ml-auto gap-1.5" render={<Link href="/leads" />} size="sm" variant="outline"><UserList className="size-3.5" />Leads</Button>
         </div>
-        {!whatsappReady ? <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2.5 text-xs"><div><p className="font-medium text-foreground">WhatsApp não configurado</p><p className="mt-0.5 text-muted-foreground">Você precisa conectar seu WhatsApp para enviar mensagens. A configuração é rápida — leia o QR Code com seu celular.</p></div><Button render={<Link href={`/settings/whatsapp?returnTo=${encodeURIComponent("/conversas")}`} />} size="xs" variant="outline"><WhatsappLogo /> Conectar agora</Button></div> : null}
+        {!whatsappReady ? <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-accent/50 px-3 py-2.5 text-xs"><div><p className="font-medium text-foreground">WhatsApp não configurado</p><p className="mt-0.5 text-muted-foreground">Você precisa conectar seu WhatsApp para enviar mensagens. A configuração é rápida — leia o QR Code com seu celular.</p></div><Button render={<Link href={`/settings/whatsapp?returnTo=${encodeURIComponent("/conversas")}`} />} size="xs" variant="outline"><WhatsappLogo /> Conectar agora</Button></div> : null}
       </header>
       <div className={cn("grid min-h-0 flex-1 lg:grid-cols-[minmax(14rem,0.5fr)_minmax(0,1.9fr)]", profileOpen ? "2xl:grid-cols-[minmax(14rem,0.5fr)_minmax(0,1.9fr)_19rem]" : "2xl:grid-cols-[minmax(14rem,0.5fr)_minmax(0,2.35fr)]")}>
 
-      <section className={cn("flex min-h-0 flex-col border-r border-border bg-card", selected && "max-lg:hidden")} aria-label="Lista de conversas">
-        <ScrollArea className="min-h-0 flex-1 bg-muted/10">
-          <div className="p-2.5">
-            {filtered.map((conversation) => <ConversationRow key={conversation.id} active={conversation.id === selected?.id} conversation={conversation} onClick={() => void selectConversation(conversation.id)} />)}
-            {!filtered.length ? <div className="p-8 text-center"><p className="text-sm font-medium">Nenhum contato encontrado</p><p className="mt-1 text-xs text-muted-foreground">Ajuste a busca ou o filtro de conversas.</p></div> : null}
-          </div>
-        </ScrollArea>
-      </section>
-
-      <section className={cn("flex min-h-0 flex-col", !selected && "max-lg:hidden")} aria-live="polite">
-        {selected ? <>
-          <header className="flex items-center justify-between gap-3 border-b border-border bg-card px-5 py-3.5">
-            <div className="flex min-w-0 items-center gap-2"><Button aria-label="Voltar para conversas" className="max-lg:inline-flex lg:hidden" onClick={() => setSelectedId(null)} size="icon-sm" type="button" variant="ghost"><ChevronRightIcon className="rotate-180" /></Button><ContactAvatar name={selected.nome} /><div className="min-w-0"><h2 className="truncate text-sm font-semibold tracking-tight">{selected.nome}</h2><div className="mt-0.5 flex items-center gap-2"><p className="truncate text-xs text-muted-foreground">{selected.telefone}</p><Badge variant="outline">{LEAD_STATUS_LABELS[selected.status] ?? selected.status}</Badge></div></div></div>
-            <div className="flex items-center gap-1"><Button aria-label="Ligar para cliente" render={<a href={`tel:${selected.telefone.replace(/\D/g, "")}`} />} size="icon-sm" variant="ghost"><Phone /></Button><Button aria-label="Abrir WhatsApp Web" render={<a href={`https://wa.me/${selected.telefone.replace(/\D/g, "")}`} rel="noreferrer" target="_blank" />} size="icon-sm" variant="ghost"><WhatsappLogo /></Button><Button aria-label="Ver lead completo" render={<Link href={`/leads/${selected.id}`} />} size="icon-sm" variant="ghost"><ArrowSquareOut /></Button></div>
-            <div className="ml-auto hidden items-center gap-1 border-l border-border pl-2 2xl:flex">
-              {profileOpen ? <Button aria-label="Recolher painel do cliente" onClick={() => setProfileOpen(false)} size="icon-sm" type="button" variant="ghost"><PanelLeftIcon className="rotate-180" /></Button> : <Button aria-label="Mostrar painel do cliente" onClick={() => setProfileOpen(true)} size="icon-sm" type="button" variant="ghost"><PanelLeftIcon /></Button>}
-            </div>
-          </header>
-          <ScrollArea className="min-h-0 flex-1 bg-muted/20">
-            <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 p-5 lg:p-7">
-              <div className="self-center rounded-full border border-border bg-card px-3 py-1 text-[11px] font-medium text-muted-foreground">Histórico da conversa</div>
-              {loadingThread ? <p className="text-center text-xs text-muted-foreground">Atualizando mensagens...</p> : null}
-              {selected.messages.map((message) => <MessageBubble key={message.id} message={message} name={selected.nome} />)}
-              <div ref={messagesEndRef} />
-              {!selected.messages.length ? <div className="mx-auto max-w-sm py-12 text-center"><div className="mx-auto grid size-10 place-items-center rounded-full bg-muted"><ChatCircleText className="text-muted-foreground" /></div><p className="mt-3 text-sm font-medium">Ainda não há mensagens</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">Use uma ação rápida ou escreva a primeira mensagem para este cliente.</p></div> : null}
+        <section className={cn("flex min-h-0 flex-col border-r border-border bg-card", selected && "max-lg:hidden")} aria-label="Lista de conversas">
+          <ScrollArea className="min-h-0 flex-1 bg-muted/10">
+            <div className="p-2.5">
+              {filtered.map((conversation) => <ConversationRow key={conversation.id} active={conversation.id === selected?.id} conversation={conversation} onClick={() => void selectConversation(conversation.id)} />)}
+              {!filtered.length ? <div className="p-8 text-center"><p className="text-sm font-medium">Nenhum contato encontrado</p><p className="mt-1 text-xs text-muted-foreground">Ajuste a busca ou o filtro de conversas.</p></div> : null}
             </div>
           </ScrollArea>
-          <footer className="relative border-t border-border bg-card p-3">
-            <div className="mb-2 flex flex-wrap gap-1.5"><Button disabled={!canSend} onClick={() => insertTemplate("Olá! Preparei uma cotação para você. Posso enviar os detalhes?")} size="xs" variant="outline"><Calculator /> Enviar cotação</Button><Button disabled={!canSend} onClick={() => insertTemplate("Olá! Posso encaminhar o contrato para sua análise. Qual é o melhor horário para conversarmos?")} size="xs" variant="outline"><FileText /> Enviar contrato</Button><Button aria-expanded={plansOpen} onClick={togglePlans} size="xs" variant="outline"><ListChecks /> Lista de planos</Button></div>
-            {plansOpen ? <div className="t-panel-slide absolute inset-x-3 bottom-full z-10 mb-2 rounded-lg border border-border bg-popover p-2 shadow-lg" data-open="true"><div className="mb-2 flex items-center justify-between"><p className="text-xs font-medium">Planos ativos do catálogo</p><Button render={<Link href={`/cotacoes?leadId=${selected.id}`} />} size="xs" variant="link">Criar cotação <ArrowSquareOut /></Button></div><div className="grid gap-1 sm:grid-cols-2">{plans.slice(0, 6).map((plan) => <Button className="h-auto justify-start whitespace-normal py-2 text-left" key={plan.id} onClick={() => insertTemplate(`Tenho uma opção da ${plan.carrierName}: ${plan.name}. Posso explicar a cobertura?`)} size="xs" variant="ghost"><span className="min-w-0"><span className="block truncate font-medium">{plan.name}</span><span className="block truncate text-muted-foreground">{plan.carrierName}</span></span></Button>)}{!plans.length ? <p className="px-2 py-3 text-xs text-muted-foreground">Nenhum plano ativo está disponível no catálogo.</p> : null}</div></div> : null}
-            {!canSend ? <ContextNote className="mb-2" title="Envio restrito ao responsável" variant="warning">Somente o corretor responsável pode enviar mensagens neste atendimento.</ContextNote> : null}
-            {!whatsappReady ? <ContextNote className="mb-2" title="WhatsApp desconectado" variant="info">O envio ficará disponível quando o WhatsApp deste corretor estiver conectado.</ContextNote> : null}
-            <div className="flex items-end gap-2"><Button aria-label="Adicionar modelo de mensagem" disabled={!canSend} onClick={() => insertTemplate("Olá! Como posso ajudar hoje?")} size="icon-sm" type="button" variant="outline"><Plus /></Button><Textarea aria-label="Escrever mensagem" className="min-h-10 max-h-28 resize-none" disabled={!canSend || !whatsappReady || pending} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); sendMessage(); } }} placeholder={canSend ? "Escreva uma mensagem..." : "Aguardando responsável"} value={draft} /><Button aria-label="Enviar mensagem" disabled={!draft.trim() || !canSend || !whatsappReady || pending} onClick={sendMessage} size="icon" type="button"><PaperPlaneTilt /></Button></div>
-          </footer>
-        </> : <EmptyConversation />}
-      </section>
+        </section>
 
-      <aside className={cn("hidden min-h-0 border-l border-border bg-muted/10 2xl:flex 2xl:flex-col", !profileOpen && "2xl:hidden")} aria-label="Perfil do cliente">
-        {selected ? <ClientProfile client={selected} onShowPlans={togglePlans} /> : null}
-      </aside>
+        <section className={cn("flex min-h-0 flex-col", !selected && "max-lg:hidden")} aria-live="polite">
+          {selected ? <>
+            <header className="flex items-center justify-between gap-3 border-b border-border bg-card px-5 py-3.5">
+              <div className="flex min-w-0 items-center gap-2"><Button aria-label="Voltar para conversas" className="max-lg:inline-flex lg:hidden" onClick={() => setSelectedId(null)} size="icon-sm" type="button" variant="ghost"><ChevronRightIcon className="rotate-180" /></Button><ContactAvatar name={selected.nome} /><div className="min-w-0"><h2 className="truncate text-sm font-semibold tracking-tight">{selected.nome}</h2><div className="mt-0.5 flex items-center gap-2"><p className="truncate text-xs text-muted-foreground">{selected.telefone}</p><Badge variant="outline">{LEAD_STATUS_LABELS[selected.status] ?? selected.status}</Badge></div></div></div>
+              <div className="flex items-center gap-1"><Button aria-label="Ligar para cliente" render={<a href={`tel:${selected.telefone.replace(/\D/g, "")}`} />} size="icon-sm" variant="ghost"><Phone /></Button><Button aria-label="Abrir WhatsApp Web" render={<a href={`https://wa.me/${selected.telefone.replace(/\D/g, "")}`} rel="noreferrer" target="_blank" />} size="icon-sm" variant="ghost"><WhatsappLogo /></Button><Button aria-label="Ver lead completo" render={<Link href={`/leads/${selected.id}`} />} size="icon-sm" variant="ghost"><ArrowSquareOut /></Button></div>
+              <div className="ml-auto hidden items-center gap-1 border-l border-border pl-2 2xl:flex">
+                {profileOpen ? <Button aria-label="Recolher painel do cliente" onClick={() => setProfileOpen(false)} size="icon-sm" type="button" variant="ghost"><PanelLeftIcon className="rotate-180" /></Button> : <Button aria-label="Mostrar painel do cliente" onClick={() => setProfileOpen(true)} size="icon-sm" type="button" variant="ghost"><PanelLeftIcon /></Button>}
+              </div>
+            </header>
+            <ScrollArea className="min-h-0 flex-1 bg-muted/20">
+              <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 p-5 lg:p-7">
+                <div className="self-center rounded-full border border-border bg-card px-3 py-1 text-[11px] font-medium text-muted-foreground">Histórico da conversa</div>
+                {loadingThread ? <p className="text-center text-xs text-muted-foreground">Atualizando mensagens...</p> : null}
+                {selected.messages.map((message) => <MessageBubble key={message.id} message={message} name={selected.nome} />)}
+                <div ref={messagesEndRef} />
+                {!selected.messages.length ? <div className="mx-auto max-w-sm py-12 text-center"><div className="mx-auto grid size-10 place-items-center rounded-full bg-muted"><ChatCircleText className="text-muted-foreground" /></div><p className="mt-3 text-sm font-medium">Ainda não há mensagens</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">Use uma ação rápida ou escreva a primeira mensagem para este cliente.</p></div> : null}
+              </div>
+            </ScrollArea>
+            <footer className="relative border-t border-border bg-card p-3">
+              <div className="mb-2 flex flex-wrap gap-1.5"><Button disabled={!canSend} onClick={() => insertTemplate("Olá! Preparei uma cotação para você. Posso enviar os detalhes?")} size="xs" variant="outline"><Calculator /> Enviar cotação</Button><Button disabled={!canSend} onClick={() => insertTemplate("Olá! Posso encaminhar o contrato para sua análise. Qual é o melhor horário para conversarmos?")} size="xs" variant="outline"><FileText /> Enviar contrato</Button><Button aria-expanded={plansOpen} onClick={togglePlans} size="xs" variant="outline"><ListChecks /> Lista de planos</Button></div>
+              {plansOpen ? <div className="t-panel-slide absolute inset-x-3 bottom-full z-10 mb-2 rounded-lg border border-border bg-popover p-2 shadow-lg" data-open="true"><div className="mb-2 flex items-center justify-between"><p className="text-xs font-medium">Planos ativos do catálogo</p><Button render={<Link href={`/cotacoes?leadId=${selected.id}`} />} size="xs" variant="link">Criar cotação <ArrowSquareOut /></Button></div><div className="grid gap-1 sm:grid-cols-2">{plans.slice(0, 6).map((plan) => <Button className="h-auto justify-start whitespace-normal py-2 text-left" key={plan.id} onClick={() => insertTemplate(`Tenho uma opção da ${plan.carrierName}: ${plan.name}. Posso explicar a cobertura?`)} size="xs" variant="ghost"><span className="min-w-0"><span className="block truncate font-medium">{plan.name}</span><span className="block truncate text-muted-foreground">{plan.carrierName}</span></span></Button>)}{!plans.length ? <p className="px-2 py-3 text-xs text-muted-foreground">Nenhum plano ativo está disponível no catálogo.</p> : null}</div></div> : null}
+              {!canSend ? <ContextNote className="mb-2" title="Envio restrito ao responsável" variant="warning">Somente o corretor responsável pode enviar mensagens neste atendimento.</ContextNote> : null}
+              {!whatsappReady ? <ContextNote className="mb-2" title="WhatsApp desconectado" variant="info">O envio ficará disponível quando o WhatsApp deste corretor estiver conectado.</ContextNote> : null}
+              <div className="flex items-end gap-2"><Button aria-label="Adicionar modelo de mensagem" disabled={!canSend} onClick={() => insertTemplate("Olá! Como posso ajudar hoje?")} size="icon-sm" type="button" variant="outline"><Plus /></Button><Textarea aria-label="Escrever mensagem" className="min-h-10 max-h-28 resize-none" disabled={!canSend || !whatsappReady || pending} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); sendMessage(); } }} placeholder={canSend ? "Escreva uma mensagem..." : "Aguardando responsável"} value={draft} /><Button aria-label="Enviar mensagem" disabled={!draft.trim() || !canSend || !whatsappReady || pending} onClick={sendMessage} size="icon" type="button"><PaperPlaneTilt /></Button></div>
+            </footer>
+          </> : <EmptyConversation />}
+        </section>
+
+        <aside className={cn("hidden min-h-0 border-l border-border bg-muted/10 2xl:flex 2xl:flex-col", !profileOpen && "2xl:hidden")} aria-label="Perfil do cliente">
+          {selected ? <ClientProfile client={selected} onShowPlans={togglePlans} /> : null}
+        </aside>
       </div>
     </section>
   );
@@ -299,7 +299,7 @@ function ClientProfile({ client, onShowPlans }: { client: ConversationItem; onSh
 
 function ConversationProfileSection({ action, children, title }: { action?: React.ReactNode; children: React.ReactNode; title: string }) { return <section><div className="flex items-center justify-between gap-2"><h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{title}</h3>{action}</div><div className="mt-2.5">{children}</div></section>; }
 function ProfileAction({ children, label, render }: { children: React.ReactNode; label: string; render: React.ReactElement }) { return <Button className="h-auto min-h-14 flex-col gap-1.5 px-2 py-2 text-[11px]" render={render} size="sm" variant="outline">{children}<span className="truncate">{label}</span></Button>; }
-function ProfileMetric({ label, tone, value }: { label: string; tone?: "warning"; value: number }) { return <div className={cn("rounded-lg border px-2.5 py-2", tone === "warning" ? "border-warning/20 bg-warning/5" : "border-border bg-muted/30")}><p className="text-[11px] text-muted-foreground">{label}</p><p className={cn("mt-1 text-lg font-semibold tabular-nums", tone === "warning" && "text-warning")}>{value}</p></div>; }
+function ProfileMetric({ label, tone, value }: { label: string; tone?: "warning"; value: number }) { return <div className={cn("rounded-lg border px-2.5 py-2", tone === "warning" ? "border-warning/20 bg-accent/5" : "border-border bg-muted/30")}><p className="text-[11px] text-muted-foreground">{label}</p><p className={cn("mt-1 text-lg font-semibold tabular-nums", tone === "warning" && "text-warning")}>{value}</p></div>; }
 function documentStatusLabel(status: string) { return status === "approved" ? "Aprovado" : status === "pending" ? "Em análise" : status === "rejected" ? "Rejeitado" : status; }
 function getSharedMedia(messages: ConversationMessage[]) { const found = new Map<string, { url: string; label: string; sentAt: string }>(); for (const message of messages) { for (const match of message.body.matchAll(/https?:\/\/[^\s<]+/g)) { const url = match[0].replace(/[),.!?]+$/, ""); if (found.has(url)) continue; try { const hostname = new URL(url).hostname.replace(/^www\./, ""); found.set(url, { url, label: hostname, sentAt: message.sentAt }); } catch { /* Ignore malformed URLs. */ } } } return [...found.values()]; }
 

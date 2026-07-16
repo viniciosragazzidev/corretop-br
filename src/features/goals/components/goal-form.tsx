@@ -92,19 +92,19 @@ export function GoalForm({ goal, teamMembers, branches, onDone }: GoalFormProps)
                   setScope(e.target.value);
                   setScopeId("");
                 }}
-                className="size-4 accent-primary"
+                className="size-4 warning-primary"
               />
               <div>
                 <p className="text-sm font-medium">
                   {value === "broker" ? "Corretor" :
-                   value === "team" ? "Equipe" :
-                   value === "branch" ? "Filial" : "Corretora"}
+                    value === "team" ? "Equipe" :
+                      value === "branch" ? "Filial" : "Corretora"}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {value === "broker" ? "Meta individual por corretor" :
-                   value === "team" ? "Meta para um grupo" :
-                   value === "branch" ? "Meta para toda a filial" :
-                   "Meta para toda a corretora"}
+                    value === "team" ? "Meta para um grupo" :
+                      value === "branch" ? "Meta para toda a filial" :
+                        "Meta para toda a corretora"}
                 </p>
               </div>
             </label>
@@ -115,7 +115,7 @@ export function GoalForm({ goal, teamMembers, branches, onDone }: GoalFormProps)
           <div className="space-y-2">
             <Label htmlFor="goal-scopeId">
               {scope === "broker" ? "Corretor" :
-               scope === "branch" ? "Filial" : "Equipe"}
+                scope === "branch" ? "Filial" : "Equipe"}
             </Label>
             <select
               id="goal-scopeId"
@@ -127,7 +127,7 @@ export function GoalForm({ goal, teamMembers, branches, onDone }: GoalFormProps)
             >
               <option value="">
                 Selecione {scope === "broker" ? "um corretor" :
-                          scope === "branch" ? "uma filial" : "uma equipe"}
+                  scope === "branch" ? "uma filial" : "uma equipe"}
               </option>
               {scope === "broker" && teamMembers.map((m) => (
                 <option key={m.id} value={m.id}>
@@ -161,7 +161,7 @@ export function GoalForm({ goal, teamMembers, branches, onDone }: GoalFormProps)
                 value={type}
                 checked={targetType === type}
                 onChange={(e) => setTargetType(e.target.value)}
-                className="size-4 accent-primary"
+                className="size-4 warning-primary"
               />
               <span className="text-sm font-medium">{targetTypeLabels[type]}</span>
             </label>

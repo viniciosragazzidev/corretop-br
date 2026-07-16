@@ -3,6 +3,7 @@
 ## Atendimento e pós-venda
 
 - **Lead**: oportunidade comercial e unidade de atendimento; pode representar uma família.
+- **Contexto de propriedade**: identifica o corretor responsável e a unidade responsável por um registro operacional. Para o Diretor, a unidade deve aparecer sempre que a visualização puder reunir mais de uma filial; um registro sem filial é explicitamente geral/sem unidade.
 - **Beneficiário**: pessoa incluída na contratação de um lead. Todo lead deve ter um titular; dependentes são beneficiários adicionais.
 - **Titular**: beneficiário marcado como responsável principal pela contratação. Há exatamente um titular por lead.
 - **Cotação**: versão histórica e imutável de uma proposta para um lead; seus itens detalham plano, beneficiário e valor calculado.

@@ -13,6 +13,7 @@ Atualizado em 15/07/2026.
 - Plantões em `/leads/distribuicao/plantao`, com horário, prioridade, vigência, ativação e desativação.
 - Notificação in-app ao corretor atribuído.
 - Eventos de movimentação e auditoria em cada ação relevante.
+- Estouro do SLA de primeiro contato desatrela o corretor vencido, exclui-o da tentativa seguinte, redistribui leads da origem Diretor na mesma unidade e devolve-os à fila central quando não há elegíveis; leads da origem Gestor ficam na fila da unidade para distribuição manual.
 - Ajuda contextual em `/guia`, no tema “Distribuição de leads”.
 
 ## Regras de segurança

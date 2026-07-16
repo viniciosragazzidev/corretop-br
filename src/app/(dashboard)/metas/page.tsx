@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { DashboardHeader } from "@/components/dashboard-header";
+import { ViewScopeContext } from "@/components/ownership-context";
 import { GoalsManager } from "@/features/goals/components/goals-manager";
 import {
   getGoals,
@@ -32,6 +33,7 @@ export default async function GoalsPage() {
               Defina e acompanhe metas comerciais por corretor, equipe, filial ou corretora.
               O progresso é calculado automaticamente com base nos dados reais de vendas e atendimento.
             </p>
+            <div className="mt-3"><ViewScopeContext role={context.role} /></div>
           </div>
         </div>
 
