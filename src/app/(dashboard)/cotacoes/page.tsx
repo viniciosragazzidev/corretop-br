@@ -4,6 +4,7 @@ import { DashboardHeader } from "@/components/dashboard-header";
 import { QuotesWorkspace } from "./quotes-workspace";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
+import { listAvailableCatalogPlans } from "@/features/global-catalog/queries";
 
 export default async function QuotesPage() {
   const context = await getRequiredTenantContext();
@@ -14,7 +15,8 @@ export default async function QuotesPage() {
       ? eq(schema.leads.branchId, context.branchId)
       : undefined;
 
-  const [leads, plans] = await Promise.all([
+  const [availableCatalogPlans, leads, legacyPlans] = await Promise.all([
+    listAvailableCatalogPlans(context),
     db.select({ id: schema.leads.id, nome: schema.leads.nome, status: schema.leads.status, brokerName: schema.user.name, branchName: schema.branches.name })
       .from(schema.leads)
       .leftJoin(schema.user, eq(schema.leads.corretorId, schema.user.id))
@@ -27,6 +29,18 @@ export default async function QuotesPage() {
       .where(and(eq(schema.carrierPlans.tenantId, context.tenantId), eq(schema.carrierPlans.active, true), eq(schema.carriers.status, "active")))
       .orderBy(asc(schema.carriers.name), asc(schema.carrierPlans.name)),
   ]);
+
+  const seen = new Set<string>();
+  const plans: Array<{ id: string; name: string; carrierName: string; coverage: string | null }> = [];
+  for (const p of legacyPlans) {
+    if (!seen.has(p.id)) { seen.add(p.id); plans.push(p); }
+  }
+  for (const p of availableCatalogPlans) {
+    if (!seen.has(p.planId)) {
+      seen.add(p.planId);
+      plans.push({ id: p.planId, name: p.planName, carrierName: p.carrierName, coverage: p.coverage ?? null });
+    }
+  }
 
   return (
     <>

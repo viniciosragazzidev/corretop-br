@@ -24,6 +24,7 @@ const planInput = z.object({
   name: z.string().trim().min(2, "Informe o nome do plano.").max(200),
   type: z.enum(["individual", "empresarial", "familiar", "pme"]),
   coverage: z.string().trim().max(120).optional(),
+  description: z.string().trim().max(500).optional(),
 });
 
 const availabilityInput = z.object({
@@ -145,6 +146,7 @@ export async function createGlobalPlanAction(formData: FormData): Promise<Catalo
       name: formData.get("name"),
       type: formData.get("type") || "individual",
       coverage: formData.get("coverage") || undefined,
+      description: formData.get("description") || undefined,
     });
     const [carrier] = await getDatabase()
       .select({ id: schema.globalCarriers.id })
@@ -159,6 +161,7 @@ export async function createGlobalPlanAction(formData: FormData): Promise<Catalo
       carrierId: input.carrierId,
       name: input.name,
       type: input.type,
+      description: input.description || null,
       coverage: input.coverage || null,
       status: "draft",
       createdBy: admin.userId,
@@ -317,6 +320,7 @@ export async function createPrivatePlanAction(formData: FormData): Promise<Catal
       name: formData.get("name"),
       type: formData.get("type") || "individual",
       coverage: formData.get("coverage") || undefined,
+      description: formData.get("description") || undefined,
     });
     const [carrier] = await getDatabase()
       .select({ id: schema.tenantPrivateCarriers.id })
@@ -331,6 +335,7 @@ export async function createPrivatePlanAction(formData: FormData): Promise<Catal
       carrierId: input.carrierId,
       name: input.name,
       type: input.type,
+      description: input.description || null,
       coverage: input.coverage || null,
       createdBy: context.userId,
     });

@@ -202,6 +202,23 @@ export const guideSections: GuideSection[] = [
       { title: "Priorize urgências", description: "Leads sem contato, estagnados e eventos de pós-venda pedem atenção diferente de uma atualização informativa." },
     ],
   },
+  {
+    id: "webhook-integracao",
+    title: "Integração via Webhook (Landing Page)",
+    eyebrow: "Configuração",
+    description: "Configure um formulário externo para enviar leads automaticamente ao CorreTop via API.",
+    icon: "RocketLaunch",
+    audience: ["director"],
+    links: [{ label: "Abrir Configurações", href: "/settings?tab=integrations" }],
+    steps: [
+      { title: "Crie uma fonte de captura", description: "Em Configurações > Integrações, clique em Nova fonte. Escolha o nome, a origem padrão (landing_page) e a filial de destino." },
+      { title: "Copie o token gerado", description: "O token completo (crt_live_...) é exibido apenas uma vez. Copie e guarde em local seguro." },
+      { title: "Adicione o snippet no site", description: "Cole o script de inicialização antes do código do formulário. Defina a URL com o ID do tenant e o token." },
+      { title: "Configure o envio do formulário", description: "No submit, monte o payload com name (obrigatório), phone (obrigatório), source (obrigatório) e campos opcionais como email e planInterest." },
+      { title: "Trate a resposta da API", description: "Verifique se success é true. Em caso de erro, leia o code para entender o problema (422 = dados inválidos, 401 = token inválido)." },
+    ],
+    tip: "Use o header Idempotency-Key com um identificador único para evitar duplicação caso o cliente envie o formulário duas vezes.",
+  },
 ];
 
 export const guideRoleLabels: Record<GuideRole, string> = {

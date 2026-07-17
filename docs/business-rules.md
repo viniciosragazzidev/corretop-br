@@ -46,7 +46,7 @@ rastreabilidade. Pendências que impedem uma implementação definitiva ficam no
 
 | ID | Regra | Gatilho → resultado | Origem |
 |---|---|---|---|
-| BR-030 | O catálogo efetivo combina apenas planos oficiais publicados e autorizados pelo Super-admin com extensões privadas do próprio tenant. | Consulta de catálogo → aplica vigência, disponibilidade por tenant/unidade e origem; nenhum item privado vaza para outro tenant. | DEC-031, RF140–142 |
+| BR-030 | O catálogo efetivo combina planos oficiais publicados pelo Super-admin, visíveis por padrão, com extensões privadas do próprio tenant. | Consulta de catálogo → uma ocultação explícita por tenant/unidade prevalece sobre a visibilidade padrão; nenhum item privado vaza para outro tenant. | DEC-031, RF140–142 |
 | BR-030A | Preço e condições comerciais são versionados; proposta, PDF e venda preservam a versão usada. | Publicação de tabela nova → novas cotações usam a versão vigente, sem recalcular registros anteriores. | DEC-031 |
 | BR-030B | Catálogo oficial e extensão privada possuem administração separada e auditável. | Mudança oficial → somente Super-admin; mudança privada → somente Diretor do tenant, com auditoria. | DEC-031 |
 | BR-031 | Atualização manual de tabela é o fallback obrigatório; scraping é complementar. | Falha/desatualização do scraper → alerta e manutenção manual disponível. | RF030–032 |

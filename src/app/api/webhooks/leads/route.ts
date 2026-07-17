@@ -1,4 +1,4 @@
-import { POST as tenantScopedPost } from "./[tenantId]/route";
+import { OPTIONS as tenantScopedOptions, POST as tenantScopedPost } from "./[tenantId]/route";
 import type { NextRequest } from "next/server";
 
 /**
@@ -6,6 +6,10 @@ import type { NextRequest } from "next/server";
  * A rota legada /api/webhooks/leads/:tenantId continua disponível para integrações existentes.
  */
 export const runtime = "nodejs";
+
+export async function OPTIONS() {
+  return tenantScopedOptions();
+}
 
 export async function POST(request: NextRequest) {
   return tenantScopedPost(request, { params: Promise.resolve({ tenantId: "" }) });

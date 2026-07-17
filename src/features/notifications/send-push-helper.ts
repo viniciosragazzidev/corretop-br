@@ -23,8 +23,8 @@ export async function sendNotificationToUser(userId: string, payload: { title: s
       await webpush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, JSON.stringify({
         title: payload.title,
         body: payload.body,
-        icon: "/icon.svg",
-        badge: "/icon.svg",
+        icon: "/logo_icon.jpg",
+        badge: "/logo_icon.jpg",
         vibrate: [100, 50, 100],
         data: { url: payload.url ?? "/", dateOfArrival: Date.now() },
         tag: payload.tag ?? "corretop-notification",

@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { toast } from "sonner";
+import { useMemo, useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarBadge } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -12,8 +11,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 import { ContextNote } from "@/components/ui/context-note";
-import { Textarea } from "@/components/ui/textarea";
-import { getLeadMessagesAction, sendLeadMessageAction } from "@/features/leads/actions/send-lead-message";
 import { LEAD_STATUS_LABELS } from "@/features/leads/lead-status-constants";
 import {
   ArrowSquareOut,
@@ -21,18 +18,14 @@ import {
   ChatCircleText,
   ChevronRightIcon,
   FileText,
-  ListChecks,
   LinkSimple,
   MagnifyingGlass,
-  PaperPlaneTilt,
   PanelLeftIcon,
   Phone,
-  Plus,
   UserList,
   WhatsappLogo,
 } from "@/components/huge-icons";
 import { cn } from "@/lib/utils";
-import { SetupTutorialDrawer } from "@/components/setup/setup-tutorial-drawer";
 import { OwnershipContext } from "@/components/ownership-context";
 
 export type ConversationMessage = { id: string; leadId: string | null; body: string; direction: string; sentAt: string };
@@ -56,8 +49,6 @@ export type ConversationItem = {
   messages: ConversationMessage[];
   documents: { id: string; filename: string; fileUrl: string; status: string; requirementName: string | null; createdAt: string }[];
 };
-export type PlanSuggestion = { id: string; name: string; carrierName: string };
-
 type ViewFilter = "all" | "with_messages" | "without_messages";
 
 export function ConversationsWorkspace({
@@ -65,40 +56,21 @@ export function ConversationsWorkspace({
   branches,
   conversations: initialConversations,
   initialLeadId,
-  plans,
-  whatsappReady,
-  whatsappSessionReady,
-  setupOpen,
-  canSend,
 }: {
   role: string;
   branches: { id: string; name: string }[];
   conversations: ConversationItem[];
   initialLeadId?: string;
-  plans: PlanSuggestion[];
-  whatsappReady: boolean;
-  whatsappSessionReady: boolean;
-  setupOpen?: boolean;
-  canSend: boolean;
 }) {
-  const [conversations, setConversations] = useState(initialConversations);
+  const [conversations] = useState(initialConversations);
   const [selectedId, setSelectedId] = useState<string | null>(initialLeadId && initialConversations.some((item) => item.id === initialLeadId)
     ? initialLeadId
     : initialConversations.find((item) => item.messages.length > 0)?.id ?? initialConversations[0]?.id ?? null);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<ViewFilter>("all");
   const [branchFilter, setBranchFilter] = useState<string>("all");
-  const [draft, setDraft] = useState("");
-  const [plansOpen, setPlansOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(true);
-  const [loadingThread, setLoadingThread] = useState(false);
-  const [pending, startTransition] = useTransition();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const selected = conversations.find((conversation) => conversation.id === selectedId) ?? null;
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [selectedId, selected?.messages?.length]);
   const branchCounts = useMemo(() => {
     const counts = new Map<string, number>();
     counts.set("all", conversations.length);
@@ -118,65 +90,8 @@ export function ConversationsWorkspace({
     });
   }, [conversations, filter, branchFilter, query]);
 
-  useEffect(() => {
-    if (!selectedId) return;
-    let active = true;
-    const refresh = async () => {
-      const result = await getLeadMessagesAction(selectedId);
-      if (!active || !result.success) return;
-      setConversations((current) => current.map((conversation) => conversation.id === selectedId ? {
-        ...conversation,
-        messages: result.messages.map((message) => ({ ...message, leadId: selectedId, sentAt: message.sentAt.toISOString() })),
-        latestMessage: result.messages.at(-1) ? { body: result.messages.at(-1)!.body, direction: result.messages.at(-1)!.direction, sentAt: result.messages.at(-1)!.sentAt.toISOString() } : null,
-      } : conversation));
-    };
-    void refresh();
-    const interval = window.setInterval(refresh, 8_000);
-    return () => { active = false; window.clearInterval(interval); };
-  }, [selectedId]);
-
-  async function selectConversation(id: string) {
+  function selectConversation(id: string) {
     setSelectedId(id);
-    setDraft("");
-    setPlansOpen(false);
-    setLoadingThread(true);
-    try {
-      const result = await getLeadMessagesAction(id);
-      if (!result.success) throw new Error(result.error);
-      setConversations((current) => current.map((conversation) => conversation.id === id ? {
-        ...conversation,
-        messages: result.messages.map((message) => ({ ...message, leadId: id, sentAt: message.sentAt.toISOString() })),
-        latestMessage: result.messages.at(-1) ? { body: result.messages.at(-1)!.body, direction: result.messages.at(-1)!.direction, sentAt: result.messages.at(-1)!.sentAt.toISOString() } : null,
-      } : conversation));
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Não foi possível abrir esta conversa.");
-    } finally {
-      setLoadingThread(false);
-    }
-  }
-
-  function insertTemplate(template: string) {
-    setDraft(template);
-    toast.message("Texto preparado. Revise antes de enviar.");
-  }
-
-  const togglePlans = () => {
-    setPlansOpen((open) => !open);
-  }
-
-  function sendMessage() {
-    if (!selected || !draft.trim() || pending) return;
-    startTransition(async () => {
-      const result = await sendLeadMessageAction(selected.id, draft);
-      if (!result.success || !result.message) {
-        toast.error(result.error ?? "Não foi possível enviar a mensagem.");
-        return;
-      }
-      const message: ConversationMessage = { ...result.message, leadId: selected.id, sentAt: result.message.sentAt.toISOString() };
-      setConversations((current) => current.map((conversation) => conversation.id === selected.id ? { ...conversation, messages: [...conversation.messages, message], latestMessage: { body: message.body, direction: message.direction, sentAt: message.sentAt } } : conversation));
-      setDraft("");
-      toast.success("Mensagem enviada.");
-    });
   }
 
   return (
@@ -185,7 +100,7 @@ export function ConversationsWorkspace({
         <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
           <div className="flex items-center gap-2.5">
             <h2 className="text-sm font-semibold tracking-tight">Mensagens</h2>
-            {whatsappReady ? <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><span className="size-1.5 rounded-full bg-success" aria-hidden="true" />Conectado</span> : <SetupTutorialDrawer description="Vamos conectar o canal de atendimento e liberar o chat interno em poucos passos." openOnMount={setupOpen} steps={[{ id: "connect", title: "Conectar o WhatsApp", description: "Crie a sessão e leia o QR Code com o WhatsApp da operação.", href: `/settings/whatsapp?returnTo=${encodeURIComponent("/conversas?setup=whatsapp")}`, actionLabel: "Iniciar configuração do WhatsApp", icon: WhatsappLogo }, { id: "activate", title: "Ativar o chat interno", description: "Depois que a sessão estiver pronta, confirme que o chat interno está ativo.", href: `/settings/whatsapp?returnTo=${encodeURIComponent("/conversas?setup=whatsapp")}`, actionLabel: "Abrir configurações", icon: ChatCircleText }]} completedStepIds={[...(whatsappSessionReady ? ["connect"] : []), ...(whatsappReady ? ["activate"] : [])]} title="Configure o WhatsApp" triggerIcon={WhatsappLogo} triggerLabel="Iniciar configuração do WhatsApp" />}
+            <span className="flex items-center gap-1.5 text-xs text-warning"><span className="size-1.5 rounded-full bg-warning" aria-hidden="true" />Chat interno em desenvolvimento</span>
           </div>
           {role === "director" && branches.length > 0 ? <select aria-label="Filtrar por unidade" className="h-7 rounded-md border border-border bg-muted/50 px-2 text-[11px] font-medium text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/15" value={branchFilter} onChange={(event) => setBranchFilter(event.target.value)}><option value="all">Todas unidades ({branchCounts.get("all") ?? 0})</option>{branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name} ({branchCounts.get(branch.id) ?? 0})</option>)}</select> : null}
           <div className="flex items-center gap-1.5" role="group" aria-label="Filtrar conversas">
@@ -196,7 +111,7 @@ export function ConversationsWorkspace({
           <div className="relative min-w-[14rem] flex-1 lg:max-w-sm"><MagnifyingGlass aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input aria-label="Buscar conversa por nome, telefone ou e-mail" className="h-9 pl-8" onChange={(event) => setQuery(event.target.value)} placeholder="Buscar conversa" value={query} /></div>
           <Button className="ml-auto gap-1.5" render={<Link href="/leads" />} size="sm" variant="outline"><UserList className="size-3.5" />Leads</Button>
         </div>
-        {!whatsappReady ? <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-accent/50 px-3 py-2.5 text-xs"><div><p className="font-medium text-foreground">WhatsApp não configurado</p><p className="mt-0.5 text-muted-foreground">Você precisa conectar seu WhatsApp para enviar mensagens. A configuração é rápida — leia o QR Code com seu celular.</p></div><Button render={<Link href={`/settings/whatsapp?returnTo=${encodeURIComponent("/conversas")}`} />} size="xs" variant="outline"><WhatsappLogo /> Conectar agora</Button></div> : null}
+        <ContextNote className="mt-3" title="Chat interno aguardando aprovação da Meta" variant="warning">A sincronização de mensagens está em desenvolvimento e será liberada após a aprovação da integração oficial. Enquanto isso, o atendimento continua normalmente pelo WhatsApp pessoal do corretor.</ContextNote>
       </header>
       <div className={cn("grid min-h-0 flex-1 lg:grid-cols-[minmax(14rem,0.5fr)_minmax(0,1.9fr)]", profileOpen ? "2xl:grid-cols-[minmax(14rem,0.5fr)_minmax(0,1.9fr)_19rem]" : "2xl:grid-cols-[minmax(14rem,0.5fr)_minmax(0,2.35fr)]")}>
 
@@ -213,32 +128,17 @@ export function ConversationsWorkspace({
           {selected ? <>
             <header className="flex items-center justify-between gap-3 border-b border-border bg-card px-5 py-3.5">
               <div className="flex min-w-0 items-center gap-2"><Button aria-label="Voltar para conversas" className="max-lg:inline-flex lg:hidden" onClick={() => setSelectedId(null)} size="icon-sm" type="button" variant="ghost"><ChevronRightIcon className="rotate-180" /></Button><ContactAvatar name={selected.nome} /><div className="min-w-0"><h2 className="truncate text-sm font-semibold tracking-tight">{selected.nome}</h2><div className="mt-0.5 flex items-center gap-2"><p className="truncate text-xs text-muted-foreground">{selected.telefone}</p><Badge variant="outline">{LEAD_STATUS_LABELS[selected.status] ?? selected.status}</Badge></div></div></div>
-              <div className="flex items-center gap-1"><Button aria-label="Ligar para cliente" render={<a href={`tel:${selected.telefone.replace(/\D/g, "")}`} />} size="icon-sm" variant="ghost"><Phone /></Button><Button aria-label="Abrir WhatsApp Web" render={<a href={`https://wa.me/${selected.telefone.replace(/\D/g, "")}`} rel="noreferrer" target="_blank" />} size="icon-sm" variant="ghost"><WhatsappLogo /></Button><Button aria-label="Ver lead completo" render={<Link href={`/leads/${selected.id}`} />} size="icon-sm" variant="ghost"><ArrowSquareOut /></Button></div>
+              <div className="flex items-center gap-1"><Button aria-label="Ligar para cliente" render={<a href={`tel:${selected.telefone.replace(/\D/g, "")}`} />} size="icon-sm" variant="ghost"><Phone /></Button><Button aria-label="Abrir WhatsApp pessoal do corretor" render={<a href={getWhatsAppUrl(selected.telefone)} rel="noreferrer" target="_blank" />} size="icon-sm" variant="ghost"><WhatsappLogo /></Button><Button aria-label="Ver lead completo" render={<Link href={`/leads/${selected.id}`} />} size="icon-sm" variant="ghost"><ArrowSquareOut /></Button></div>
               <div className="ml-auto hidden items-center gap-1 border-l border-border pl-2 2xl:flex">
                 {profileOpen ? <Button aria-label="Recolher painel do cliente" onClick={() => setProfileOpen(false)} size="icon-sm" type="button" variant="ghost"><PanelLeftIcon className="rotate-180" /></Button> : <Button aria-label="Mostrar painel do cliente" onClick={() => setProfileOpen(true)} size="icon-sm" type="button" variant="ghost"><PanelLeftIcon /></Button>}
               </div>
             </header>
-            <ScrollArea className="min-h-0 flex-1 bg-muted/20">
-              <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 p-5 lg:p-7">
-                <div className="self-center rounded-full border border-border bg-card px-3 py-1 text-[11px] font-medium text-muted-foreground">Histórico da conversa</div>
-                {loadingThread ? <p className="text-center text-xs text-muted-foreground">Atualizando mensagens...</p> : null}
-                {selected.messages.map((message) => <MessageBubble key={message.id} message={message} name={selected.nome} />)}
-                <div ref={messagesEndRef} />
-                {!selected.messages.length ? <div className="mx-auto max-w-sm py-12 text-center"><div className="mx-auto grid size-10 place-items-center rounded-full bg-muted"><ChatCircleText className="text-muted-foreground" /></div><p className="mt-3 text-sm font-medium">{role === "broker" ? "Ainda não há mensagens" : "WhatsApp do corretor ainda não sincronizado"}</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">{role === "broker" ? "Use uma ação rápida ou escreva a primeira mensagem para este cliente." : "As mensagens aparecerão aqui quando o corretor responsável conectar e sincronizar o WhatsApp no CorreTop."}</p></div> : null}
-              </div>
-            </ScrollArea>
-            <footer className="relative border-t border-border bg-card p-3">
-              <div className="mb-2 flex flex-wrap gap-1.5"><Button disabled={!canSend} onClick={() => insertTemplate("Olá! Preparei uma cotação para você. Posso enviar os detalhes?")} size="xs" variant="outline"><Calculator /> Enviar cotação</Button><Button disabled={!canSend} onClick={() => insertTemplate("Olá! Posso encaminhar o contrato para sua análise. Qual é o melhor horário para conversarmos?")} size="xs" variant="outline"><FileText /> Enviar contrato</Button><Button aria-expanded={plansOpen} onClick={togglePlans} size="xs" variant="outline"><ListChecks /> Lista de planos</Button></div>
-              {plansOpen ? <div className="t-panel-slide absolute inset-x-3 bottom-full z-10 mb-2 rounded-lg border border-border bg-popover p-2 shadow-lg" data-open="true"><div className="mb-2 flex items-center justify-between"><p className="text-xs font-medium">Planos ativos do catálogo</p><Button render={<Link href={`/cotacoes?leadId=${selected.id}`} />} size="xs" variant="link">Criar cotação <ArrowSquareOut /></Button></div><div className="grid gap-1 sm:grid-cols-2">{plans.slice(0, 6).map((plan) => <Button className="h-auto justify-start whitespace-normal py-2 text-left" key={plan.id} onClick={() => insertTemplate(`Tenho uma opção da ${plan.carrierName}: ${plan.name}. Posso explicar a cobertura?`)} size="xs" variant="ghost"><span className="min-w-0"><span className="block truncate font-medium">{plan.name}</span><span className="block truncate text-muted-foreground">{plan.carrierName}</span></span></Button>)}{!plans.length ? <p className="px-2 py-3 text-xs text-muted-foreground">Nenhum plano ativo está disponível no catálogo.</p> : null}</div></div> : null}
-              {!canSend ? <ContextNote className="mb-2" title="Envio restrito ao responsável" variant="warning">Somente o corretor responsável pode enviar mensagens neste atendimento.</ContextNote> : null}
-              {!whatsappReady ? <ContextNote className="mb-2" title="WhatsApp desconectado" variant="info">O envio ficará disponível quando o WhatsApp deste corretor estiver conectado.</ContextNote> : null}
-              <div className="flex items-end gap-2"><Button aria-label="Adicionar modelo de mensagem" disabled={!canSend} onClick={() => insertTemplate("Olá! Como posso ajudar hoje?")} size="icon-sm" type="button" variant="outline"><Plus /></Button><Textarea aria-label="Escrever mensagem" className="min-h-10 max-h-28 resize-none" disabled={!canSend || !whatsappReady || pending} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); sendMessage(); } }} placeholder={canSend ? "Escreva uma mensagem..." : "Aguardando responsável"} value={draft} /><Button aria-label="Enviar mensagem" disabled={!draft.trim() || !canSend || !whatsappReady || pending} onClick={sendMessage} size="icon" type="button"><PaperPlaneTilt /></Button></div>
-            </footer>
+            <ChatApprovalPendingState phone={selected.telefone} />
           </> : <EmptyConversation />}
         </section>
 
         <aside className={cn("hidden min-h-0 border-l border-border bg-muted/10 2xl:flex 2xl:flex-col", !profileOpen && "2xl:hidden")} aria-label="Perfil do cliente">
-          {selected ? <ClientProfile client={selected} onShowPlans={togglePlans} /> : null}
+          {selected ? <ClientProfile client={selected} /> : null}
         </aside>
       </div>
     </section>
@@ -254,12 +154,11 @@ function ConversationRow({ active, conversation, onClick }: { active: boolean; c
   return <button aria-current={active ? "page" : undefined} className={cn("group relative flex w-full items-center gap-3 rounded-xl border border-transparent px-3 py-3 text-left outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50", active ? "border-primary/10 bg-primary/[0.03] text-foreground" : "hover:bg-muted/60")} onClick={onClick} type="button"><ContactAvatar className={cn("shrink-0", active && "ring-2 ring-primary/10 ring-offset-2 ring-offset-background")} name={conversation.nome} /><span className="grid min-w-0 flex-1 gap-1"><span className="flex min-w-0 items-center justify-between gap-3"><span className="truncate text-sm font-semibold tracking-tight">{conversation.nome}</span><span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">{formatRelative(conversation.latestMessage?.sentAt ?? conversation.stageEnteredAt)}</span></span><span className="truncate text-xs leading-5 text-muted-foreground">{conversation.latestMessage?.direction === "outgoing" ? "Você: " : ""}{preview}</span><span className="flex items-center gap-1.5"><Badge className="h-4 rounded-md bg-muted px-1.5 text-[10px] text-muted-foreground group-hover:bg-background" variant="ghost">{LEAD_STATUS_LABELS[conversation.status] ?? conversation.status}</Badge>{active ? <span aria-label="Conversa selecionada" className="size-1.5 rounded-full bg-success" /> : null}</span></span></button>;
 }
 
-function MessageBubble({ message, name }: { message: ConversationMessage; name: string }) {
-  const outgoing = message.direction === "outgoing";
-  return <article className={cn("flex", outgoing ? "justify-end" : "justify-start")}><div className={cn("max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm", outgoing ? "rounded-tr-md bg-primary text-primary-foreground" : "rounded-tl-md border border-border bg-card")}><p className="whitespace-pre-wrap break-words leading-6">{message.body}</p><p className={cn("mt-1.5 text-right text-[11px] tabular-nums", outgoing ? "text-primary-foreground/75" : "text-muted-foreground")}>{outgoing ? "Você" : name} · {formatTime(message.sentAt)}</p></div></article>;
+function ChatApprovalPendingState({ phone }: { phone: string }) {
+  return <div className="flex min-h-0 flex-1 items-center justify-center bg-muted/20 p-5 lg:p-8"><div className="w-full max-w-lg rounded-xl border border-warning/25 bg-card p-5 text-center shadow-[0_18px_45px_-36px_color-mix(in_oklch,var(--foreground)_45%,transparent)] sm:p-7"><div className="mx-auto grid size-12 place-items-center rounded-full bg-warning/10 text-warning"><ChatCircleText className="size-5" /></div><p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.1em] text-warning">Em desenvolvimento</p><h3 className="mt-2 text-base font-semibold tracking-tight">Chat interno aguardando aprovação da Meta</h3><p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">A integração oficial está em fase de aprovação. Para este atendimento, continue normalmente pelo WhatsApp pessoal do corretor.</p><Button className="mt-5" render={<a href={getWhatsAppUrl(phone)} rel="noreferrer" target="_blank" />} size="sm"><WhatsappLogo /> Abrir WhatsApp pessoal <ArrowSquareOut /></Button></div></div>;
 }
 
-function ClientProfile({ client, onShowPlans }: { client: ConversationItem; onShowPlans: () => void }) {
+function ClientProfile({ client }: { client: ConversationItem }) {
   const approvedDocuments = client.documents.filter((document) => document.status === "approved").length;
   const pendingDocuments = client.documents.filter((document) => document.status === "pending").length;
   const sharedMedia = getSharedMedia(client.messages);
@@ -282,7 +181,7 @@ function ClientProfile({ client, onShowPlans }: { client: ConversationItem; onSh
     <ScrollArea className="min-h-0 flex-1">
       <div className="space-y-5 p-4">
         <ConversationProfileSection title="Ações rápidas">
-          <div className="grid gap-2"><Button className="w-full justify-start" render={<Link href={`/cotacoes?leadId=${client.id}`} />} size="sm"><Calculator /> Nova cotação</Button><Button className="w-full justify-start" onClick={onShowPlans} size="sm" variant="outline"><ListChecks /> Lista de planos</Button><Button className="w-full justify-start" render={<Link href={`/leads/${client.id}`} />} size="sm" variant="outline"><ListChecks /> Gerenciar tarefas</Button></div>
+          <div className="grid gap-2"><Button className="w-full justify-start" render={<Link href={`/cotacoes?leadId=${client.id}`} />} size="sm"><Calculator /> Nova cotação</Button><Button className="w-full justify-start" render={<Link href={`/leads/${client.id}`} />} size="sm" variant="outline"><FileText /> Gerenciar tarefas</Button></div>
         </ConversationProfileSection>
         <ConversationProfileSection action={<Link className="text-[11px] font-medium text-primary hover:underline" href={`/leads/${client.id}`}>Ver todos</Link>} title="Documentos importados">
           <div className="grid grid-cols-2 gap-2"><ProfileMetric label="Aprovados" value={approvedDocuments} /><ProfileMetric label="Em análise" tone="warning" value={pendingDocuments} /></div>
@@ -311,7 +210,8 @@ function ProfileSection({ children, title }: { children: React.ReactNode; title:
 function ProfileLine({ label, value }: { label: string; value: string }) { return <div><dt className="text-xs leading-5 text-muted-foreground">{label}</dt><dd className="mt-0.5 break-words text-sm font-medium leading-5">{value}</dd></div>; }
 function ProfileTag({ label, tone, value }: { label: string; tone?: "success" | "warning"; value: string }) { return <div className="min-w-0 rounded-lg border border-border/70 bg-muted/20 px-2.5 py-2"><dt className="truncate text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground">{label}</dt><dd className="mt-1 min-w-0"><Badge className="max-w-full px-1.5 text-[11px]" variant={tone ?? "outline"}><span className="truncate">{value}</span></Badge></dd></div>; }
 function ContactAvatar({ className, name }: { className?: string; name: string }) { return <Avatar className={className}><AvatarFallback>{initials(name)}</AvatarFallback><AvatarBadge className="bg-success" /></Avatar>; }
-function EmptyConversation() { return <div className="flex flex-1 flex-col items-center justify-center p-6 text-center"><div className="grid size-14 place-items-center rounded-full border border-border bg-muted/60"><ChatCircleText className="size-5 text-muted-foreground" /></div><h2 className="mt-4 text-sm font-semibold tracking-tight">Selecione uma conversa</h2><p className="mt-1 max-w-sm text-sm leading-6 text-muted-foreground">Escolha um contato na lista para visualizar o histórico e enviar uma mensagem.</p></div>; }
+function EmptyConversation() { return <div className="flex flex-1 flex-col items-center justify-center p-6 text-center"><div className="grid size-14 place-items-center rounded-full border border-border bg-muted/60"><ChatCircleText className="size-5 text-muted-foreground" /></div><h2 className="mt-4 text-sm font-semibold tracking-tight">Selecione um atendimento</h2><p className="mt-1 max-w-sm text-sm leading-6 text-muted-foreground">Abra um contato para continuar pelo WhatsApp pessoal do corretor enquanto o chat interno está em desenvolvimento.</p></div>; }
 function initials(name: string) { return name.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase(); }
 function formatTime(value: string) { return new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" }).format(new Date(value)); }
+function getWhatsAppUrl(phone: string) { return `https://wa.me/${phone.replace(/\D/g, "")}`; }
 function formatRelative(value: string) { const date = new Date(value); const diff = Date.now() - date.getTime(); if (diff < 60 * 60 * 1000) return `${Math.max(1, Math.round(diff / 60_000))} min`; if (diff < 24 * 60 * 60 * 1000) return formatTime(value); return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit" }).format(date); }

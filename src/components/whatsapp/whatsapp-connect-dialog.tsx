@@ -18,7 +18,7 @@ import {
 
 type Connection = Awaited<ReturnType<typeof getWhatsAppConnection>>;
 
-export function WhatsAppConnectDialog({ initial, returnTo, triggerLabel = "Conectar WhatsApp" }: { initial: Connection; returnTo?: string; triggerLabel?: string }) {
+export function WhatsAppConnectDialog({ initial, returnTo, triggerLabel = "Conectar WhatsApp", connectedLabel = "WhatsApp conectado" }: { initial: Connection; returnTo?: string; triggerLabel?: string; connectedLabel?: string }) {
   const router = useRouter();
   const [connection, setConnection] = useState(initial);
   const [open, setOpen] = useState(false);
@@ -27,6 +27,18 @@ export function WhatsAppConnectDialog({ initial, returnTo, triggerLabel = "Conec
   const polling = useRef(false);
   const ready = connection.status === "ready";
   const statusLabel = ready ? "Conectado" : connection.status === "initializing" ? "Iniciando" : connection.status === "qr_ready" ? "Aguardando leitura" : "Desconectado";
+
+  function recoverFromOutdatedAction(error: unknown): boolean {
+    const message = error instanceof Error ? error.message : "";
+    if (!/failed to find server action|older or newer deployment|fetch failed|failed to fetch/i.test(message)) return false;
+    toast.info("O CorreTop foi atualizado. Carregando a versão atual da página...");
+    window.setTimeout(() => window.location.reload(), 500);
+    return true;
+  }
+
+  function showUnexpectedActionError(error: unknown) {
+    if (!recoverFromOutdatedAction(error)) toast.error("Não foi possível atualizar a conexão por QR. Tente novamente.");
+  }
 
   function updateStatus(status: string) {
     previousStatus.current = status;
@@ -47,6 +59,8 @@ export function WhatsAppConnectDialog({ initial, returnTo, triggerLabel = "Conec
         router.refresh();
         if (returnTo) router.replace(returnTo);
       } else updateStatus(result.status);
+    } catch (error) {
+      showUnexpectedActionError(error);
     } finally {
       polling.current = false;
     }
@@ -78,53 +92,65 @@ export function WhatsAppConnectDialog({ initial, returnTo, triggerLabel = "Conec
   function start() {
     if (shouldBlockQrOnMobile()) return;
     startTransition(async () => {
-      if (connection.sessionId) {
-        await resetWhatsAppSessionAction();
-        setConnection((current) => ({ ...current, sessionId: null, qrCode: null, status: "disconnected" }));
+      try {
+        if (connection.sessionId) {
+          await resetWhatsAppSessionAction();
+          setConnection((current) => ({ ...current, sessionId: null, qrCode: null, status: "disconnected" }));
+        }
+        const result = await startWhatsAppConnection();
+        if (!result.success) {
+          toast.error(result.error);
+          return;
+        }
+        toast.success("Sessão iniciada. Escaneie o QR Code.");
+        const qr = await refreshWhatsAppQr();
+        if (qr.success) setConnection((current) => ({ ...current, qrCode: qr.qrCode ?? current.qrCode, status: qr.status ?? "initializing" }));
+        await pollStatus();
+      } catch (error) {
+        showUnexpectedActionError(error);
       }
-      const result = await startWhatsAppConnection();
-      if (!result.success) {
-        toast.error(result.error);
-        return;
-      }
-      toast.success("Sessão iniciada. Escaneie o QR Code.");
-      const qr = await refreshWhatsAppQr();
-      if (qr.success) setConnection((current) => ({ ...current, qrCode: qr.qrCode ?? current.qrCode, status: qr.status ?? "initializing" }));
-      await pollStatus();
     });
   }
 
   function refresh() {
     if (shouldBlockQrOnMobile()) return;
     startTransition(async () => {
-      const result = await refreshWhatsAppQr();
-      if (!result.success) toast.error(result.error);
-      else {
-        setConnection((current) => ({ ...current, qrCode: result.qrCode ?? current.qrCode, status: result.status ?? current.status }));
-        await pollStatus();
+      try {
+        const result = await refreshWhatsAppQr();
+        if (!result.success) toast.error(result.error);
+        else {
+          setConnection((current) => ({ ...current, qrCode: result.qrCode ?? current.qrCode, status: result.status ?? current.status }));
+          await pollStatus();
+        }
+      } catch (error) {
+        showUnexpectedActionError(error);
       }
     });
   }
 
   function toggle() {
     startTransition(async () => {
-      const result = await toggleWhatsAppChatAction();
-      if (!result.success) toast.error(result.error);
-      else {
-        setConnection((current) => ({ ...current, chatInternoAtivo: result.active ?? current.chatInternoAtivo }));
-        toast.success(result.active ? "Chat interno ativado." : "Chat interno desativado.");
+      try {
+        const result = await toggleWhatsAppChatAction();
+        if (!result.success) toast.error(result.error);
+        else {
+          setConnection((current) => ({ ...current, chatInternoAtivo: result.active ?? current.chatInternoAtivo }));
+          toast.success(result.active ? "Chat interno ativado." : "Chat interno desativado.");
+        }
+      } catch (error) {
+        showUnexpectedActionError(error);
       }
     });
   }
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger render={<Button variant={ready ? "outline" : "default"}><WhatsappLogo /> {ready ? "WhatsApp conectado" : triggerLabel}</Button>} />
+      <DialogTrigger render={<Button variant={ready ? "outline" : "default"}><WhatsappLogo /> {ready ? connectedLabel : triggerLabel}</Button>} />
       <DialogPopup className="max-w-2xl">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <DialogTitle className="flex items-center gap-2"><WhatsappLogo className="text-success" /> Conectar WhatsApp</DialogTitle>
-            <DialogDescription className="mt-2">Leia o QR Code no WhatsApp. O status é verificado em tempo real.</DialogDescription>
+            <DialogTitle className="flex items-center gap-2"><WhatsappLogo className="text-success" /> Conexão QR legada</DialogTitle>
+            <DialogDescription className="mt-2">Alternativa temporária à Meta Cloud. Leia o QR Code no WhatsApp; o status é verificado em tempo real.</DialogDescription>
           </div>
           <Badge variant={ready ? "success" : "outline"}>{statusLabel}</Badge>
         </div>

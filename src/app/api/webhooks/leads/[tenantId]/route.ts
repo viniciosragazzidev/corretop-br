@@ -9,6 +9,17 @@ import { receiveLeadWebhook } from "@/features/leads/webhooks/services/receive-l
 
 export const runtime = "nodejs";
 
+const CORS_HEADERS: Record<string, string> = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, Idempotency-Key, X-Request-Id",
+  "Access-Control-Max-Age": "86400",
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ tenantId: string }> },
@@ -19,6 +30,7 @@ export async function POST(
 
   // Build response headers
   const headers: Record<string, string> = {
+    ...CORS_HEADERS,
     "Content-Type": "application/json; charset=utf-8",
     "Cache-Control": "no-store",
     "X-Request-Id": requestId,

@@ -28,7 +28,7 @@ export default async function SuperAdminCatalogPage() {
           <p className="text-xs font-medium text-primary">GOVERNANÇA COMERCIAL</p>
           <h1 className="text-2xl font-semibold tracking-tight">Catálogo oficial</h1>
           <p className="max-w-3xl text-sm text-muted-foreground">
-            Publique operadoras, planos e tabelas uma vez para a plataforma. A disponibilidade por corretora é explícita; acordos exclusivos permanecem no catálogo interno de cada tenant.
+            Publique operadoras, planos e tabelas uma vez para a plataforma. Todo plano publicado fica disponível por padrão; use a disponibilidade por corretora apenas para ocultar ou restaurar exceções. Acordos exclusivos permanecem no catálogo interno de cada tenant.
           </p>
         </section>
 
@@ -66,6 +66,7 @@ export default async function SuperAdminCatalogPage() {
                 <label className="grid gap-1.5 text-sm"><span>Nome do plano</span><Input name="name" required /></label>
                 <label className="grid gap-1.5 text-sm"><span>Tipo</span><select className={selectClassName} name="type" defaultValue="individual"><option value="individual">Individual</option><option value="familiar">Familiar</option><option value="empresarial">Empresarial</option><option value="pme">PME</option></select></label>
                 <label className="grid gap-1.5 text-sm"><span>Abrangência</span><Input name="coverage" placeholder="Nacional, regional..." /></label>
+                <label className="col-span-full grid gap-1.5 text-sm"><span>Descrição <span className="text-muted-foreground">(opcional)</span></span><Input name="description" placeholder="Breve descrição do plano, coberturas e diferenciais..." /></label>
               </CatalogActionForm>
             </CardContent>
           </Card>
@@ -89,14 +90,14 @@ export default async function SuperAdminCatalogPage() {
             <CardHeader><CardTitle>Planos oficiais</CardTitle><CardDescription>Rascunhos não ficam disponíveis a nenhuma corretora.</CardDescription></CardHeader>
             <CardContent className="p-0">
               <Table><TableHeader><TableRow><TableHead className="pl-5">Operadora</TableHead><TableHead>Plano</TableHead><TableHead>Tipo</TableHead><TableHead>Status</TableHead><TableHead className="pr-5 text-right">Ação</TableHead></TableRow></TableHeader><TableBody>
-                {plans.map((plan) => <TableRow key={plan.id}><TableCell className="pl-5 font-medium">{plan.carrierName}</TableCell><TableCell>{plan.name}</TableCell><TableCell className="capitalize">{plan.type}</TableCell><TableCell><CatalogStatusBadge status={plan.status} /></TableCell><TableCell className="pr-5 text-right">{plan.status !== "published" ? <CatalogActionForm action={publishGlobalPlanAction} className="inline-flex" submitLabel="Publicar" submitVariant="outline"><input name="planId" type="hidden" value={plan.id} /></CatalogActionForm> : <span className="text-xs text-muted-foreground">Disponível para liberação</span>}</TableCell></TableRow>)}
+                {plans.map((plan) => <TableRow key={plan.id}><TableCell className="pl-5 font-medium">{plan.carrierName}</TableCell><TableCell>{plan.name}</TableCell><TableCell className="capitalize">{plan.type}</TableCell><TableCell><CatalogStatusBadge status={plan.status} /></TableCell><TableCell className="pr-5 text-right">{plan.status !== "published" ? <CatalogActionForm action={publishGlobalPlanAction} className="inline-flex" submitLabel="Publicar" submitVariant="outline"><input name="planId" type="hidden" value={plan.id} /></CatalogActionForm> : <span className="text-xs text-muted-foreground">Disponível por padrão</span>}</TableCell></TableRow>)}
                 {plans.length === 0 ? <TableRow><TableCell className="p-6 text-center text-sm text-muted-foreground" colSpan={5}>Nenhum plano oficial cadastrado.</TableCell></TableRow> : null}
               </TableBody></Table>
             </CardContent>
           </Card>
 
           <Card className="border-border bg-card shadow-none">
-            <CardHeader><CardTitle>Disponibilidade por corretora</CardTitle><CardDescription>Allow-list: um plano oficial só aparece após liberação explícita.</CardDescription></CardHeader>
+            <CardHeader><CardTitle>Disponibilidade por corretora</CardTitle><CardDescription>Exceções por corretora: planos oficiais publicados aparecem por padrão. Oculte ou restaure um plano somente quando necessário.</CardDescription></CardHeader>
             <CardContent>
               <CatalogActionForm action={setTenantPlanAvailabilityAction} className="grid gap-3" submitLabel="Salvar disponibilidade">
                 <label className="grid gap-1.5 text-sm"><span>Corretora</span><select className={selectClassName} name="tenantId" required defaultValue=""><option disabled value="">Selecione</option>{tenants.map((tenant) => <option key={tenant.id} value={tenant.id}>{tenant.name}</option>)}</select></label>

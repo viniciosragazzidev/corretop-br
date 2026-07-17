@@ -85,6 +85,20 @@
       "when": 1784813600000,
       "tag": "0047_meta_whatsapp_cloud_foundation",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1784814600000,
+      "tag": "0048_drop_lead_plan_id_fk",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1784814700000,
+      "tag": "0049_allow_multi_source_quote_plans",
+      "breakpoints": true
     }
   ]
 }

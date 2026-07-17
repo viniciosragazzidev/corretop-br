@@ -9,6 +9,7 @@ import { z } from "zod";
 
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
+import { listAvailableCatalogPlans } from "@/features/global-catalog/queries";
 
 const quoteInput = z.object({
   leadId: z.string().min(1),
@@ -54,16 +55,56 @@ export async function createQuoteAction(input: z.infer<typeof quoteInput>): Prom
     if (context.role === "broker" && lead.corretorId !== context.userId) return { error: "Você só pode cotar seus próprios leads." };
     if (context.role === "manager" && lead.branchId !== context.branchId) return { error: "Este lead não pertence à sua filial." };
 
-    const plans = await db.select({ id: schema.carrierPlans.id, name: schema.carrierPlans.name, carrierName: schema.carriers.name })
+    // Validate plans from legacy carrier_plans
+    const legacyPlans = await db.select({ id: schema.carrierPlans.id, name: schema.carrierPlans.name, carrierName: schema.carriers.name })
       .from(schema.carrierPlans).innerJoin(schema.carriers, eq(schema.carrierPlans.carrierId, schema.carriers.id))
       .where(and(eq(schema.carrierPlans.tenantId, context.tenantId), inArray(schema.carrierPlans.id, parsed.data.planIds), eq(schema.carrierPlans.active, true)));
-    if (plans.length !== parsed.data.planIds.length) return { error: "Um ou mais planos não estão disponíveis." };
 
-    const prices = await db.select({ planId: schema.carrierPlanPrices.planId, ageBand: schema.carrierPlanPrices.ageBand, monthlyPrice: schema.carrierPlanPrices.monthlyPrice })
-      .from(schema.carrierPlanPrices).where(and(eq(schema.carrierPlanPrices.tenantId, context.tenantId), inArray(schema.carrierPlanPrices.planId, parsed.data.planIds)));
+    // Validate plans from global + private catalog
+    const availableCatalogPlans = await listAvailableCatalogPlans(context);
+    const catalogPlanMap = new Map(availableCatalogPlans.map((p) => [p.planId, p]));
+    const catalogPlans = parsed.data.planIds
+      .filter((id) => !legacyPlans.some((lp) => lp.id === id))
+      .map((id) => catalogPlanMap.get(id))
+      .filter((p): p is NonNullable<typeof p> => p !== undefined);
+
+    const allValidPlanIds = new Set([...legacyPlans.map((p) => p.id), ...catalogPlans.map((p) => p.planId)]);
+    const invalidPlanIds = parsed.data.planIds.filter((id) => !allValidPlanIds.has(id));
+    if (invalidPlanIds.length > 0) return { error: "Um ou mais planos não estão disponíveis." };
+
+    // Build unified plan list
+    const plans = [
+      ...legacyPlans.map((p) => ({ id: p.id, name: p.name, carrierName: p.carrierName, source: "legacy" as const })),
+      ...catalogPlans.map((p) => ({ id: p.planId, name: p.planName, carrierName: p.carrierName, source: p.source as "global" | "tenant_private" })),
+    ];
+
+    // Fetch prices from appropriate sources
+    const legacyPlanIds = plans.filter((p) => p.source === "legacy").map((p) => p.id);
+    const globalPlanIds = plans.filter((p) => p.source === "global").map((p) => p.id);
+
+    const [legacyPrices, globalPrices] = await Promise.all([
+      legacyPlanIds.length > 0
+        ? db.select({ planId: schema.carrierPlanPrices.planId, ageBand: schema.carrierPlanPrices.ageBand, monthlyPrice: schema.carrierPlanPrices.monthlyPrice })
+            .from(schema.carrierPlanPrices).where(and(eq(schema.carrierPlanPrices.tenantId, context.tenantId), inArray(schema.carrierPlanPrices.planId, legacyPlanIds)))
+        : Promise.resolve([]),
+      globalPlanIds.length > 0
+        ? db.select({ planId: schema.globalPlans.id, ageBand: schema.catalogPriceRows.ageBand, monthlyPrice: schema.catalogPriceRows.monthlyPrice })
+            .from(schema.catalogPriceRows)
+            .innerJoin(schema.catalogTableVersions, eq(schema.catalogPriceRows.tableVersionId, schema.catalogTableVersions.id))
+            .innerJoin(schema.catalogPriceTables, eq(schema.catalogTableVersions.priceTableId, schema.catalogPriceTables.id))
+            .innerJoin(schema.globalPlans, eq(schema.catalogPriceTables.planId, schema.globalPlans.id))
+            .where(and(
+              eq(schema.catalogTableVersions.status, "published"),
+              eq(schema.catalogPriceTables.status, "published"),
+              inArray(schema.globalPlans.id, globalPlanIds),
+            ))
+        : Promise.resolve([]),
+    ]);
+
+    const allPrices = [...legacyPrices, ...globalPrices];
     const requestedBands = parsed.data.lives.filter((life) => life.quantity > 0).map((life) => life.ageBand);
     if (requestedBands.length === 0) return { error: "Informe ao menos uma vida para criar a cotação." };
-    const planWithoutPrice = plans.find((plan) => requestedBands.some((ageBand) => !prices.some((price) => price.planId === plan.id && price.ageBand === ageBand)));
+    const planWithoutPrice = plans.find((plan) => requestedBands.some((ageBand) => !allPrices.some((price) => price.planId === plan.id && price.ageBand === ageBand)));
     if (planWithoutPrice) return { error: `O plano ${planWithoutPrice.name} não possui preços cadastrados para todas as faixas informadas.` };
     const quoteId = randomUUID();
     const publicToken = randomUUID().replaceAll("-", "");
@@ -72,7 +113,7 @@ export async function createQuoteAction(input: z.infer<typeof quoteInput>): Prom
     await db.transaction(async (tx) => {
       await tx.insert(schema.quotes).values({ id: quoteId, tenantId: context.tenantId, leadId: lead.id, createdBy: context.userId, lives: parsed.data.lives, notes: parsed.data.notes || null, publicToken });
       await tx.insert(schema.quoteItems).values(plans.map((plan, index) => {
-        const monthlyPrice = prices.filter((price) => price.planId === plan.id).reduce((total, price) => {
+        const monthlyPrice = allPrices.filter((price) => price.planId === plan.id).reduce((total, price) => {
           const quantity = parsed.data.lives.find((life) => life.ageBand === price.ageBand)?.quantity ?? 0;
           return total + Number(price.monthlyPrice) * quantity;
         }, 0);

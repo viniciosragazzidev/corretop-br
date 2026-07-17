@@ -1,7 +1,7 @@
 "use client";
 
-import type { FormEvent, ReactNode } from "react";
-import { useTransition } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
+import { useActionState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -24,27 +24,23 @@ export function CatalogActionForm({
   className?: string;
   submitVariant?: "default" | "outline";
 }) {
-  const [isPending, startTransition] = useTransition();
+  const [state, formAction, isPending] = useActionState<CatalogActionState, FormData>(
+    action as unknown as (state: CatalogActionState, formData: FormData) => Promise<CatalogActionState>,
+    {},
+  );
+  const formRef = useRef<HTMLFormElement>(null);
 
-  function onSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const formData = new FormData(form);
-    startTransition(async () => {
-      const result = await action(formData);
-      if (result.error) {
-        toast.error(result.error);
-        return;
-      }
-      if (result.success) {
-        form.reset();
-        toast.success(result.success);
-      }
-    });
-  }
+  useEffect(() => {
+    if (state.error) {
+      toast.error(state.error);
+    } else if (state.success) {
+      toast.success(state.success);
+      formRef.current?.reset();
+    }
+  }, [state]);
 
   return (
-    <form className={className} onSubmit={onSubmit}>
+    <form ref={formRef} action={formAction} className={className}>
       {children}
       <Button disabled={isPending} type="submit" variant={submitVariant}>
         {isPending ? submittingLabel : submitLabel}

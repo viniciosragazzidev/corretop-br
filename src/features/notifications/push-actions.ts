@@ -149,8 +149,8 @@ export async function sendTestNotificationAction(message: string) {
         JSON.stringify({
           title: "CorreTop CRM",
           body: message || "Notificação de teste do CorreTop CRM.",
-          icon: "/icon.svg",
-          badge: "/icon.svg",
+          icon: "/logo_icon.jpg",
+          badge: "/logo_icon.jpg",
           vibrate: [100, 50, 100],
           data: {
             url: "/",

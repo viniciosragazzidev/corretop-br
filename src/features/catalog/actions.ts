@@ -10,6 +10,7 @@ import { z } from "zod";
 import { requireRole } from "@/shared/auth/authorization";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
+import { listAvailableCatalogPlans } from "@/features/global-catalog/queries";
 import { FIXED_CARRIERS } from "./constants";
 import type { CatalogActionState } from "./types";
 
@@ -458,23 +459,37 @@ export async function getAllActivePlans() {
   const context = await getRequiredTenantContext();
   const db = getDatabase();
 
-  const rows = await db
-    .select({
-      id: schema.carrierPlans.id,
-      name: schema.carrierPlans.name,
-      carrierName: schema.carriers.name,
-      type: schema.carrierPlans.type,
-    })
-    .from(schema.carrierPlans)
-    .innerJoin(schema.carriers, eq(schema.carrierPlans.carrierId, schema.carriers.id))
-    .where(
-      and(
-        eq(schema.carrierPlans.tenantId, context.tenantId),
-        eq(schema.carrierPlans.active, true),
-        eq(schema.carriers.status, "active"),
-      ),
-    )
-    .orderBy(schema.carriers.name, schema.carrierPlans.name);
+  const [legacyPlans, availableCatalogPlans] = await Promise.all([
+    db
+      .select({
+        id: schema.carrierPlans.id,
+        name: schema.carrierPlans.name,
+        carrierName: schema.carriers.name,
+        type: schema.carrierPlans.type,
+      })
+      .from(schema.carrierPlans)
+      .innerJoin(schema.carriers, eq(schema.carrierPlans.carrierId, schema.carriers.id))
+      .where(
+        and(
+          eq(schema.carrierPlans.tenantId, context.tenantId),
+          eq(schema.carrierPlans.active, true),
+          eq(schema.carriers.status, "active"),
+        ),
+      )
+      .orderBy(schema.carriers.name, schema.carrierPlans.name),
+    listAvailableCatalogPlans(context),
+  ]);
 
-  return rows;
+  const seen = new Set<string>();
+  const plans: Array<{ id: string; name: string; carrierName: string; type: string }> = [];
+  for (const p of legacyPlans) {
+    if (!seen.has(p.id)) { seen.add(p.id); plans.push(p); }
+  }
+  for (const p of availableCatalogPlans) {
+    if (!seen.has(p.planId)) {
+      seen.add(p.planId);
+      plans.push({ id: p.planId, name: p.planName, carrierName: p.carrierName, type: p.planType });
+    }
+  }
+  return plans;
 }

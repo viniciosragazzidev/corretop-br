@@ -2,14 +2,14 @@
 // Versão: 1.0.1
 // Incremente CACHE_VERSION para forçar atualização do cache.
 
-const CACHE_VERSION = 2;
+const CACHE_VERSION = 3;
 const STATIC_CACHE = `corretop-static-v${CACHE_VERSION}`;
 const NAV_CACHE = `corretop-nav-v${CACHE_VERSION}`;
 const ASSET_CACHE = `corretop-assets-v${CACHE_VERSION}`;
 
 const PRECACHE_URLS = [
   "/manifest.webmanifest",
-  "/icon.svg",
+  "/logo_icon.jpg",
 ];
 
 // ─── Instalação ───────────────────────────────────────────────────────────────
@@ -130,8 +130,8 @@ self.addEventListener("push", (event) => {
     const title = data.title || "CorreTop CRM";
     const options = {
       body: data.body || "",
-      icon: data.icon || "/icon.svg",
-      badge: "/icon.svg",
+      icon: data.icon || "/logo_icon.jpg",
+      badge: "/logo_icon.jpg",
       vibrate: data.vibrate || [100, 50, 100],
       data: {
         dateOfArrival: Date.now(),
@@ -160,8 +160,8 @@ self.addEventListener("push", (event) => {
     const title = "CorreTop CRM";
     const options = {
       body: event.data.text(),
-      icon: "/icon.svg",
-      badge: "/icon.svg",
+      icon: "/logo_icon.jpg",
+      badge: "/logo_icon.jpg",
     };
     event.waitUntil(self.registration.showNotification(title, options));
   }
