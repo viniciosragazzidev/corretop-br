@@ -20,7 +20,6 @@ interface LeadRow {
   corretor_id: string | null;
   nome: string;
   status: string;
-  created_at: string;
 }
 
 interface NotificationRow {
@@ -43,7 +42,6 @@ export function RealtimeSyncProvider({
   const router = useRouter();
   const playSoundRef = useRef<((cue: any) => void) | null>(null);
   const seenLeadIdsRef = useRef<Set<string>>(new Set());
-  const lastPollRef = useRef<Date>(new Date());
 
   useEffect(() => {
     import("cuelume")
@@ -91,46 +89,7 @@ export function RealtimeSyncProvider({
     [userId, branchId, role, router],
   );
 
-  // ── Polling fallback: check for new leads every 2s ──────────────────
-  useEffect(() => {
-    const supabase = createClient();
-
-    async function pollForNewLeads() {
-      try {
-        const since = new Date(Date.now() - 5_000).toISOString();
-        const { data: leads } = await supabase
-          .from("leads")
-          .select("id, tenant_id, branch_id, corretor_id, nome, status, created_at")
-          .eq("tenant_id", tenantId)
-          .gte("created_at", since)
-          .order("created_at", { ascending: false })
-          .limit(10);
-
-        if (!leads?.length) return;
-
-        for (const lead of leads) {
-          if (!seenLeadIdsRef.current.has(lead.id)) {
-            seenLeadIdsRef.current.add(lead.id);
-            notifyNewLead(lead as LeadRow);
-            router.refresh();
-          }
-        }
-
-        // Cleanup old IDs from Set (keep last 500)
-        if (seenLeadIdsRef.current.size > 500) {
-          const ids = [...seenLeadIdsRef.current];
-          seenLeadIdsRef.current = new Set(ids.slice(-250));
-        }
-      } catch {
-        // Silent fail — polling is best-effort
-      }
-    }
-
-    const interval = setInterval(pollForNewLeads, 2_000);
-    return () => clearInterval(interval);
-  }, [tenantId, notifyNewLead, router]);
-
-  // ── Realtime: leads ─────────────────────────────────────────────────
+  // ── Supabase Realtime: leads + notifications ────────────────────────
   useEffect(() => {
     const supabase = createClient();
     const channelName = `public:leads:tenant:${tenantId}:user:${userId}`;

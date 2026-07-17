@@ -1,6 +1,8 @@
 import { and, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+
 import { DashboardHeader } from "@/components/dashboard-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

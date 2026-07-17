@@ -1,12 +1,12 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
-import { eq } from "drizzle-orm";
 
 import { getDatabase, schema } from "@/shared/db";
+import { eq } from "drizzle-orm";
+
 import type { NormalizedLeadData } from "../types/lead-webhook.types";
 import { chooseAvailableBroker } from "@/features/leads/assignment";
-
 import { notifyNewLead } from "@/features/notifications/send-push-helper";
 
 export type CreateLeadFromWebhookInput = {
@@ -21,64 +21,105 @@ export type CreateLeadFromWebhookInput = {
 export async function createLeadFromWebhook(
   input: CreateLeadFromWebhookInput,
 ): Promise<{ leadId: string }> {
-  const db = getDatabase();
   const leadId = randomUUID();
   const { tenantId, normalized, credentialId, createdByUserId, deliveryId, branchId } = input;
-  const corretorId = await chooseAvailableBroker(tenantId, branchId);
-  const assigned = Boolean(corretorId);
+  const now = new Date();
 
-  // Insert lead IMMEDIATELY — Realtime fires as soon as this completes
+  // ── Step 1: INSERT lead directly via Drizzle (direct Postgres) ──────
+  // Direct Postgres bypasses RLS and the Supabase API gateway — lowest
+  // possible latency. Supabase Realtime (logical replication) fires
+  // regardless of the INSERT method.
+  const db = getDatabase();
   await db.insert(schema.leads).values({
     id: leadId,
     tenantId,
     branchId,
-    corretorId,
     nome: normalized.name,
     telefone: normalized.phone,
     email: normalized.email,
     origem: "webhook",
-    status: assigned ? "distributed" : "new",
-    distributionStatus: assigned ? "assigned" : branchId ? "queued" : "unassigned",
-    assignmentSource: assigned ? "automatic" : null,
-    assignmentStrategy: assigned ? "capacity" : null,
-    distributionUpdatedAt: new Date(),
-    assignedAt: assigned ? new Date() : null,
-    consentimentoLgpd: false,
+    distributionOrigin: normalized.source,
     externalId: normalized.externalId,
     webhookCredentialId: credentialId,
+    status: "new",
+    distributionStatus: branchId ? "queued" : "unassigned",
+    consentimentoLgpd: false,
+    createdAt: now,
   });
 
-  // Everything else runs in background — does not block the response or Realtime
-  void (async () => {
-    try {
-      await db.transaction(async (tx) => {
-        await tx.insert(schema.leadInteractions).values({
-          id: randomUUID(),
-          leadId,
-          userId: createdByUserId,
-          tipo: "note",
-          conteudo: assigned ? "Lead recebido por webhook e distribuído automaticamente para um corretor disponível." : "Lead recebido por webhook; aguardando corretor disponível.",
-        });
-
-        await tx.insert(schema.auditLogs).values({
-          id: randomUUID(),
-          userId: createdByUserId,
-          entidade: "lead",
-          entidadeId: leadId,
-          acao: "lead.webhook.received",
-        });
-
-        await tx
-          .update(schema.webhookDeliveries)
-          .set({ status: "processed", leadId, processedAt: new Date() })
-          .where(eq(schema.webhookDeliveries.id, deliveryId));
-      });
-
-      await notifyNewLead(leadId, tenantId, branchId, corretorId, normalized.name);
-    } catch (error) {
-      console.error("[webhook] background post-lead error:", error);
-    }
-  })();
+  // ── Step 2: Everything else runs in background (fire-and-forget) ───
+  // Distribution, audit, interaction, push — none of these block the response.
+  void backgroundTasks({
+    leadId,
+    tenantId,
+    branchId,
+    credentialId,
+    createdByUserId,
+    deliveryId,
+    normalized,
+  }).catch((error) => {
+    console.error("[webhook] background task error:", error);
+  });
 
   return { leadId };
+}
+
+async function backgroundTasks(input: {
+  leadId: string;
+  tenantId: string;
+  branchId: string | null;
+  credentialId: string;
+  createdByUserId: string;
+  deliveryId: string;
+  normalized: NormalizedLeadData;
+}) {
+  const { leadId, tenantId, branchId, credentialId, createdByUserId, deliveryId, normalized } = input;
+  const db = getDatabase();
+
+  // ── Distribute to available broker ──────────────────────────────────
+  const corretorId = await chooseAvailableBroker(tenantId, branchId);
+  const assigned = Boolean(corretorId);
+
+  // ── Update lead with distribution result ────────────────────────────
+  await db
+    .update(schema.leads)
+    .set({
+      corretorId,
+      status: assigned ? "distributed" : "new",
+      distributionStatus: assigned ? "assigned" : branchId ? "queued" : "unassigned",
+      assignmentSource: assigned ? "automatic" : null,
+      assignmentStrategy: assigned ? "capacity" : null,
+      distributionUpdatedAt: new Date(),
+      assignedAt: assigned ? new Date() : null,
+    })
+    .where(eq(schema.leads.id, leadId));
+
+  // ── Audit + interaction + delivery status ───────────────────────────
+  await db.transaction(async (tx) => {
+    await tx.insert(schema.leadInteractions).values({
+      id: randomUUID(),
+      leadId,
+      userId: createdByUserId,
+      tipo: "note",
+      conteudo: assigned
+        ? "Lead recebido por webhook e distribuído automaticamente para um corretor disponível."
+        : "Lead recebido por webhook; aguardando corretor disponível.",
+    });
+
+    await tx.insert(schema.auditLogs).values({
+      id: randomUUID(),
+      userId: createdByUserId,
+      entidade: "lead",
+      entidadeId: leadId,
+      acao: "lead.webhook.received",
+    });
+
+    await tx
+      .update(schema.webhookDeliveries)
+      .set({ status: "processed", leadId, processedAt: new Date() })
+      .where(eq(schema.webhookDeliveries.id, deliveryId));
+  });
+
+  // ── Push notifications ──────────────────────────────────────────────
+  await notifyNewLead(leadId, tenantId, branchId, corretorId, normalized.name);
 }

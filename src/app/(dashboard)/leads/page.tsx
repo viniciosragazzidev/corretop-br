@@ -1,6 +1,8 @@
 import { and, count, eq, ilike, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+
 import { ManualLeadSheet } from "./_components/manual-lead-sheet";
 import { LeadsFilters } from "./_components/leads-filters";
 import { LeadsWorkspace } from "./leads-workspace";
