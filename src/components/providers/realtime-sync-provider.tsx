@@ -70,9 +70,34 @@ export function RealtimeSyncProvider({
           const oldRow = payload.old as Partial<LeadRow> | null;
 
           if (payload.eventType === "INSERT" && newRow) {
-            // Toast, sound and push are coordinated by the notifications table.
-            // This lead event only reconciles server-rendered lists.
-            if (role === "director" || (role === "manager" && newRow.branch_id === branchId) || (role === "broker" && newRow.corretor_id === userId)) router.refresh();
+            const isAssignedToMe = newRow.corretor_id === userId;
+            const isUnassigned = !newRow.corretor_id;
+            const canNotify =
+              isAssignedToMe ||
+              isUnassigned ||
+              role === "director" ||
+              (role === "manager" && newRow.branch_id === branchId);
+
+            if (canNotify) {
+              playSoundRef.current?.("success");
+
+              const description = isAssignedToMe
+                ? `O lead "${newRow.nome}" foi distribuído para você.`
+                : isUnassigned
+                  ? `"${newRow.nome}" chegou e está aguardando distribuição.`
+                  : `"${newRow.nome}" foi adicionado via webhook.`;
+
+              toast.success("Novo lead recebido!", {
+                description,
+                action: {
+                  label: "Abrir",
+                  onClick: () => router.push(`/leads/${newRow.id}`),
+                },
+                duration: 10_000,
+              });
+            }
+
+            router.refresh();
           }
 
           if (payload.eventType === "UPDATE" && newRow) {
