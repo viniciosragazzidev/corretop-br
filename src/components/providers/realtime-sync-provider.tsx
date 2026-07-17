@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createClient } from "@/utils/supabase/client";
@@ -20,6 +20,7 @@ interface LeadRow {
   corretor_id: string | null;
   nome: string;
   status: string;
+  created_at: string;
 }
 
 interface NotificationRow {
@@ -41,6 +42,8 @@ export function RealtimeSyncProvider({
 }: RealtimeSyncProviderProps) {
   const router = useRouter();
   const playSoundRef = useRef<((cue: any) => void) | null>(null);
+  const seenLeadIdsRef = useRef<Set<string>>(new Set());
+  const lastPollRef = useRef<Date>(new Date());
 
   useEffect(() => {
     import("cuelume")
@@ -51,6 +54,83 @@ export function RealtimeSyncProvider({
       .catch((error) => console.error("Failed to load cuelume:", error));
   }, []);
 
+  const notifyNewLead = useCallback(
+    (lead: LeadRow) => {
+      const isAssignedToMe = lead.corretor_id === userId;
+      const isInMyBranch = lead.branch_id === branchId;
+      const isUnassigned = !lead.corretor_id;
+      const hasNoBranch = !lead.branch_id;
+      const canNotify =
+        isAssignedToMe ||
+        isUnassigned ||
+        hasNoBranch ||
+        role === "director" ||
+        (role === "manager" && isInMyBranch);
+
+      if (!canNotify) return;
+
+      playSoundRef.current?.("success");
+
+      const description = isAssignedToMe
+        ? `O lead "${lead.nome}" foi distribuído para você.`
+        : isUnassigned && hasNoBranch
+          ? `"${lead.nome}" chegou sem filial e está aguardando distribuição.`
+          : isUnassigned
+            ? `"${lead.nome}" chegou na sua unidade e está aguardando distribuição.`
+            : `Novo lead "${lead.nome}" foi adicionado.`;
+
+      toast.success("Novo lead recebido!", {
+        description,
+        action: {
+          label: "Abrir",
+          onClick: () => router.push(`/leads/${lead.id}`),
+        },
+        duration: 10_000,
+      });
+    },
+    [userId, branchId, role, router],
+  );
+
+  // ── Polling fallback: check for new leads every 2s ──────────────────
+  useEffect(() => {
+    const supabase = createClient();
+
+    async function pollForNewLeads() {
+      try {
+        const since = new Date(Date.now() - 5_000).toISOString();
+        const { data: leads } = await supabase
+          .from("leads")
+          .select("id, tenant_id, branch_id, corretor_id, nome, status, created_at")
+          .eq("tenant_id", tenantId)
+          .gte("created_at", since)
+          .order("created_at", { ascending: false })
+          .limit(10);
+
+        if (!leads?.length) return;
+
+        for (const lead of leads) {
+          if (!seenLeadIdsRef.current.has(lead.id)) {
+            seenLeadIdsRef.current.add(lead.id);
+            notifyNewLead(lead as LeadRow);
+            router.refresh();
+          }
+        }
+
+        // Cleanup old IDs from Set (keep last 500)
+        if (seenLeadIdsRef.current.size > 500) {
+          const ids = [...seenLeadIdsRef.current];
+          seenLeadIdsRef.current = new Set(ids.slice(-250));
+        }
+      } catch {
+        // Silent fail — polling is best-effort
+      }
+    }
+
+    const interval = setInterval(pollForNewLeads, 2_000);
+    return () => clearInterval(interval);
+  }, [tenantId, notifyNewLead, router]);
+
+  // ── Realtime: leads ─────────────────────────────────────────────────
   useEffect(() => {
     const supabase = createClient();
     const channelName = `public:leads:tenant:${tenantId}:user:${userId}`;
@@ -70,45 +150,14 @@ export function RealtimeSyncProvider({
           const oldRow = payload.old as Partial<LeadRow> | null;
 
           if (payload.eventType === "INSERT" && newRow) {
-            const isAssignedToMe = newRow.corretor_id === userId;
-            const isInMyBranch = newRow.branch_id === branchId;
-            const isUnassigned = !newRow.corretor_id;
-            const hasNoBranch = !newRow.branch_id;
-            const canNotify =
-              isAssignedToMe ||
-              isUnassigned ||
-              hasNoBranch ||
-              role === "director" ||
-              (role === "manager" && isInMyBranch);
-
-            if (canNotify) {
-              playSoundRef.current?.("success");
-
-              const description = isAssignedToMe
-                ? `O lead "${newRow.nome}" foi distribuído para você.`
-                : isUnassigned && hasNoBranch
-                  ? `"${newRow.nome}" chegou sem filial e está aguardando distribuição.`
-                  : isUnassigned
-                    ? `"${newRow.nome}" chegou na sua unidade e está aguardando distribuição.`
-                    : `Novo lead "${newRow.nome}" foi adicionado.`;
-
-              toast.success("Novo lead recebido!", {
-                description,
-                action: {
-                  label: "Abrir",
-                  onClick: () => router.push(`/leads/${newRow.id}`),
-                },
-                duration: 10_000,
-              });
+            if (!seenLeadIdsRef.current.has(newRow.id)) {
+              seenLeadIdsRef.current.add(newRow.id);
+              notifyNewLead(newRow);
             }
-
             router.refresh();
           }
 
           if (payload.eventType === "UPDATE" && newRow) {
-            // The notification INSERT is the authoritative signal for the
-            // assignment toast. UPDATE old values are not guaranteed unless
-            // replica identity is FULL in the active production database.
             if (
               role === "director" ||
               (role === "manager" && (newRow.branch_id === branchId || oldRow?.branch_id === branchId)) ||
@@ -168,7 +217,7 @@ export function RealtimeSyncProvider({
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [tenantId, userId, role, branchId, router]);
+  }, [tenantId, userId, role, branchId, router, notifyNewLead]);
 
   return <>{children}</>;
 }
