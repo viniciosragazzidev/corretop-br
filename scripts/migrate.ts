@@ -51,6 +51,30 @@ async function main() {
       const hash = createHash("sha256").update(migration).digest("hex");
       if (applied.has(hash)) continue;
 
+      // 0036 was introduced as a baseline after the database was already
+      // provisioned. Older environments therefore have its schema objects but
+      // not its hash in the migration ledger. Mark that one known baseline as
+      // applied instead of attempting to recreate its enums and blocking all
+      // later migrations.
+      if (entry.tag === "0036_reset_baseline") {
+        const [baselineExists] = await client<{ exists: boolean }[]>`
+          SELECT EXISTS (
+            SELECT 1
+            FROM pg_type
+            WHERE typname = 'availability_status'
+          ) AS "exists"
+        `;
+        if (baselineExists?.exists) {
+          await client`
+            INSERT INTO drizzle.__drizzle_migrations (hash, created_at)
+            VALUES (${hash}, ${entry.when})
+          `;
+          applied.add(hash);
+          console.log("Marked 0036_reset_baseline.sql as applied for an existing schema.");
+          continue;
+        }
+      }
+
       const statements = migration
         .split("--> statement-breakpoint")
         .map((statement) => statement.trim())

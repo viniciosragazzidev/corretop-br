@@ -23,9 +23,21 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
   if (!quote) notFound();
   if (context.role === "broker" && quote.corretorId !== context.userId) notFound();
   if (context.role === "manager" && (!context.branchId || quote.branchId !== context.branchId)) notFound();
-  const items = await db.select({ id: schema.quoteItems.id, planId: schema.quoteItems.planId, planName: schema.carrierPlans.name, carrierName: schema.carriers.name, coverage: schema.carrierPlans.coverage, monthlyPrice: schema.quoteItems.monthlyPrice, recommended: schema.quoteItems.recommended })
-    .from(schema.quoteItems).innerJoin(schema.carrierPlans, eq(schema.quoteItems.planId, schema.carrierPlans.id)).innerJoin(schema.carriers, eq(schema.carrierPlans.carrierId, schema.carriers.id))
-    .where(eq(schema.quoteItems.quoteId, quote.id));
+  const rawItems = await db.select({ id: schema.quoteItems.id, planId: schema.quoteItems.planId, monthlyPrice: schema.quoteItems.monthlyPrice, recommended: schema.quoteItems.recommended, snapshot: schema.quoteItems.snapshot })
+    .from(schema.quoteItems).where(eq(schema.quoteItems.quoteId, quote.id));
+  const planIds = rawItems.map((item) => item.planId);
+  const [legacyPlanDetails, globalPlanDetails] = await Promise.all([
+    planIds.length > 0 ? db.select({ id: schema.carrierPlans.id, planName: schema.carrierPlans.name, carrierName: schema.carriers.name, coverage: schema.carrierPlans.coverage }).from(schema.carrierPlans).innerJoin(schema.carriers, eq(schema.carrierPlans.carrierId, schema.carriers.id)).where(inArray(schema.carrierPlans.id, planIds)) : Promise.resolve([]),
+    planIds.length > 0 ? db.select({ id: schema.globalPlans.id, planName: schema.globalPlans.name, carrierName: schema.globalCarriers.name, coverage: schema.globalPlans.coverage }).from(schema.globalPlans).innerJoin(schema.globalCarriers, eq(schema.globalPlans.carrierId, schema.globalCarriers.id)).where(inArray(schema.globalPlans.id, planIds)) : Promise.resolve([]),
+  ]);
+  const planDetailMap = new Map<string, { planName: string; carrierName: string; coverage: string | null }>();
+  for (const plan of legacyPlanDetails) planDetailMap.set(plan.id, plan);
+  for (const plan of globalPlanDetails) planDetailMap.set(plan.id, plan);
+  const items = rawItems.map((item) => {
+    const details = planDetailMap.get(item.planId);
+    const snapshot = item.snapshot as Record<string, unknown> | null;
+    return { id: item.id, planId: item.planId, planName: details?.planName ?? (snapshot?.planName as string) ?? "Plano", carrierName: details?.carrierName ?? (snapshot?.carrierName as string) ?? "Operadora", coverage: details?.coverage ?? null, monthlyPrice: item.monthlyPrice, recommended: item.recommended };
+  });
   const networks = items.length ? await db.select({ planId: schema.carrierPlanNetworks.planId, name: schema.carrierPlanNetworks.name, city: schema.carrierPlanNetworks.city, specialty: schema.carrierPlanNetworks.specialty }).from(schema.carrierPlanNetworks).where(and(eq(schema.carrierPlanNetworks.tenantId, context.tenantId), inArray(schema.carrierPlanNetworks.planId, items.map((item) => item.planId)))) : [];
   const quoteText = [
     `Olá, ${quote.leadName}! Preparei uma cotação para você.`,

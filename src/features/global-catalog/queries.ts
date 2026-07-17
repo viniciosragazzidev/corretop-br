@@ -6,6 +6,7 @@ import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import type { TenantContext } from "@/shared/auth/types";
 import { getDatabase, schema } from "@/shared/db";
 import { getSystemSetting } from "@/features/system-settings/queries";
+import { resolveTenantGlobalPlanVisibility } from "./availability";
 import type { AvailableCatalogPlan } from "./types";
 
 export async function isGlobalCatalogEnabled() {
@@ -41,13 +42,10 @@ export async function listAvailableCatalogPlans(
           coverage: schema.globalPlans.coverage,
           maxEntryAge: schema.globalPlans.maxEntryAge,
         })
-        .from(schema.tenantCatalogPlanSettings)
-        .innerJoin(schema.globalPlans, eq(schema.tenantCatalogPlanSettings.globalPlanId, schema.globalPlans.id))
+        .from(schema.globalPlans)
         .innerJoin(schema.globalCarriers, eq(schema.globalPlans.carrierId, schema.globalCarriers.id))
         .where(
           and(
-            eq(schema.tenantCatalogPlanSettings.tenantId, resolvedContext.tenantId),
-            eq(schema.tenantCatalogPlanSettings.enabled, true),
             eq(schema.globalPlans.status, "published"),
             eq(schema.globalCarriers.status, "published"),
           ),
@@ -55,7 +53,19 @@ export async function listAvailableCatalogPlans(
         .orderBy(asc(schema.globalCarriers.name), asc(schema.globalPlans.name))
     : [];
 
-  let allowedGlobalRows = globalRows;
+  const availabilityOverrides = globalRows.length > 0
+    ? await db
+        .select({ globalPlanId: schema.tenantCatalogPlanSettings.globalPlanId, enabled: schema.tenantCatalogPlanSettings.enabled })
+        .from(schema.tenantCatalogPlanSettings)
+        .where(
+          and(
+            eq(schema.tenantCatalogPlanSettings.tenantId, resolvedContext.tenantId),
+            inArray(schema.tenantCatalogPlanSettings.globalPlanId, globalRows.map((row) => row.planId)),
+          ),
+        )
+    : [];
+
+  let allowedGlobalRows = resolveTenantGlobalPlanVisibility(globalRows, availabilityOverrides);
   if (resolvedContext.branchId && globalRows.length > 0) {
     const restrictions = await db
       .select({ globalPlanId: schema.branchCatalogPlanRestrictions.globalPlanId })

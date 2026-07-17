@@ -311,7 +311,7 @@ export const leads = pgTable(
     tenantId: text("tenant_id").notNull().references(() => tenants.id),
     branchId: text("branch_id").references(() => branches.id),
     corretorId: text("corretor_id").references(() => user.id),
-    planId: text("plan_id").references(() => carrierPlans.id),
+    planId: text("plan_id"),
     nome: text("nome").notNull(),
     telefone: text("telefone").notNull(),
     email: text("email"),
@@ -554,7 +554,8 @@ export const quoteItems = pgTable(
   {
     id: text("id").primaryKey(),
     quoteId: text("quote_id").notNull().references(() => quotes.id, { onDelete: "cascade" }),
-    planId: text("plan_id").notNull().references(() => carrierPlans.id),
+    // Quote snapshots may reference legacy, global, or tenant-private plans.
+    planId: text("plan_id").notNull(),
     monthlyPrice: numeric("monthly_price", { precision: 12, scale: 2 }).notNull(),
     recommended: boolean("recommended").notNull().default(false),
     snapshot: jsonb("snapshot").notNull().default({}),
@@ -570,7 +571,8 @@ export const quoteLineItems = pgTable(
     tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
     quoteId: text("quote_id").notNull().references(() => quotes.id, { onDelete: "cascade" }),
     beneficiaryId: text("beneficiary_id").notNull().references(() => leadBeneficiaries.id, { onDelete: "restrict" }),
-    planId: text("plan_id").notNull().references(() => carrierPlans.id),
+    // Quote snapshots may reference legacy, global, or tenant-private plans.
+    planId: text("plan_id").notNull(),
     calculatedValue: numeric("calculated_value", { precision: 12, scale: 2 }).notNull(),
     ageAtQuote: integer("age_at_quote").notNull(),
     snapshot: jsonb("snapshot").notNull().default({}),

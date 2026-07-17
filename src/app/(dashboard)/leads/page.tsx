@@ -11,6 +11,7 @@ import { ContextNote } from "@/components/ui/context-note";
 import { getSystemSetting } from "@/features/system-settings/queries";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
+import { listAvailableCatalogPlans } from "@/features/global-catalog/queries";
 
 export default async function LeadsPage({ searchParams }: { searchParams: Promise<{ attention?: string; status?: string; search?: string; branch?: string; new?: string }> }) {
   const context = await getRequiredTenantContext();
@@ -31,12 +32,25 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
   const branchFilter = context.role === "manager" && context.branchId ? eq(schema.leads.branchId, context.branchId) : context.role === "broker" ? eq(schema.leads.corretorId, context.userId) : filters.branch ? eq(schema.leads.branchId, filters.branch) : null;
   const where = and(eq(schema.leads.tenantId, context.tenantId), ...(statusFilter ? [statusFilter] : []), ...(searchFilter ? [searchFilter] : []), ...(branchFilter ? [branchFilter] : []));
   const isDirector = context.role === "director";
-  const [leads, plans, branches, pausedBranchCount] = await Promise.all([
+  const [availablePlans, leads, legacyPlans, branches, pausedBranchCount] = await Promise.all([
+    listAvailableCatalogPlans(context),
     db.select({ id: schema.leads.id, nome: schema.leads.nome, telefone: schema.leads.telefone, status: schema.leads.status, origem: schema.leads.origem, createdAt: schema.leads.createdAt, corretorNome: schema.user.name, branchName: schema.branches.name }).from(schema.leads).leftJoin(schema.user, eq(schema.leads.corretorId, schema.user.id)).leftJoin(schema.branches, eq(schema.leads.branchId, schema.branches.id)).where(where),
     db.select({ id: schema.carrierPlans.id, name: schema.carrierPlans.name, carrierName: schema.carriers.name }).from(schema.carrierPlans).innerJoin(schema.carriers, eq(schema.carrierPlans.carrierId, schema.carriers.id)).where(and(eq(schema.carrierPlans.tenantId, context.tenantId), eq(schema.carrierPlans.active, true), eq(schema.carriers.status, "active"))).orderBy(schema.carriers.name, schema.carrierPlans.name),
     db.select({ id: schema.branches.id, name: schema.branches.name }).from(schema.branches).where(eq(schema.branches.tenantId, context.tenantId)),
     isDirector ? db.select({ count: count() }).from(schema.branches).where(and(eq(schema.branches.tenantId, context.tenantId), eq(schema.branches.acceptingLeads, false))).then((r) => Number(r[0]?.count ?? 0)) : Promise.resolve(0),
   ]);
+
+  const seen = new Set<string>();
+  const plans: Array<{ id: string; name: string; carrierName: string }> = [];
+  for (const p of legacyPlans) {
+    if (!seen.has(p.id)) { seen.add(p.id); plans.push(p); }
+  }
+  for (const p of availablePlans) {
+    if (!seen.has(p.planId)) {
+      seen.add(p.planId);
+      plans.push({ id: p.planId, name: p.planName, carrierName: p.carrierName });
+    }
+  }
 
   return (
     <>

@@ -70,7 +70,7 @@ Estado: aprovada em 2026-07-16. O lembrete de feedback agora opera com intervalo
 **Estado:** Aceita
 **Data:** 2026-07-16
 
-O CorreTop manterá uma base oficial global de operadoras, planos, tabelas e versões comerciais, publicada exclusivamente pelo Super-admin. Cada corretora pode manter uma extensão privada para acordos exclusivos, isolada pelo seu `tenant_id` e administrada somente pelo Diretor. A consulta de cotação usará um resolvedor único que combina itens oficiais publicados e permitidos para tenant/unidade com itens privados do próprio tenant.
+O CorreTop manterá uma base oficial global de operadoras, planos, tabelas e versões comerciais, publicada exclusivamente pelo Super-admin. Cada corretora pode manter uma extensão privada para acordos exclusivos, isolada pelo seu `tenant_id` e administrada somente pelo Diretor. A consulta de cotação usará um resolvedor único que combina itens oficiais publicados, visíveis por padrão a todos os tenants e sujeitos apenas a ocultações explícitas por tenant/unidade, com itens privados do próprio tenant.
 
 Tabelas comerciais serão versionadas e vigentes; registros históricos devem manter snapshot e referência da versão utilizada. Importação assistida por IA poderá gerar propostas de alteração, mas jamais publicar ou alterar o catálogo sem revisão explícita do Super-admin.
 

@@ -8,6 +8,7 @@ import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { hasPermission } from "@/shared/auth/permissions";
 import { AuthorizationError } from "@/shared/auth/errors";
 import { getDatabase, schema } from "@/shared/db";
+import { listAvailableCatalogPlans } from "@/features/global-catalog/queries";
 import { chooseAvailableBroker } from "./assignment";
 
 const leadInput = z.object({
@@ -35,6 +36,25 @@ export async function createManualLead(rawInput: unknown) {
   if (!context.branchId) throw new Error("O usuário precisa estar vinculado a uma filial ativa.");
   const db = getDatabase();
   const telefone = normalizePhone(input.telefone);
+  if (input.planoInteresseId) {
+    const [legacyPlan, catalogPlans] = await Promise.all([
+      db
+        .select({ id: schema.carrierPlans.id })
+        .from(schema.carrierPlans)
+        .innerJoin(schema.carriers, eq(schema.carrierPlans.carrierId, schema.carriers.id))
+        .where(and(
+          eq(schema.carrierPlans.id, input.planoInteresseId),
+          eq(schema.carrierPlans.tenantId, context.tenantId),
+          eq(schema.carrierPlans.active, true),
+          eq(schema.carriers.status, "active"),
+        ))
+        .limit(1),
+      listAvailableCatalogPlans(context),
+    ]);
+    if (!legacyPlan[0] && !catalogPlans.some((plan) => plan.planId === input.planoInteresseId)) {
+      throw new Error("O plano de interesse não está disponível para esta corretora.");
+    }
+  }
   const [duplicate] = await db.select({ id: schema.leads.id, nome: schema.leads.nome, createdAt: schema.leads.createdAt, corretorNome: schema.user.name }).from(schema.leads).leftJoin(schema.user, eq(schema.leads.corretorId, schema.user.id)).where(and(eq(schema.leads.tenantId, context.tenantId), eq(schema.leads.telefone, telefone))).orderBy(asc(schema.leads.createdAt)).limit(1);
   if (duplicate && input.duplicateConfirmed !== "true") return { duplicate: duplicate as DuplicateLeadNotice };
   const corretorId = context.role === "broker" ? context.userId : await chooseAvailableBroker(context.tenantId, context.branchId);

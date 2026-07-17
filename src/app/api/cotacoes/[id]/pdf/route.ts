@@ -1,5 +1,5 @@
 import { PDFDocument, StandardFonts, rgb, type PDFImage } from "pdf-lib";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
@@ -13,7 +13,20 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     .from(schema.quotes).innerJoin(schema.leads, eq(schema.quotes.leadId, schema.leads.id)).leftJoin(schema.user, eq(schema.leads.corretorId, schema.user.id)).innerJoin(schema.tenants, eq(schema.quotes.tenantId, schema.tenants.id))
     .where(and(eq(schema.quotes.id, id), eq(schema.quotes.tenantId, tenantContext.tenantId))).limit(1);
   if (!quote || (tenantContext.role === "broker" && quote.corretorId !== tenantContext.userId) || (tenantContext.role === "manager" && (!tenantContext.branchId || quote.branchId !== tenantContext.branchId))) return new Response("Não encontrado", { status: 404 });
-  const items = await db.select({ planName: schema.carrierPlans.name, carrierName: schema.carriers.name, monthlyPrice: schema.quoteItems.monthlyPrice, recommended: schema.quoteItems.recommended }).from(schema.quoteItems).innerJoin(schema.carrierPlans, eq(schema.quoteItems.planId, schema.carrierPlans.id)).innerJoin(schema.carriers, eq(schema.carrierPlans.carrierId, schema.carriers.id)).where(eq(schema.quoteItems.quoteId, quote.id));
+  const rawItems = await db.select({ planId: schema.quoteItems.planId, monthlyPrice: schema.quoteItems.monthlyPrice, recommended: schema.quoteItems.recommended, snapshot: schema.quoteItems.snapshot }).from(schema.quoteItems).where(eq(schema.quoteItems.quoteId, quote.id));
+  const planIds = rawItems.map((item) => item.planId);
+  const [legacyPlanDetails, globalPlanDetails] = await Promise.all([
+    planIds.length > 0 ? db.select({ id: schema.carrierPlans.id, planName: schema.carrierPlans.name, carrierName: schema.carriers.name }).from(schema.carrierPlans).innerJoin(schema.carriers, eq(schema.carrierPlans.carrierId, schema.carriers.id)).where(inArray(schema.carrierPlans.id, planIds)) : Promise.resolve([]),
+    planIds.length > 0 ? db.select({ id: schema.globalPlans.id, planName: schema.globalPlans.name, carrierName: schema.globalCarriers.name }).from(schema.globalPlans).innerJoin(schema.globalCarriers, eq(schema.globalPlans.carrierId, schema.globalCarriers.id)).where(inArray(schema.globalPlans.id, planIds)) : Promise.resolve([]),
+  ]);
+  const planDetailMap = new Map<string, { planName: string; carrierName: string }>();
+  for (const plan of legacyPlanDetails) planDetailMap.set(plan.id, plan);
+  for (const plan of globalPlanDetails) planDetailMap.set(plan.id, plan);
+  const items = rawItems.map((item) => {
+    const details = planDetailMap.get(item.planId);
+    const snapshot = item.snapshot as Record<string, unknown> | null;
+    return { planName: details?.planName ?? (snapshot?.planName as string) ?? "Plano", carrierName: details?.carrierName ?? (snapshot?.carrierName as string) ?? "Operadora", monthlyPrice: item.monthlyPrice, recommended: item.recommended };
+  });
   const pdf = await PDFDocument.create();
   const page = pdf.addPage([595.28, 841.89]);
   const regular = await pdf.embedFont(StandardFonts.Helvetica);
