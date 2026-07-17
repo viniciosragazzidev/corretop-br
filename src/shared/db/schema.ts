@@ -1742,5 +1742,68 @@ export const pushSubscriptionRelations = relations(pushSubscriptions, ({ one }) 
   }),
 }));
 
+/* ─── Promotional Materials (Materiais de Divulgação) ─── */
+
+export const promotionalMaterialCategoryValues = [
+  "todos",
+  "avisos",
+  "eventos",
+  "informativos",
+  "premiacoes",
+  "promocoes",
+  "treinamentos",
+  "materiais_divulgacao",
+] as const;
+
+export const promotionalMaterialCategory = pgEnum(
+  "promotional_material_category",
+  promotionalMaterialCategoryValues,
+);
+
+export const promotionalMaterials = pgTable(
+  "promotional_materials",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id")
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    description: text("description"),
+    category: promotionalMaterialCategory("category")
+      .notNull()
+      .default("materiais_divulgacao"),
+    imageUrl: text("image_url"),
+    fileUrl: text("file_url"),
+    targetBranch: text("target_branch"),
+    targetCarrier: text("target_carrier"),
+    targetState: text("target_state"),
+    active: boolean("active").notNull().default(true),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => user.id),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("promo_materials_tenant_idx").on(table.tenantId),
+    index("promo_materials_category_idx").on(table.category),
+    index("promo_materials_active_idx").on(table.active),
+  ],
+);
+
+export const promotionalMaterialRelations = relations(
+  promotionalMaterials,
+  ({ one }) => ({
+    tenant: one(tenants, {
+      fields: [promotionalMaterials.tenantId],
+      references: [tenants.id],
+    }),
+    createdByUser: one(user, {
+      fields: [promotionalMaterials.createdBy],
+      references: [user.id],
+    }),
+  }),
+);
+
 export type TenantRole = (typeof tenantRoleValues)[number];
 export type TenantStatus = (typeof tenantStatusValues)[number];

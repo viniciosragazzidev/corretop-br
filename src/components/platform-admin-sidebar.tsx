@@ -1,6 +1,6 @@
 "use client";
 
-import { Buildings, Gear, House, RoadHorizon, ShieldStar, SignOut, Clock, ShieldWarning, RocketLaunch, FileText } from "@/components/huge-icons";
+import { Buildings, Gear, House, RoadHorizon, ShieldStar, SignOut, Clock, ShieldWarning, RocketLaunch, FileText, Megaphone } from "@/components/huge-icons";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -119,6 +119,17 @@ export function PlatformAdminSidebar() {
                 >
                   <RoadHorizon className="size-4" />
                   <span>Roadmap</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={pathname === "/super-admin/materiais-divulgacao"}
+                  render={<Link href="/super-admin/materiais-divulgacao" prefetch />}
+                  tooltip="Materiais de Divulgação"
+                  className="px-3.5 py-2 text-xs font-medium"
+                >
+                  <Megaphone className="size-4" />
+                  <span>Materiais de Divulgação</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
