@@ -15,6 +15,6 @@ export async function OPTIONS() {
 }
 
 export async function POST(request: NextRequest) {
-  const { POST: tenantScopedPost } = await import("../webhooks/leads/[tenantId]/route");
-  return tenantScopedPost(request, { params: Promise.resolve({ tenantId: "" }) });
+  const { POST: unifiedPost } = await import("../webhooks/leads/route");
+  return unifiedPost(request);
 }
