@@ -71,21 +71,26 @@ export function RealtimeSyncProvider({
 
           if (payload.eventType === "INSERT" && newRow) {
             const isAssignedToMe = newRow.corretor_id === userId;
+            const isInMyBranch = newRow.branch_id === branchId;
             const isUnassigned = !newRow.corretor_id;
+            const hasNoBranch = !newRow.branch_id;
             const canNotify =
               isAssignedToMe ||
               isUnassigned ||
+              hasNoBranch ||
               role === "director" ||
-              (role === "manager" && newRow.branch_id === branchId);
+              (role === "manager" && isInMyBranch);
 
             if (canNotify) {
               playSoundRef.current?.("success");
 
               const description = isAssignedToMe
                 ? `O lead "${newRow.nome}" foi distribuído para você.`
-                : isUnassigned
-                  ? `"${newRow.nome}" chegou e está aguardando distribuição.`
-                  : `"${newRow.nome}" foi adicionado via webhook.`;
+                : isUnassigned && hasNoBranch
+                  ? `"${newRow.nome}" chegou sem filial e está aguardando distribuição.`
+                  : isUnassigned
+                    ? `"${newRow.nome}" chegou na sua unidade e está aguardando distribuição.`
+                    : `Novo lead "${newRow.nome}" foi adicionado.`;
 
               toast.success("Novo lead recebido!", {
                 description,
