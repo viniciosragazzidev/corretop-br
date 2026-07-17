@@ -56,6 +56,9 @@ export const PERMISSIONS = {
   duty_schedules_manage: ["director", "manager"],
   distribution_audit_view: ["director", "manager"],
   ver_perfil_unidade: ["director", "manager", "broker"],
+  acessar_materiais_divulgacao: ["broker", "manager", "director"],
+  gerenciar_materiais_divulgacao: ["director"],
+  acessar_ferramentas_vendas: ["broker", "manager", "director"],
 } as const satisfies Record<string, readonly TenantRole[]>;
 
 export type PermissionKey = keyof typeof PERMISSIONS;
