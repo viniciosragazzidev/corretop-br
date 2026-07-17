@@ -14,31 +14,32 @@ export async function chooseAvailableBroker(tenantId: string, branchId: string |
   if (!branchId) return null;
   const db = getDatabase();
 
-  // Check if branch has auto-distribution enabled (manager toggle)
-  const [branch] = await db
-    .select({ autoDistribute: schema.branches.autoDistribute })
-    .from(schema.branches)
-    .where(and(eq(schema.branches.id, branchId), eq(schema.branches.tenantId, tenantId)))
-    .limit(1);
-  if (!branch || !branch.autoDistribute) return null;
+  const [branch, brokers] = await Promise.all([
+    db
+      .select({ autoDistribute: schema.branches.autoDistribute })
+      .from(schema.branches)
+      .where(and(eq(schema.branches.id, branchId), eq(schema.branches.tenantId, tenantId)))
+      .limit(1),
+    db
+      .select({ id: schema.user.id, createdAt: schema.user.createdAt })
+      .from(schema.user)
+      .innerJoin(schema.tenantMemberships, eq(schema.tenantMemberships.userId, schema.user.id))
+      .where(and(
+        eq(schema.tenantMemberships.tenantId, tenantId),
+        eq(schema.tenantMemberships.branchId, branchId),
+        eq(schema.tenantMemberships.role, "broker"),
+        eq(schema.tenantMemberships.status, "active"),
+        eq(schema.tenantMemberships.availabilityStatus, "available"),
+        eq(schema.user.active, true),
+        eq(schema.user.status, "active"),
+        ...(excludeBrokerId ? [not(eq(schema.user.id, excludeBrokerId))] : []),
+      ))
+      .orderBy(asc(schema.user.createdAt)),
+  ]);
 
-  const brokers = await db
-    .select({ id: schema.user.id, createdAt: schema.user.createdAt })
-    .from(schema.user)
-    .innerJoin(schema.tenantMemberships, eq(schema.tenantMemberships.userId, schema.user.id))
-    .where(and(
-      eq(schema.tenantMemberships.tenantId, tenantId),
-      eq(schema.tenantMemberships.branchId, branchId),
-      eq(schema.tenantMemberships.role, "broker"),
-      eq(schema.tenantMemberships.status, "active"),
-      eq(schema.tenantMemberships.availabilityStatus, "available"),
-      eq(schema.user.active, true),
-      eq(schema.user.status, "active"),
-      ...(excludeBrokerId ? [not(eq(schema.user.id, excludeBrokerId))] : []),
-    ))
-    .orderBy(asc(schema.user.createdAt));
-
+  if (!branch[0] || !branch[0].autoDistribute) return null;
   if (!brokers.length) return null;
+
   const ids = brokers.map((broker) => broker.id);
   const workloads = await db
     .select({ brokerId: schema.leads.corretorId, total: count(schema.leads.id) })
