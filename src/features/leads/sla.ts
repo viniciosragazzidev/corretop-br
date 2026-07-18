@@ -35,7 +35,8 @@ export async function runSlaSweep(tenantId?: string): Promise<SlaSweepResult> {
       status: schema.leads.status,
       corretorId: schema.leads.corretorId,
       assignedAt: schema.leads.assignedAt,
-      stageEnteredAt: schema.leads.stageEnteredAt
+      stageEnteredAt: schema.leads.stageEnteredAt,
+      webhookCredentialId: schema.leads.webhookCredentialId,
     })
       .from(schema.leads).where(and(eq(schema.leads.tenantId, tenant.id), or(and(eq(schema.leads.status, "distributed"), lt(schema.leads.assignedAt, unworkedCutoff)), and(inArray(schema.leads.status, activeStatuses), lt(schema.leads.stageEnteredAt, stagnantCutoff)))));
     
@@ -64,7 +65,7 @@ export async function runSlaSweep(tenantId?: string): Promise<SlaSweepResult> {
         unworked += 1;
         
         // Active automatic redistribution of the unworked lead
-        const nextBrokerId = await chooseAvailableBroker(tenant.id, lead.branchId, lead.corretorId);
+        const nextBrokerId = await chooseAvailableBroker(tenant.id, lead.branchId, lead.corretorId, lead.webhookCredentialId);
         const updateTime = new Date();
         
         await db.transaction(async (tx) => {

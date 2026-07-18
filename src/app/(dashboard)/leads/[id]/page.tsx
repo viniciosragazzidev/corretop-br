@@ -18,10 +18,7 @@ import { getDatabase, schema } from "@/shared/db";
 import { StartServiceButton } from "./start-service-button";
 import { LeadManagementActions } from "./management-actions";
 
-import { getAllActivePlans } from "@/features/catalog/actions";
-import { getLeadQuotes } from "@/features/quotes/actions";
-import { LeadQuotesSection } from "@/features/quotes/components/lead-quotes-section";
-import { QuoteModalButton } from "./quote-modal-button";
+import { CotarButton } from "./cotar-button";
 
 import { getRequirementsForLead, getLeadDocuments } from "@/features/documents/actions";
 import { LeadDocumentsSection } from "@/features/documents/components/lead-documents-section";
@@ -80,13 +77,11 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
   const remainingMinutes = Math.max(0, slaMinutes - elapsedMinutes);
   const slaUrgent = remainingMinutes <= Math.max(5, Math.round(slaMinutes * 0.25));
 
-  const [interactions, tasks, quotes, plans, requirements, leadDocs, beneficiaries] = await Promise.all([
+  const [interactions, tasks, requirements, leadDocs, beneficiaries] = await Promise.all([
     getLeadTimeline(id),
     getDatabase().select({ id: schema.leadTasks.id, title: schema.leadTasks.title, description: schema.leadTasks.description, priority: schema.leadTasks.priority, dueAt: schema.leadTasks.dueAt, completedAt: schema.leadTasks.completedAt, createdAt: schema.leadTasks.createdAt, assignedTo: schema.leadTasks.assignedTo, assigneeName: schema.user.name })
       .from(schema.leadTasks).leftJoin(schema.user, eq(schema.leadTasks.assignedTo, schema.user.id)).where(and(eq(schema.leadTasks.tenantId, context.tenantId), eq(schema.leadTasks.leadId, id)))
       .orderBy(schema.leadTasks.completedAt, schema.leadTasks.dueAt, schema.leadTasks.createdAt),
-    getLeadQuotes(id),
-    getAllActivePlans(),
     getRequirementsForLead(id),
     getLeadDocuments(id),
     getLeadBeneficiaries(id),
@@ -142,7 +137,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                   <StartServiceButton leadId={lead.id} />
                 )}
                 {lead.status !== "distributed" && (
-                  <QuoteModalButton leadId={lead.id} plans={plans.map((p) => ({ id: p.id, name: p.name, carrierName: p.carrierName, coverage: p.type }))} />
+                  <CotarButton />
                 )}
                 <Badge className={slaUrgent ? "border-warning/30 bg-warning/[0.08] text-warning" : "border-border/80"} variant="outline">
                   {lead.status === "distributed" ? `SLA: ${remainingMinutes > 0 ? `expira em ${remainingMinutes}min` : "expirado"}` : "SLA em acompanhamento"}
@@ -255,7 +250,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             {/* Lead Action Hub Recommendation (only for the broker owner) */}
             <LeadActionHub
               hasPendingDocuments={leadDocs.some((document) => document.status === "pending" || document.status === "rejected")}
-              hasQuotes={quotes.length > 0}
+              hasQuotes={false}
               leadId={lead.id}
               currentOwner={lead.corretorNome}
               nextTask={(() => { const task = tasks.find((item) => !item.completedAt); return task ? { title: task.title, dueAt: task.dueAt?.toISOString() ?? null, priority: task.priority, assigneeName: task.assigneeName } : null; })()}
@@ -290,18 +285,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                   </Card>
                 )}
 
-                {/* Proposals and Quotes */}
-                {lead.status !== "distributed" && (
-                  <Card className="border-border bg-card shadow-sm">
-                    <CardHeader className="pb-3 border-b border-border/40">
-                      <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Propostas e Cotações</CardTitle>
-                      <CardDescription className="text-xs">Consulte o histórico de propostas geradas para este lead.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="pt-4">
-                      <LeadQuotesSection quotes={quotes.map((q) => ({ id: q.id, status: q.status, publicToken: q.publicToken, createdAt: q.createdAt, totalPrice: q.totalPrice, plansCount: q.plansCount }))} />
-                    </CardContent>
-                  </Card>
-                )}
+
               </TabsContent>
 
               <TabsContent value="history" className="mt-4">

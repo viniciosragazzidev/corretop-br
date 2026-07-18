@@ -23,11 +23,14 @@ export default async function DutySchedulePage() {
       .where(and(eq(schema.leadQueues.tenantId, context.tenantId), inArray(schema.leadQueues.branchId, branchIds), eq(schema.leadQueues.status, "active")))
     : [];
   const schedules = branchIds.length
-    ? await db.select({ id: schema.unitDutySchedules.id, branchId: schema.unitDutySchedules.branchId, queueId: schema.unitDutySchedules.queueId, name: schema.unitDutySchedules.name, dayOfWeek: schema.unitDutySchedules.dayOfWeek, startsAt: schema.unitDutySchedules.startsAt, endsAt: schema.unitDutySchedules.endsAt, priority: schema.unitDutySchedules.priority, status: schema.unitDutySchedules.status })
+    ? await db.select({ id: schema.unitDutySchedules.id, branchId: schema.unitDutySchedules.branchId, queueId: schema.unitDutySchedules.queueId, name: schema.unitDutySchedules.name, dayOfWeek: schema.unitDutySchedules.dayOfWeek, startsAt: schema.unitDutySchedules.startsAt, endsAt: schema.unitDutySchedules.endsAt, priority: schema.unitDutySchedules.priority, status: schema.unitDutySchedules.status, webhookCredentialId: schema.unitDutySchedules.webhookCredentialId })
       .from(schema.unitDutySchedules)
       .where(and(eq(schema.unitDutySchedules.tenantId, context.tenantId), inArray(schema.unitDutySchedules.branchId, branchIds)))
       .orderBy(asc(schema.unitDutySchedules.dayOfWeek), asc(schema.unitDutySchedules.startsAt))
     : [];
+  const credentials = await db.select({ id: schema.leadWebhookCredentials.id, name: schema.leadWebhookCredentials.name })
+    .from(schema.leadWebhookCredentials)
+    .where(and(eq(schema.leadWebhookCredentials.tenantId, context.tenantId), eq(schema.leadWebhookCredentials.status, "active")));
   const roster = await getDutyRosterSnapshot(context);
 
   return (
@@ -42,9 +45,8 @@ export default async function DutySchedulePage() {
           </p>
         </section>
         <DutyRosterCalendar branches={roster.branches} brokers={roster.brokers} schedules={roster.schedules} initialAssignments={roster.assignments} />
-        <DutyScheduleManager branches={branches} queues={queues} schedules={schedules} />
+        <DutyScheduleManager branches={branches} queues={queues} schedules={schedules} credentials={credentials} />
       </main>
     </>
   );
 }
-

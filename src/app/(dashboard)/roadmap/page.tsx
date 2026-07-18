@@ -6,6 +6,7 @@ import {
   Flag,
   WarningCircle,
 } from "@/components/huge-icons";
+import { redirect } from "next/navigation";
 
 import { DashboardHeader } from "@/components/dashboard-header";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +46,7 @@ function formatRelativeTime(date: Date | null) {
 }
 
 export default async function RoadmapPage() {
+  redirect("/dashboard");
   const context = await getRequiredTenantContext();
   const db = getDatabase();
 

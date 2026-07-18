@@ -33,7 +33,6 @@ const iconMap: Record<RouteOnboardingIcon, typeof House> = {
   distribution: Users,
   conversations: FileText,
   clients: Users,
-  quotes: FileText,
   documents: FileText,
   tasks: ListChecks,
   calendar: CalendarBlank,

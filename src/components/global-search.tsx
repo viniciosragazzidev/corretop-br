@@ -73,7 +73,7 @@ export function GlobalSearch() {
       <section aria-label="Busca global" className="w-full max-w-2xl overflow-hidden rounded-xl border border-border bg-card shadow-xl" onClick={(event) => event.stopPropagation()}>
         <form className="flex items-center gap-2 border-b border-border p-3" onSubmit={(event) => { event.preventDefault(); const first = groups[0]?.items[0]; if (first) goTo(first.href); }}>
           <MagnifyingGlass className="size-4 text-muted-foreground" />
-          <Input autoFocus className="border-0 bg-transparent shadow-none focus-visible:ring-0" onChange={(event) => setQuery(event.target.value)} placeholder="Buscar leads, clientes, equipe, cotações ou tarefas..." value={query} />
+          <Input autoFocus className="border-0 bg-transparent shadow-none focus-visible:ring-0" onChange={(event) => setQuery(event.target.value)} placeholder="Buscar leads, clientes, equipe ou tarefas..." value={query} />
           <kbd className="hidden rounded border border-border px-1.5 text-[10px] text-muted-foreground sm:inline">Esc</kbd>
         </form>
         <div aria-live="polite" className="max-h-[min(60vh,32rem)] overflow-y-auto p-3">

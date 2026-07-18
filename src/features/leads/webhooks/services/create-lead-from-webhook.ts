@@ -77,7 +77,7 @@ async function backgroundTasks(input: {
   const db = getDatabase();
 
   // ── Distribute to available broker ──────────────────────────────────
-  const corretorId = await chooseAvailableBroker(tenantId, branchId);
+  const corretorId = await chooseAvailableBroker(tenantId, branchId, undefined, credentialId);
   const assigned = Boolean(corretorId);
 
   // ── Update lead with distribution result ────────────────────────────

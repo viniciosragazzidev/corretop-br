@@ -1,6 +1,6 @@
 "use client";
 
-import { Buildings, Gear, House, RoadHorizon, ShieldStar, SignOut, Clock, ShieldWarning, RocketLaunch, FileText, Megaphone } from "@/components/huge-icons";
+import { Buildings, Gear, House, RoadHorizon, ShieldStar, SignOut, Clock, ShieldWarning, RocketLaunch, FileText, Megaphone, LockKey, ChatCircleText, ChartLineUp } from "@/components/huge-icons";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -112,17 +112,6 @@ export function PlatformAdminSidebar() {
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  isActive={pathname === "/roadmap"}
-                  render={<Link href="/roadmap" prefetch />}
-                  tooltip="Roadmap"
-                  className="px-3.5 py-2 text-xs font-medium"
-                >
-                  <RoadHorizon className="size-4" />
-                  <span>Roadmap</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
                   isActive={pathname === "/super-admin/materiais-divulgacao"}
                   render={<Link href="/super-admin/materiais-divulgacao" prefetch />}
                   tooltip="Materiais de Divulgação"
@@ -178,6 +167,21 @@ export function PlatformAdminSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        <SidebarGroup className="mt-4">
+          <SidebarGroupLabel className="px-3.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
+            Em preparação
+          </SidebarGroupLabel>
+          <SidebarGroupContent className="mt-1.5">
+            <SidebarMenu className="gap-1">
+              <LockedPreviewItem icon={ChatCircleText} label="Chat interno" />
+              <LockedPreviewItem icon={ChartLineUp} label="Renovações" />
+              <LockedPreviewItem icon={RocketLaunch} label="Meta Lead Ads" />
+              <LockedPreviewItem icon={ShieldWarning} label="Integridade e conexões" />
+              <LockedPreviewItem icon={RoadHorizon} label="Roadmap de desenvolvimento" />
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border/50 p-3">
@@ -202,5 +206,27 @@ export function PlatformAdminSidebar() {
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
+  );
+}
+
+function LockedPreviewItem({
+  icon: Icon,
+  label,
+}: {
+  icon: typeof LockKey;
+  label: string;
+}) {
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        aria-disabled="true"
+        className="cursor-not-allowed px-3.5 py-2 text-xs font-medium opacity-50 hover:bg-transparent"
+        tooltip={`${label}: em preparação`}
+      >
+        <Icon className="size-4" />
+        <span className="flex-1">{label}</span>
+        <LockKey aria-hidden="true" className="size-3.5" />
+      </SidebarMenuButton>
+    </SidebarMenuItem>
   );
 }

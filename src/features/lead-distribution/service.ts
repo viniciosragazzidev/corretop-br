@@ -27,13 +27,51 @@ function getLocalDutyParts(date: Date) {
   return { weekday, time: `${hour === "24" ? "00" : hour}:${minute}` };
 }
 
-async function getRosterBrokerIds(tenantId: string, branchId: string, date = new Date()) {
+async function getRosterBrokerIds(tenantId: string, branchId: string, date = new Date(), webhookCredentialId?: string | null) {
   const db = getDatabase();
   const local = getLocalDutyParts(date);
+
+  // 1. Find plantões active right now for this branch
+  const activeSchedules = await db.select({ id: schema.unitDutySchedules.id, webhookCredentialId: schema.unitDutySchedules.webhookCredentialId })
+    .from(schema.unitDutySchedules)
+    .where(and(
+      eq(schema.unitDutySchedules.tenantId, tenantId),
+      eq(schema.unitDutySchedules.branchId, branchId),
+      eq(schema.unitDutySchedules.dayOfWeek, local.weekday),
+      eq(schema.unitDutySchedules.status, "active"),
+      lte(schema.unitDutySchedules.startsAt, local.time),
+      gt(schema.unitDutySchedules.endsAt, local.time),
+      lte(schema.unitDutySchedules.validFrom, date),
+      or(isNull(schema.unitDutySchedules.validUntil), gt(schema.unitDutySchedules.validUntil, date)),
+    ));
+
+  // No plantões at all → fallback to all brokers (legacy behavior)
+  if (!activeSchedules.length) return null;
+
+  // 2. Filter plantões by credential if the lead has a source
+  const matchingScheduleIds = webhookCredentialId
+    ? activeSchedules.filter((s) => s.webhookCredentialId === webhookCredentialId).map((s) => s.id)
+    : activeSchedules.filter((s) => s.webhookCredentialId === null).map((s) => s.id);
+
+  // Plantões exist for this branch but none match the credential → no brokers eligible
+  if (!matchingScheduleIds.length) return new Set<string>();
+
+  // 3. Get brokers assigned to matching plantões right now
   const assignments = await db.select({ brokerId: schema.dutyRosterAssignments.brokerId })
     .from(schema.dutyRosterAssignments)
-    .where(and(eq(schema.dutyRosterAssignments.tenantId, tenantId), eq(schema.dutyRosterAssignments.branchId, branchId), eq(schema.dutyRosterAssignments.dayOfWeek, local.weekday), eq(schema.dutyRosterAssignments.status, "active"), lte(schema.dutyRosterAssignments.startsAt, local.time), gt(schema.dutyRosterAssignments.endsAt, local.time), lte(schema.dutyRosterAssignments.validFrom, date), or(isNull(schema.dutyRosterAssignments.validUntil), gt(schema.dutyRosterAssignments.validUntil, date))));
-  return assignments.length ? new Set(assignments.map((assignment) => assignment.brokerId)) : null;
+    .where(and(
+      eq(schema.dutyRosterAssignments.tenantId, tenantId),
+      eq(schema.dutyRosterAssignments.branchId, branchId),
+      eq(schema.dutyRosterAssignments.dayOfWeek, local.weekday),
+      eq(schema.dutyRosterAssignments.status, "active"),
+      lte(schema.dutyRosterAssignments.startsAt, local.time),
+      gt(schema.dutyRosterAssignments.endsAt, local.time),
+      lte(schema.dutyRosterAssignments.validFrom, date),
+      or(isNull(schema.dutyRosterAssignments.validUntil), gt(schema.dutyRosterAssignments.validUntil, date)),
+      inArray(schema.dutyRosterAssignments.scheduleId, matchingScheduleIds),
+    ));
+
+  return assignments.length ? new Set(assignments.map((a) => a.brokerId)) : null;
 }
 
 async function ensureDefaultQueue(tenantId: string, branchId: string, actorId: string) {
@@ -95,7 +133,7 @@ export async function assignLeadToBroker(context: TenantContext, leadId: string,
 export async function processQueuedLead(context: TenantContext, leadId: string, excludeBrokerId?: string | null): Promise<LeadAssignmentResult> {
   if (!canManage(context)) throw new AuthorizationError("Você não pode executar a distribuição automática.");
   const db = getDatabase();
-  const [lead] = await db.select({ id: schema.leads.id, branchId: schema.leads.branchId, queueId: schema.leads.queueId }).from(schema.leads).where(and(eq(schema.leads.id, leadId), eq(schema.leads.tenantId, context.tenantId), eq(schema.leads.distributionStatus, "queued"))).limit(1);
+  const [lead] = await db.select({ id: schema.leads.id, branchId: schema.leads.branchId, queueId: schema.leads.queueId, webhookCredentialId: schema.leads.webhookCredentialId }).from(schema.leads).where(and(eq(schema.leads.id, leadId), eq(schema.leads.tenantId, context.tenantId), eq(schema.leads.distributionStatus, "queued"))).limit(1);
   if (!lead || !lead.branchId) return { status: "queued", leadId, reason: "Lead ainda aguarda uma unidade." };
   assertBranchScope(context, lead.branchId);
   const [branch] = await db.select({ autoDistribute: schema.branches.autoDistribute, acceptingLeads: schema.branches.acceptingLeads, status: schema.branches.status }).from(schema.branches).where(and(eq(schema.branches.id, lead.branchId), eq(schema.branches.tenantId, context.tenantId))).limit(1);
@@ -104,7 +142,7 @@ export async function processQueuedLead(context: TenantContext, leadId: string, 
   const [queue] = lead.queueId ? await db.select({ strategy: schema.leadQueues.assignmentStrategy, mode: schema.leadQueues.assignmentMode, capacityEnabled: schema.leadQueues.capacityEnabled, capacity: schema.leadQueues.capacityPerBroker }).from(schema.leadQueues).where(and(eq(schema.leadQueues.id, lead.queueId), eq(schema.leadQueues.tenantId, context.tenantId), eq(schema.leadQueues.status, "active"))).limit(1) : [];
   if (queue?.mode === "manual") return { status: "queued", leadId, reason: "A fila está em modo manual." };
   const allBrokers = await db.select({ id: schema.user.id, createdAt: schema.user.createdAt }).from(schema.tenantMemberships).innerJoin(schema.user, eq(schema.tenantMemberships.userId, schema.user.id)).where(and(eq(schema.tenantMemberships.tenantId, context.tenantId), eq(schema.tenantMemberships.branchId, lead.branchId), eq(schema.tenantMemberships.role, "broker"), eq(schema.tenantMemberships.status, "active"), eq(schema.tenantMemberships.availabilityStatus, "available"), eq(schema.user.active, true), eq(schema.user.status, "active"))).orderBy(asc(schema.user.createdAt));
-  const rosterBrokerIds = await getRosterBrokerIds(context.tenantId, lead.branchId);
+  const rosterBrokerIds = await getRosterBrokerIds(context.tenantId, lead.branchId, new Date(), lead.webhookCredentialId);
   const brokers = (rosterBrokerIds ? allBrokers.filter((broker) => rosterBrokerIds.has(broker.id)) : allBrokers).filter((broker) => broker.id !== excludeBrokerId);
   const ids = brokers.map((broker) => broker.id);
   if (!ids.length) return { status: "queued", leadId, reason: "Nenhum corretor elegível nesta unidade." };

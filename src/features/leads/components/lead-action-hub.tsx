@@ -14,7 +14,7 @@ function getCurrentTimestamp() { return Date.now(); }
 function getFallbackAction({ leadId, status, hasQuotes, hasPendingDocuments }: Pick<LeadActionHubProps, "leadId" | "status" | "hasQuotes" | "hasPendingDocuments">): Action {
   if (hasPendingDocuments) return { href: "#documentos", label: "Revisar documentos", icon: FileText };
   if (status === "distributed" || status === "new") return { href: "#lead-actions", label: "Ver ação do atendimento", icon: ChatCircleText };
-  if (status === "quote_sent" && hasQuotes) return { href: "/cotacoes?leadId=" + leadId, label: "Revisar cotação", icon: Calculator };
+  if (status === "quote_sent" && hasQuotes) return { href: "https://cotadorsimplificado.com.br/", label: "Cotar no parceiro", icon: Calculator };
   if (status === "converted") return { href: "/clientes", label: "Acompanhar cliente", icon: CheckCircle };
   return { href: "/conversas?leadId=" + leadId, label: "Abrir conversa", icon: ChatCircleText };
 }
@@ -43,7 +43,7 @@ export function LeadActionHub({ leadId, status, currentOwner, hasQuotes, hasPend
       <LeadQuickNote leadId={leadId} />
       <Button className="h-8 px-2.5 text-xs" render={<Link href={"/tarefas?leadId=" + leadId} />} size="sm" variant="outline"><ListChecks /> Tarefas</Button>
       <LeadReminder leadId={leadId} />
-      <Button className="h-8 px-2.5 text-xs" render={<Link href={"/cotacoes?leadId=" + leadId} />} size="sm" variant="outline"><Calculator /> Cotação</Button>
+      <Button className="h-8 px-2.5 text-xs" render={<a href="https://cotadorsimplificado.com.br/" rel="noreferrer" target="_blank" />} size="sm" variant="outline"><Calculator /> Cotação</Button>
       <Button className="h-8 px-2.5 text-xs" render={<Link href="#documentos" />} size="sm" variant="outline"><FileText /> Documentos{hasPendingDocuments ? " · pendentes" : ""}</Button>
     </nav>
     <p className="mt-3 flex items-center gap-1.5 text-[11px] text-muted-foreground"><ArrowSquareOut className="size-3.5" /> Ações respeitam o cargo e a filial ativa.</p>

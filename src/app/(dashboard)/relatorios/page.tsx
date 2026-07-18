@@ -37,7 +37,7 @@ export default async function ReportsPage() {
       : undefined;
 
   // Fetch aggregate stats
-  const [leadCount, clientCount, quoteCount, saleCount] =
+  const [leadCount, clientCount, saleCount] =
     await Promise.all([
       db
         .select({ count: count() })
@@ -47,11 +47,6 @@ export default async function ReportsPage() {
         .select({ count: count() })
         .from(schema.clients)
         .where(and(eq(schema.clients.tenantId, context.tenantId), clientScope)),
-      db
-        .select({ count: count() })
-        .from(schema.quotes)
-        .innerJoin(schema.leads, eq(schema.quotes.leadId, schema.leads.id))
-        .where(and(eq(schema.quotes.tenantId, context.tenantId), eq(schema.leads.tenantId, context.tenantId), leadScope)),
       db
         .select({ count: count() })
         .from(schema.sales)
@@ -79,7 +74,6 @@ export default async function ReportsPage() {
 
   const totalLeads = leadCount[0]?.count ?? 0;
   const totalClients = clientCount[0]?.count ?? 0;
-  const totalQuotes = quoteCount[0]?.count ?? 0;
   const totalSales = saleCount[0]?.count ?? 0;
   const conversionRate =
     totalLeads > 0
@@ -163,11 +157,6 @@ export default async function ReportsPage() {
                 label: "Clientes",
                 value: totalClients,
                 color: "text-chart-5",
-              },
-              {
-                label: "Cotações",
-                value: totalQuotes,
-                color: "text-chart-3",
               },
               {
                 label: "Vendas",

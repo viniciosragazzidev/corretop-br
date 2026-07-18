@@ -113,16 +113,6 @@ export function useRegisterDefaultShortcuts() {
 
     unregisters.push(
       register({
-        id: "shortcut_quotes",
-        label: "Cotações",
-        keys: "g q",
-        category: "Navegação",
-        handler: () => router.push("/cotacoes"),
-      }),
-    );
-
-    unregisters.push(
-      register({
         id: "shortcut_queue",
         label: "Minha fila",
         keys: "g f",

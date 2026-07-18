@@ -246,7 +246,7 @@ export function LeadsWorkspace({
                     </Button>
                   </TabsContent>
                   <TabsContent value="actions" className="mt-4 space-y-3">
-                    <Button className="w-full" render={<Link href={`/cotacoes?leadId=${selectedLead.id}`} />}>
+                    <Button className="w-full" render={<a href="https://cotadorsimplificado.com.br/" rel="noreferrer" target="_blank" />}>
                       <ArrowUpRight />
                       Nova cotação
                     </Button>

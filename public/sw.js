@@ -2,7 +2,7 @@
 // Versão: 1.0.1
 // Incremente CACHE_VERSION para forçar atualização do cache.
 
-const CACHE_VERSION = 3;
+const CACHE_VERSION = 4;
 const STATIC_CACHE = `corretop-static-v${CACHE_VERSION}`;
 const NAV_CACHE = `corretop-nav-v${CACHE_VERSION}`;
 const ASSET_CACHE = `corretop-assets-v${CACHE_VERSION}`;
@@ -82,7 +82,7 @@ self.addEventListener("fetch", (event) => {
             caches.open(ASSET_CACHE).then((cache) => cache.put(request, clone));
           }
           return response;
-        });
+        }).catch(() => new Response(null, { status: 503 }));
       })
     );
     return;
@@ -111,10 +111,12 @@ self.addEventListener("fetch", (event) => {
     caches.match(request).then((cached) => {
       const fetchPromise = fetch(request).then((response) => {
         if (response.ok) {
-          caches.open(STATIC_CACHE).then((cache) => cache.put(request, response.clone()));
+          // Clone immediately before any consumer can read the body
+          const cloned = response.clone();
+          caches.open(STATIC_CACHE).then((cache) => cache.put(request, cloned));
         }
         return response;
-      });
+      }).catch(() => cached || new Response(null, { status: 503 }));
       return cached || fetchPromise;
     })
   );

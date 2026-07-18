@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
 import { BrokerQueueClient } from "./_components/queue-client";
-import { CalendarBlank, ChatCircleText, ClipboardText, ListChecks, Target } from "@/components/huge-icons";
+import { ChatCircleText, ClipboardText, ListChecks, Target } from "@/components/huge-icons";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
@@ -142,28 +142,6 @@ export default async function MinhaFilaPage() {
       return latest && latest.direction === "incoming";
     })
     .map((l) => ({ id: l.id, name: l.name }));
-
-  // ─── Recent Quotes ───
-  const recentQuotes = leads.length
-    ? await db
-      .select({
-        id: schema.quotes.id,
-        status: schema.quotes.status,
-        createdAt: schema.quotes.createdAt,
-        leadId: schema.quotes.leadId,
-        leadName: schema.leads.nome,
-      })
-      .from(schema.quotes)
-      .innerJoin(schema.leads, eq(schema.quotes.leadId, schema.leads.id))
-      .where(
-        and(
-          eq(schema.quotes.tenantId, context.tenantId),
-          eq(schema.leads.corretorId, context.userId),
-        ),
-      )
-      .orderBy(desc(schema.quotes.createdAt))
-      .limit(5)
-    : [];
 
   // ─── Goal Progress ───
   const now = new Date().toISOString();
@@ -347,35 +325,6 @@ export default async function MinhaFilaPage() {
               )}
               <Button className="w-full" render={<Link href="/conversas" />} size="sm" variant="ghost">
                 Abrir conversas <ChatCircleText className="ml-1 size-3.5" />
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Quotes */}
-          <Card className="border-border bg-card shadow-none">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CalendarBlank className="size-5 text-primary" />
-                <Badge variant="outline" className="text-[10px]">{recentQuotes.length} recente{recentQuotes.length !== 1 ? "s" : ""}</Badge>
-              </div>
-              <CardTitle className="mt-2 text-sm">Cotações</CardTitle>
-              <CardDescription className="text-xs">Últimas geradas</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {recentQuotes.map((quote) => (
-                <Link key={quote.id} href={`/cotacoes/${quote.id}`} className="group flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-muted/50">
-                  <span className={`mt-0.5 size-1.5 shrink-0 rounded-full ${quote.status === "sent" || quote.status === "accepted" ? "bg-success" : quote.status === "draft" ? "bg-muted-foreground" : "bg-accent"}`} />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-xs font-medium group-hover:text-primary">{quote.leadName}</span>
-                    <span className="block truncate text-[10px] text-muted-foreground">{quote.status === "draft" ? "Rascunho" : quote.status === "sent" ? "Enviada" : quote.status === "accepted" ? "Aceita" : quote.status}</span>
-                  </span>
-                </Link>
-              ))}
-              {!recentQuotes.length && (
-                <p className="px-2 py-3 text-center text-xs text-muted-foreground">Nenhuma cotação recente.</p>
-              )}
-              <Button className="w-full" render={<Link href="/cotacoes" />} size="sm" variant="ghost">
-                Ver cotações <CalendarBlank className="ml-1 size-3.5" />
               </Button>
             </CardContent>
           </Card>

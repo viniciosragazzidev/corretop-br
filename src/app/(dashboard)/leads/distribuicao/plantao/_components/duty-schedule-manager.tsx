@@ -39,6 +39,7 @@ import {
 
 type Branch = { id: string; name: string };
 type Queue = { id: string; branchId: string; name: string };
+type Credential = { id: string; name: string };
 type Schedule = {
   id: string;
   branchId: string;
@@ -49,6 +50,7 @@ type Schedule = {
   endsAt: string;
   priority: number;
   status: string;
+  webhookCredentialId: string | null;
 };
 
 const DAY_FULL = [
@@ -96,15 +98,17 @@ function Feedback({ state }: { state: DutyActionState }) {
 function NewScheduleForm({
   branches,
   queues,
+  credentials,
   onSuccess,
 }: {
   branches: Branch[];
   queues: Queue[];
+  credentials: Credential[];
   onSuccess?: () => void;
 }) {
   const [state, action, pending] = useActionState(createDutyScheduleAction, {});
   const [selectedBranch, setSelectedBranch] = useState(branches[0]?.id ?? "");
-  const [selectedQueue, setSelectedQueue] = useState("");
+  const [selectedQueue, setSelectedQueue] = useState(queues[0]?.id ?? "");
 
   const branchQueues = useMemo(
     () => queues.filter((q) => q.branchId === selectedBranch),
@@ -223,6 +227,26 @@ function NewScheduleForm({
         </div>
       </div>
 
+      <div className="grid gap-2">
+        <Label htmlFor="duty-credential">Origem do lead (opcional)</Label>
+        <select
+          id="duty-credential"
+          name="webhookCredentialId"
+          className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/15"
+          defaultValue=""
+        >
+          <option value="">Todas as origens</option>
+          {credentials.map((cred) => (
+            <option key={cred.id} value={cred.id}>
+              {cred.name}
+            </option>
+          ))}
+        </select>
+        <p className="text-[11px] text-muted-foreground">
+          Selecione uma origem para receber apenas leads daquele webhook.
+        </p>
+      </div>
+
       <div className="rounded-lg border border-amber-300/20 bg-amber-300/5 px-3 py-2 text-xs text-amber-600 dark:text-amber-400">
         Prioridades menores vencem conflitos. Use 1–10 para plantões críticos e 100+ para regras
         gerais.
@@ -239,6 +263,7 @@ function ScheduleBlock({
   schedule,
   branchName,
   queueName,
+  credentialName,
   index,
   top,
   height,
@@ -247,6 +272,7 @@ function ScheduleBlock({
   schedule: Schedule;
   branchName: string;
   queueName: string;
+  credentialName: string | null;
   index: number;
   top: number;
   height: number;
@@ -304,6 +330,7 @@ function ScheduleBlock({
               {formatTime(schedule.endsAt)}
             </p>
             <p>Prioridade: {schedule.priority}</p>
+            <p>Origem: {credentialName ?? "Todas"}</p>
             <p>Status: {isActive ? "Ativo" : "Inativo"}</p>
           </div>
           <p className="text-[10px] opacity-60">
@@ -319,11 +346,13 @@ function WeeklyCalendarGrid({
   schedules,
   branches,
   queues,
+  credentials,
   onToggle,
 }: {
   schedules: Schedule[];
   branches: Branch[];
   queues: Queue[];
+  credentials: Credential[];
   onToggle: (scheduleId: string) => void;
 }) {
   const timeRange = useMemo(() => {
@@ -449,6 +478,7 @@ function WeeklyCalendarGrid({
                             schedule={schedule}
                             branchName={branchObj?.name ?? "Unidade"}
                             queueName={queueObj?.name ?? "Fila"}
+                            credentialName={credentials.find((credential) => credential.id === schedule.webhookCredentialId)?.name ?? null}
                             index={sIndex}
                             top={blockTop}
                             height={blockHeight}
@@ -471,10 +501,12 @@ export function DutyScheduleManager({
   branches,
   queues,
   schedules,
+  credentials,
 }: {
   branches: Branch[];
   queues: Queue[];
   schedules: Schedule[];
+  credentials: Credential[];
 }) {
   const [toggleState, toggleAction] = useActionState(toggleDutyScheduleAction, {});
   const [selectedBranch, setSelectedBranch] = useState("all");
@@ -541,6 +573,7 @@ export function DutyScheduleManager({
                 <NewScheduleForm
                   branches={branches}
                   queues={queues}
+                  credentials={credentials}
                   onSuccess={() => setSheetOpen(false)}
                 />
               </SheetBody>
@@ -619,6 +652,7 @@ export function DutyScheduleManager({
           schedules={filteredSchedules}
           branches={branches}
           queues={queues}
+          credentials={credentials}
           onToggle={handleToggle}
         />
 

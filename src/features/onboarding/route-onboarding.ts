@@ -4,7 +4,6 @@ export type RouteOnboardingIcon =
   | "distribution"
   | "conversations"
   | "clients"
-  | "quotes"
   | "documents"
   | "tasks"
   | "calendar"
@@ -52,7 +51,7 @@ export const routeOnboardingDefinitions: readonly RouteOnboardingDefinition[] = 
   route("my-queue", ["/minha-fila"], "Sua fila de atendimento", "Priorize os leads atribuídos a você e dê visibilidade ao que precisa de contato.", "leads", "Comece pelos itens com SLA mais próximo do vencimento."),
   route("conversations", ["/conversas"], "Conversas que viram atendimento", "Centralize o contexto do cliente, registre o que aconteceu e siga a conversa até o próximo passo.", "conversations", "O painel lateral mantém resumo, tags e ações disponíveis enquanto você conversa."),
   route("clients", ["/clientes"], "Relacionamentos ativos", "Encontre clientes, acompanhe a carteira e mantenha o histórico pós-venda acessível.", "clients", "Use o responsável e a unidade para localizar rapidamente quem cuida de cada cliente."),
-  route("quotes", ["/cotacoes", "/catalogo"], "Cotações mais rápidas", "Monte propostas com os planos disponíveis e preserve cada versão para consulta futura.", "quotes", "Uma nova versão não apaga a anterior: o histórico continua auditável."),
+
   route("documents", ["/documentos", "/checklist"], "Documentação no ritmo certo", "Acompanhe pendências, envie arquivos e revise documentos sem perder a etapa da venda.", "documents", "Rejeições sempre ficam registradas com o motivo e o próximo passo."),
   route("tasks", ["/tarefas"], "Próximas ações visíveis", "Transforme combinados em tarefas com prazo, prioridade e responsável definidos.", "tasks", "Vincule a tarefa ao lead para voltar ao contexto em um clique."),
   route("sales", ["/vendas"], "Vendas com rastreabilidade", "Consulte vendas registradas, evidências e o caminho que levou cada negócio até aqui.", "sales", "Use o responsável e a unidade para separar a operação em cenários maiores."),

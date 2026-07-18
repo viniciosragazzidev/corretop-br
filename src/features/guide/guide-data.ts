@@ -78,22 +78,6 @@ export const guideSections: GuideSection[] = [
     ],
   },
   {
-    id: "cotacoes",
-    title: "Cotações e planos",
-    eyebrow: "Atendimento",
-    description: "Monte uma cotação, compare opções e compartilhe uma apresentação clara com o cliente.",
-    icon: "ListChecks",
-    audience: ["director", "manager", "broker"],
-    links: [{ label: "Abrir Cotações", href: "/cotacoes" }, { label: "Abrir Catálogo", href: "/catalogo" }],
-    steps: [
-      { title: "Comece pelo lead", description: "Abra a cotação a partir do detalhe do lead para manter cliente, beneficiários e histórico conectados." },
-      { title: "Escolha os planos", description: "Selecione operadora e plano disponíveis no catálogo. Informe as idades dos beneficiários para calcular o valor." },
-      { title: "Revise antes de compartilhar", description: "Confira itens, valores e documentos exigidos. Cada nova versão fica registrada sem apagar as anteriores." },
-      { title: "Compartilhe com segurança", description: "Gere o PDF ou o link de compartilhamento quando estiver pronto. O sistema registra o compartilhamento para manter rastreabilidade." },
-    ],
-    tip: "Se a cotação precisar de documento, veja o checklist antes de prometer uma data de fechamento.",
-  },
-  {
     id: "documentos",
     title: "Documentos e aprovações",
     eyebrow: "Atendimento",

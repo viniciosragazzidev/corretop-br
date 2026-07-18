@@ -449,6 +449,7 @@ export const unitDutySchedules = pgTable(
     timezone: text("timezone").notNull().default("America/Sao_Paulo"),
     validFrom: timestamp("valid_from", { withTimezone: true }).notNull(),
     validUntil: timestamp("valid_until", { withTimezone: true }),
+    webhookCredentialId: text("webhook_credential_id").references(() => leadWebhookCredentials.id, { onDelete: "set null" }),
     createdBy: text("created_by").notNull().references(() => user.id),
     createdAt,
     updatedAt,

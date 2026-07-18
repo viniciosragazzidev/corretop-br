@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { toast } from "sonner";
 
-import { Bell, BookOpen, Buildings, ChartBar, ChatCircleText, ClipboardText, CreditCard, CurrencyCircleDollar, FolderSimple, Handshake, House, ListChecks, Megaphone, Monitor, Note, ShieldCheck, SignOut, SlidersHorizontal, SquaresFour, Target, Users, WifiHigh } from "@/components/huge-icons";
+import { Bell, BookOpen, Buildings, ChartBar, ChatCircleText, ClipboardText, CreditCard, CurrencyCircleDollar, FolderSimple, Handshake, House, Megaphone, Monitor, Note, ShieldCheck, SignOut, SlidersHorizontal, SquaresFour, Target, Users, WifiHigh } from "@/components/huge-icons";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
 import { getUserDisplayInfo, type UserDisplayInfo } from "@/shared/auth/actions";
@@ -19,7 +19,6 @@ const primaryItems: SidebarItem[] = [
   { label: "Conversas", icon: ChatCircleText, url: "/conversas", permission: "acessar_conversas" },
   { label: "Leads", icon: Users, url: "/leads", permission: "acessar_leads" },
   { label: "Tarefas", icon: ClipboardText, url: "/tarefas", permission: "acessar_tarefas" },
-  { label: "Cotações", icon: ListChecks, url: "/cotacoes", permission: "acessar_cotacoes" },
   { label: "Documentos", icon: Note, url: "/documentos", permission: "acessar_documentos" },
   { label: "Clientes", icon: Handshake, url: "/clientes", permission: "acessar_clientes" },
   { label: "Vendas", icon: CurrencyCircleDollar, url: "/vendas", permission: "acessar_vendas" },

@@ -10,7 +10,6 @@ import {
   ListChecks,
   Note,
   Pause,
-  RoadHorizon,
   SlidersHorizontal,
   SignOut,
 } from "@/components/huge-icons";
@@ -43,7 +42,6 @@ const workItems: BrokerSidebarItem[] = [
   { label: "Conversas", icon: ChatCircleText, url: "/conversas", permission: "acessar_conversas" },
   { label: "Tarefas", icon: ClipboardText, url: "/tarefas", permission: "acessar_tarefas" },
   { label: "Checklist", icon: ClipboardText, url: "/checklist", permission: "acessar_documentos" },
-  { label: "Cotações", icon: ListChecks, url: "/cotacoes", permission: "acessar_cotacoes" },
   { label: "Documentos", icon: Note, url: "/documentos", permission: "acessar_documentos" },
   { label: "Clientes", icon: Handshake, url: "/clientes", permission: "acessar_clientes" },
 ];
@@ -56,7 +54,6 @@ const performanceItems: BrokerSidebarItem[] = [
 
 const systemItems: BrokerSidebarItem[] = [
   { label: "Configurações", icon: SlidersHorizontal, url: "/settings", permission: "acessar_configuracoes_pessoais" },
-  { label: "Roadmap", icon: RoadHorizon, url: "/roadmap", permission: "acessar_roadmap" },
 ];
 
 function NavigationGroup({

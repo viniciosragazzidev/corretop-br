@@ -119,31 +119,6 @@ export default async function ChecklistPage() {
     docsByLead.set(doc.leadId, entry);
   }
 
-  // Quotes per lead
-  const quoteRows = allLeadIds.length
-    ? await db
-        .select({
-          leadId: schema.quotes.leadId,
-          id: schema.quotes.id,
-          status: schema.quotes.status,
-        })
-        .from(schema.quotes)
-        .where(
-          and(
-            eq(schema.quotes.tenantId, context.tenantId),
-            inArray(schema.quotes.leadId, allLeadIds),
-            inArray(schema.quotes.status, ["sent", "accepted"] as const),
-          ),
-        )
-    : [];
-  const quotesByLead = new Map<string, { total: number; accepted: boolean }>();
-  for (const q of quoteRows) {
-    const entry = quotesByLead.get(q.leadId) ?? { total: 0, accepted: false };
-    entry.total++;
-    if (q.status === "accepted") entry.accepted = true;
-    quotesByLead.set(q.leadId, entry);
-  }
-
   // Sales / commission per lead
   const saleRows = allLeadIds.length
     ? await db
@@ -168,13 +143,10 @@ export default async function ChecklistPage() {
   // ─── Build enriched data ───
   const preChecklist = preConversionLeads.map((lead) => {
     const docs = docsByLead.get(lead.id);
-    const quotes = quotesByLead.get(lead.id);
     const sale = salesByLead.get(lead.id);
 
     const hasPlan = !!lead.planId;
     const hasEmail = !!lead.email;
-    const hasQuotes = (quotes?.total ?? 0) > 0;
-    const hasAcceptedQuote = quotes?.accepted ?? false;
     const docsApproved = (docs?.approved ?? 0) > 0;
     const docsPending = (docs?.pending ?? 0) > 0;
     const hasCommission = sale?.hasCommission ?? false;
@@ -182,8 +154,6 @@ export default async function ChecklistPage() {
     const items = [
       { label: "Plano selecionado", ok: hasPlan, hint: hasPlan ? (lead.planId ?? "") : "Selecione um plano" },
       { label: "E-mail do cliente", ok: hasEmail, hint: hasEmail ? (lead.email ?? "") : "Informe o e-mail" },
-      { label: "Cotação enviada", ok: hasQuotes, hint: hasQuotes ? `${quotes!.total} enviada(s)` : "Gere uma cotação" },
-      { label: "Cotação aceita", ok: hasAcceptedQuote, hint: hasAcceptedQuote ? "Sim" : "Aguardando aceite" },
       { label: "Documentos aprovados", ok: docsApproved, hint: docsApproved ? `${docs!.approved} aprovado(s)` : `${docs?.pending ?? 0} pendente(s)` },
       { label: "Comissão configurada", ok: hasCommission, hint: hasCommission ? "Sim" : "Configure a comissão" },
     ];
@@ -211,21 +181,17 @@ export default async function ChecklistPage() {
   const postChecklist = convertedLeads.map((lead) => {
     const docs = docsByLead.get(lead.id);
     const sale = salesByLead.get(lead.id);
-    const quotes = quotesByLead.get(lead.id);
 
     const docsApproved = (docs?.approved ?? 0) > 0;
     const hasSale = sale?.hasSale ?? false;
     const hasCommission = sale?.hasCommission ?? false;
-    const hasQuotes = (quotes?.total ?? 0) > 0;
 
     const hintDocsApproved = docsApproved ? `${(docs?.approved ?? 0)} aprovado(s)` : `${(docs?.pending ?? 0)} pendente(s)`;
-    const hintQuotes = hasQuotes ? `${(quotes?.total ?? 0)} vinculada(s)` : "Vincule a cotação";
     const items = [
       { label: "Cliente cadastrado", ok: true, hint: "Convertido" },
       { label: "Venda registrada", ok: hasSale, hint: hasSale ? "Sim" : "Registre a venda" },
       { label: "Documentos aprovados", ok: docsApproved, hint: hintDocsApproved },
       { label: "Comissão configurada", ok: hasCommission, hint: hasCommission ? "Sim" : "Verifique a comissão" },
-      { label: "Cotação referenciada", ok: hasQuotes, hint: hintQuotes },
     ];
 
     const checked = items.filter((i) => i.ok).length;

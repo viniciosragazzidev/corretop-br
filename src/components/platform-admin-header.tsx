@@ -17,7 +17,7 @@ export function PlatformAdminHeader({
       <div className="h-4 w-px bg-border" />
       <div className="min-w-0 flex-1">
         <p className="text-xs text-muted-foreground">{breadcrumb}</p>
-        <h1 className="truncate text-sm font-semibold">{title}</h1>
+        <p className="truncate text-sm font-semibold">{title}</p>
       </div>
       <NotificationPopover />
     </header>

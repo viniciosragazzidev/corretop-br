@@ -545,10 +545,10 @@ async function getBranchHealth(context: TenantContext): Promise<BranchHealth[]> 
   const [leadRows, brokerRows] = await Promise.all([
     db.select({
       branchId: schema.leads.branchId,
-      leadsToday: sql<number>`count(*) filter (where ${schema.leads.createdAt} >= ${today.start} and ${schema.leads.createdAt} < ${today.end})`,
+      leadsToday: sql<number>`count(*) filter (where ${schema.leads.createdAt} >= ${today.start.toISOString()} and ${schema.leads.createdAt} < ${today.end.toISOString()})`,
       activeAttendances: sql<number>`count(*) filter (where ${schema.leads.status} in ('in_contact', 'quote_sent', 'negotiation', 'documentation_pending', 'under_analysis'))`,
       unassignedLeads: sql<number>`count(*) filter (where ${schema.leads.corretorId} is null and ${schema.leads.distributionStatus} in ('unassigned', 'queued', 'awaiting_unit', 'returned_to_queue'))`,
-      slaRiskLeads: sql<number>`count(*) filter (where ${schema.leads.status} = 'distributed' and ${schema.leads.corretorId} is not null and ${schema.leads.firstContactAt} is null and ${schema.leads.assignedAt} is not null and ${schema.leads.assignedAt} < ${slaDeadline})`,
+      slaRiskLeads: sql<number>`count(*) filter (where ${schema.leads.status} = 'distributed' and ${schema.leads.corretorId} is not null and ${schema.leads.firstContactAt} is null and ${schema.leads.assignedAt} is not null and ${schema.leads.assignedAt} < ${slaDeadline.toISOString()})`,
     }).from(schema.leads).where(and(eq(schema.leads.tenantId, scope.tenantId), inArray(schema.leads.branchId, branchIds))).groupBy(schema.leads.branchId),
     db.select({
       branchId: schema.tenantMemberships.branchId,

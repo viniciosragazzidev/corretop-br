@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
   const pattern = `%${query.replace(/[%_]/g, "\\$&")} %`.trim();
   const scope = leadScope(context.tenantId, context.role, context.branchId, context.userId);
-  const [leads, clients, quotes, tasks, team] = await Promise.all([
+  const [leads, clients, tasks, team] = await Promise.all([
     db.select({ id: schema.leads.id, title: schema.leads.nome, subtitle: schema.leads.email, status: schema.leads.status })
       .from(schema.leads)
       .where(and(scope, or(ilike(schema.leads.nome, pattern), ilike(schema.leads.telefone, pattern), ilike(schema.leads.email, pattern))))
@@ -32,11 +32,6 @@ export async function GET(request: NextRequest) {
     db.select({ id: schema.clients.id, title: schema.clients.nome, subtitle: schema.clients.email, leadId: schema.clients.leadId })
       .from(schema.clients)
       .where(and(eq(schema.clients.tenantId, context.tenantId), ...(context.role === "manager" && context.branchId ? [eq(schema.clients.branchId, context.branchId)] : []), ...(context.role === "broker" ? [eq(schema.clients.corretorId, context.userId)] : []), or(ilike(schema.clients.nome, pattern), ilike(schema.clients.telefone, pattern), ilike(schema.clients.email, pattern))))
-      .limit(8),
-    db.select({ id: schema.quotes.id, title: schema.leads.nome, subtitle: schema.quotes.status, leadId: schema.quotes.leadId })
-      .from(schema.quotes)
-      .innerJoin(schema.leads, eq(schema.quotes.leadId, schema.leads.id))
-      .where(and(scope, or(ilike(schema.leads.nome, pattern), ilike(schema.quotes.id, pattern), ilike(schema.quotes.status, pattern))))
       .limit(8),
     db.select({ id: schema.leadTasks.id, title: schema.leadTasks.title, subtitle: schema.leads.nome, leadId: schema.leadTasks.leadId })
       .from(schema.leadTasks)
@@ -55,7 +50,6 @@ export async function GET(request: NextRequest) {
     groups: [
       { type: "leads", label: "Leads", items: leads.map((item) => ({ ...item, href: `/leads/${item.id}` })) },
       { type: "clients", label: "Clientes", items: clients.map((item) => ({ id: item.id, title: item.title, subtitle: item.subtitle, href: `/clientes?leadId=${item.leadId}` })) },
-      { type: "quotes", label: "Cotações", items: quotes.map((item) => ({ id: item.id, title: item.title, subtitle: item.subtitle, href: `/cotacoes/${item.id}` })) },
       { type: "tasks", label: "Tarefas", items: tasks.map((item) => ({ id: item.id, title: item.title, subtitle: item.subtitle, href: `/leads/${item.leadId}#tarefas` })) },
       { type: "team", label: "Equipe", items: team.map((item) => ({ ...item, href: "/equipe" })) },
     ].filter((group) => group.items.length),

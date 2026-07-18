@@ -32,7 +32,7 @@ export function DashboardHeader({
       <div className="h-4 w-px bg-border max-[559px]:hidden" />
       <div className="min-w-0 flex-1">
         <p className="truncate text-[11px] text-muted-foreground max-[559px]:hidden">{breadcrumb}</p>
-        <h1 className="truncate text-sm font-semibold">{title}</h1>
+        <p className="truncate text-sm font-semibold">{title}</p>
       </div>
       {rightSlot}
       <div className="max-[559px]:hidden"><GlobalSearch /></div>

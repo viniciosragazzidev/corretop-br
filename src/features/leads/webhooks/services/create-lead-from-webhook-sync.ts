@@ -126,7 +126,7 @@ export async function createLeadFromWebhookSync(
   // ── Step 7: Distribute FIRST (synchronous round-robin) ─────────────
   // This MUST happen before the INSERT so the lead is born with corretor_id set.
   // The Realtime event then fires with the correct corretor_id.
-  const corretorId = await chooseAvailableBroker(tenantId, branchId);
+  const corretorId = await chooseAvailableBroker(tenantId, branchId, undefined, credentialId);
   const assigned = Boolean(corretorId);
 
   // ── Step 8: Create lead + beneficiary in a single transaction ──────
