@@ -3,37 +3,43 @@
 import { useState, useEffect } from "react";
 import { CorreTopLogo } from "@/components/corretop-logo";
 
+const SPLASH_KEY = "__corretop_splash_shown";
+
 /**
  * PWA splash screen.
  *
- * - Server-rendered invisible by default (opacity‑0) to avoid flashes.
- * - On mount the logo fades in (700 ms), holds briefly (300 ms),
+ * - Starts unmounted so a full page navigation never flashes the overlay.
+ * - Shows only once per browser session (tracked via sessionStorage).
+ * - On first mount the logo fades in (700 ms), holds briefly (300 ms),
  *   then the entire overlay fades out (500 ms) and unmounts.
  * - Respects reduced‑motion: skips all animations and hides instantly.
  */
 export function SplashScreen() {
-  const [phase, setPhase] = useState<SplashPhase>("idle");
-  const [prefersReduced, setPrefersReduced] = useState(false);
+  const [phase, setPhase] = useState<SplashPhase>("hidden");
 
   useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setPrefersReduced(mq.matches);
-
-    if (mq.matches) {
-      setPhase("hidden");
+    // Already shown this session — skip entirely
+    if (sessionStorage.getItem(SPLASH_KEY)) {
       return;
     }
 
-    // 1. Start logo fade-in on next frame
-    const logoIn = requestAnimationFrame(() => setPhase("logo_enter"));
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (mq.matches) {
+      sessionStorage.setItem(SPLASH_KEY, "1");
+      return;
+    }
 
-    // 2. After logo is fully in, hold a moment
+    sessionStorage.setItem(SPLASH_KEY, "1");
+    let logoIn = 0;
+    const show = requestAnimationFrame(() => {
+      setPhase("idle");
+      logoIn = requestAnimationFrame(() => setPhase("logo_enter"));
+    });
     const splashOut = setTimeout(() => setPhase("splash_exit"), 700 + 300);
-
-    // 3. After splash fade-out, remove from DOM
     const remove = setTimeout(() => setPhase("hidden"), 700 + 300 + 500);
 
     return () => {
+      cancelAnimationFrame(show);
       cancelAnimationFrame(logoIn);
       clearTimeout(splashOut);
       clearTimeout(remove);
@@ -50,7 +56,6 @@ export function SplashScreen() {
         willChange: "opacity",
       }}
     >
-      {/* Inline transition beats CorreTopLogo's own transition-[filter] class */}
       <CorreTopLogo
         className="h-12 w-48 object-contain"
         style={{

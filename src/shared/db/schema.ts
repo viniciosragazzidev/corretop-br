@@ -541,6 +541,10 @@ export const quotes = pgTable(
     notes: text("notes"),
     publicToken: text("public_token").notNull().unique(),
     sharedAt: timestamp("shared_at", { withTimezone: true }),
+    leadName: text("lead_name"),
+    leadPhone: text("lead_phone"),
+    totalMonthly: numeric("total_monthly", { precision: 12, scale: 2 }),
+    beneficiaryCount: integer("beneficiary_count"),
     createdAt,
     updatedAt,
   },
@@ -1801,6 +1805,45 @@ export const promotionalMaterialRelations = relations(
     }),
     createdByUser: one(user, {
       fields: [promotionalMaterials.createdBy],
+      references: [user.id],
+    }),
+  }),
+);
+
+/* ─── Message Templates ─── */
+
+export const messageTemplates = pgTable(
+  "message_templates",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    category: text("category").notNull().default("geral"),
+    content: text("content").notNull(),
+    variables: jsonb("variables").notNull().default([]),
+    active: boolean("active").notNull().default(true),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => user.id),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("message_templates_tenant_idx").on(table.tenantId, table.active),
+  ],
+);
+
+export const messageTemplateRelations = relations(
+  messageTemplates,
+  ({ one }) => ({
+    tenant: one(tenants, {
+      fields: [messageTemplates.tenantId],
+      references: [tenants.id],
+    }),
+    createdByUser: one(user, {
+      fields: [messageTemplates.createdBy],
       references: [user.id],
     }),
   }),

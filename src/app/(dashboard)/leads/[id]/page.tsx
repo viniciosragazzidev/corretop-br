@@ -13,12 +13,14 @@ import { LeadTasks } from "@/features/leads/components/lead-tasks";
 import { LeadChat } from "@/features/leads/components/lead-chat";
 import { LEAD_STATUS_LABELS } from "@/features/leads/lead-status-constants";
 import { getLeadTimeline } from "@/features/leads/queries";
+import { getQuotesByLead } from "@/features/quotes/queries";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
 import { StartServiceButton } from "./start-service-button";
 import { LeadManagementActions } from "./management-actions";
-
 import { CotarButton } from "./cotar-button";
+import { QuoteBuilder } from "@/features/leads/components/quote-builder";
+import { QuoteCard } from "@/features/leads/components/quote-card";
 
 import { getRequirementsForLead, getLeadDocuments } from "@/features/documents/actions";
 import { LeadDocumentsSection } from "@/features/documents/components/lead-documents-section";
@@ -77,7 +79,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
   const remainingMinutes = Math.max(0, slaMinutes - elapsedMinutes);
   const slaUrgent = remainingMinutes <= Math.max(5, Math.round(slaMinutes * 0.25));
 
-  const [interactions, tasks, requirements, leadDocs, beneficiaries] = await Promise.all([
+  const [interactions, tasks, requirements, leadDocs, beneficiaries, quotes, plans] = await Promise.all([
     getLeadTimeline(id),
     getDatabase().select({ id: schema.leadTasks.id, title: schema.leadTasks.title, description: schema.leadTasks.description, priority: schema.leadTasks.priority, dueAt: schema.leadTasks.dueAt, completedAt: schema.leadTasks.completedAt, createdAt: schema.leadTasks.createdAt, assignedTo: schema.leadTasks.assignedTo, assigneeName: schema.user.name })
       .from(schema.leadTasks).leftJoin(schema.user, eq(schema.leadTasks.assignedTo, schema.user.id)).where(and(eq(schema.leadTasks.tenantId, context.tenantId), eq(schema.leadTasks.leadId, id)))
@@ -85,6 +87,11 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
     getRequirementsForLead(id),
     getLeadDocuments(id),
     getLeadBeneficiaries(id),
+    getQuotesByLead(id),
+    getDatabase().select({ id: schema.globalPlans.id, name: schema.globalPlans.name })
+      .from(schema.globalPlans)
+      .where(eq(schema.globalPlans.status, "published"))
+      .orderBy(schema.globalPlans.name),
   ]);
 
   if (!interactions) notFound();
@@ -153,12 +160,105 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
           </div>
         </div>
 
-        {/* 2-Column Social-style Operational Layout */}
-        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_20rem]">
+        {/* Main operational area */}
+        <div className="space-y-5">
+          {/* Lead Action Hub Recommendation (only for the broker owner) */}
+          <LeadActionHub
+            hasPendingDocuments={leadDocs.some((document) => document.status === "pending" || document.status === "rejected")}
+            hasQuotes={quotes.length > 0}
+            leadId={lead.id}
+            currentOwner={lead.corretorNome}
+            nextTask={(() => { const task = tasks.find((item) => !item.completedAt); return task ? { title: task.title, dueAt: task.dueAt?.toISOString() ?? null, priority: task.priority, assigneeName: task.assigneeName } : null; })()}
+            status={lead.status}
+            isOwner={context.userId === lead.corretorId}
+            phone={canSeePersonalData ? lead.telefone : null}
+            canSeePersonalData={canSeePersonalData}
+          />
 
-          {/* Left Column: Profile Card & Management Panel */}
-          <aside className="space-y-4 xl:order-2">
+          {/* Quote Builder (only for broker owner) */}
+          {context.role === "broker" && context.userId === lead.corretorId && lead.status !== "distributed" && lead.status !== "lost" && (
+            <Card className="border-border bg-card shadow-sm" id="cotacao">
+              <CardHeader className="pb-3 border-b border-border/40">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Cotação</CardTitle>
+                    <CardDescription className="text-xs">Monte propostas e compartilhe com o cliente.</CardDescription>
+                  </div>
+                  <QuoteBuilder
+                    leadId={lead.id}
+                    leadName={lead.nome}
+                    leadPhone={canSeePersonalData ? lead.telefone : null}
+                    beneficiaries={beneficiaries.map((b) => ({ id: b.id, name: b.name }))}
+                    plans={plans.map((p) => ({ id: p.id, name: p.name }))}
+                  />
+                </div>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-3">
+                {quotes.length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-2">
+                    Nenhuma cotação criada ainda.
+                  </p>
+                ) : (
+                  quotes.map((quote) => (
+                    <QuoteCard
+                      key={quote.id}
+                      quote={quote}
+                      leadName={lead.nome}
+                      leadPhone={canSeePersonalData ? lead.telefone : null}
+                    />
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          )}
 
+          {context.role === "broker" && context.userId === lead.corretorId && lead.status !== "lost" && lead.status !== "converted" && (
+            <LeadFeedbackForm leadId={lead.id} />
+          )}
+
+          <Tabs defaultValue="summary" className="min-h-0">
+            <TabsList aria-label="Seções do detalhe do lead" className="w-full justify-start overflow-x-auto border-b border-border/40 pb-px" variant="line">
+              <TabsTrigger value="summary">Resumo Comercial</TabsTrigger>
+              <TabsTrigger value="history">Linha do Tempo</TabsTrigger>
+              <TabsTrigger value="tasks">Tarefas ({tasks.filter(t => !t.completedAt).length})</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="summary" className="mt-4 space-y-6">
+              {/* Documents Checklist (Only show if not in distributed state) */}
+              {lead.status !== "distributed" && (
+                <Card className="border-border bg-card shadow-sm" id="documentos">
+                  <CardHeader className="pb-3 border-b border-border/40">
+                    <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Documentos Obrigatórios</CardTitle>
+                    <CardDescription className="text-xs">Upload de arquivos necessários para a contratação.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-4">
+                    <LeadDocumentsSection leadId={lead.id} requirements={requirements} documents={leadDocs} beneficiaries={beneficiaries.map((beneficiary) => ({ id: beneficiary.id, name: beneficiary.name, isHolder: beneficiary.isHolder }))} />
+                  </CardContent>
+                </Card>
+              )}
+
+
+            </TabsContent>
+
+            <TabsContent value="history" className="mt-4">
+              <Card className="border-border bg-card shadow-sm">
+                <CardContent className="pt-6">
+                  <LeadTimeline leadId={lead.id} interactions={interactions} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="tasks" className="mt-4" id="tarefas">
+              <Card className="border-border bg-card shadow-sm">
+                <CardContent className="pt-6">
+                  <LeadTasks assignees={context.role === "broker" ? [{ id: context.userId, name: lead.corretorNome ?? "Eu" }] : brokers} leadId={lead.id} tasks={tasks.map((task) => ({ ...task, dueAt: task.dueAt?.toISOString() ?? null, completedAt: task.completedAt?.toISOString() ?? null }))} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+
+          {/* Info & Actions Grid — contact, management, beneficiaries */}
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {/* About Contact Info Card */}
             <Card className="border-border/80 bg-card shadow-none">
               <CardHeader className="border-b border-border/60 pb-3">
@@ -238,77 +338,21 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
               </CardContent>
             </Card>
 
-            {/* Management Actions Card */}
-            <LeadManagementActions leadId={lead.id} brokers={brokers} canManage={context.role === "manager" || context.role === "director"} isLost={lead.status === "lost"} currentStatus={lead.status} currentOwner={lead.corretorNome} />
-            <PersonRecordDetails kind="lead" createdAt={lead.createdAt} consentimentoLgpd={lead.consentimentoLgpd} dependents={beneficiaries} documentCount={leadDocs.length} />
-            <BeneficiariesSection leadId={lead.id} initialBeneficiaries={beneficiaries} />
-            {lead.status === "under_analysis" || lead.status === "documentation_pending" ? <RegisterSalePanel leadId={lead.id} documents={leadDocs.map((document) => ({ id: document.id, filename: document.filename, status: document.status }))} /> : null}
-          </aside>
+            {/* Management Actions + Person Details */}
+            <div className="space-y-4">
+              <LeadManagementActions leadId={lead.id} brokers={brokers} canManage={context.role === "manager" || context.role === "director"} isLost={lead.status === "lost"} currentStatus={lead.status} currentOwner={lead.corretorNome} />
+              <PersonRecordDetails kind="lead" createdAt={lead.createdAt} consentimentoLgpd={lead.consentimentoLgpd} dependents={beneficiaries} documentCount={leadDocs.length} />
+            </div>
 
-          {/* Main operational area */}
-          <div className="space-y-5 xl:order-1">
-            {/* Lead Action Hub Recommendation (only for the broker owner) */}
-            <LeadActionHub
-              hasPendingDocuments={leadDocs.some((document) => document.status === "pending" || document.status === "rejected")}
-              hasQuotes={false}
-              leadId={lead.id}
-              currentOwner={lead.corretorNome}
-              nextTask={(() => { const task = tasks.find((item) => !item.completedAt); return task ? { title: task.title, dueAt: task.dueAt?.toISOString() ?? null, priority: task.priority, assigneeName: task.assigneeName } : null; })()}
-              status={lead.status}
-              isOwner={context.userId === lead.corretorId}
-              phone={canSeePersonalData ? lead.telefone : null}
-              canSeePersonalData={canSeePersonalData}
-            />
-
-            {context.role === "broker" && context.userId === lead.corretorId && lead.status !== "lost" && lead.status !== "converted" && (
-              <LeadFeedbackForm leadId={lead.id} />
-            )}
-
-            <Tabs defaultValue="summary" className="min-h-0">
-              <TabsList aria-label="Seções do detalhe do lead" className="w-full justify-start overflow-x-auto border-b border-border/40 pb-px" variant="line">
-                <TabsTrigger value="summary">Resumo Comercial</TabsTrigger>
-                <TabsTrigger value="history">Linha do Tempo</TabsTrigger>
-                <TabsTrigger value="tasks">Tarefas ({tasks.filter(t => !t.completedAt).length})</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="summary" className="mt-4 space-y-6">
-                {/* Documents Checklist (Only show if not in distributed state) */}
-                {lead.status !== "distributed" && (
-                  <Card className="border-border bg-card shadow-sm" id="documentos">
-                    <CardHeader className="pb-3 border-b border-border/40">
-                      <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Documentos Obrigatórios</CardTitle>
-                      <CardDescription className="text-xs">Upload de arquivos necessários para a contratação.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="pt-4">
-                      <LeadDocumentsSection leadId={lead.id} requirements={requirements} documents={leadDocs} beneficiaries={beneficiaries.map((beneficiary) => ({ id: beneficiary.id, name: beneficiary.name, isHolder: beneficiary.isHolder }))} />
-                    </CardContent>
-                  </Card>
-                )}
-
-
-              </TabsContent>
-
-              <TabsContent value="history" className="mt-4">
-                <Card className="border-border bg-card shadow-sm">
-                  <CardContent className="pt-6">
-                    <LeadTimeline leadId={lead.id} interactions={interactions} />
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="tasks" className="mt-4" id="tarefas">
-                <Card className="border-border bg-card shadow-sm">
-                  <CardContent className="pt-6">
-                    <LeadTasks assignees={context.role === "broker" ? [{ id: context.userId, name: lead.corretorNome ?? "Eu" }] : brokers} leadId={lead.id} tasks={tasks.map((task) => ({ ...task, dueAt: task.dueAt?.toISOString() ?? null, completedAt: task.completedAt?.toISOString() ?? null }))} />
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-
-            {/* Chat Connection */}
-            <LeadChat phone={canSeePersonalData ? lead.telefone : null} />
+            {/* Beneficiaries + Sale Registration */}
+            <div className="space-y-4">
+              <BeneficiariesSection leadId={lead.id} initialBeneficiaries={beneficiaries} />
+              {lead.status === "under_analysis" || lead.status === "documentation_pending" ? <RegisterSalePanel leadId={lead.id} documents={leadDocs.map((document) => ({ id: document.id, filename: document.filename, status: document.status }))} /> : null}
+            </div>
           </div>
 
+          {/* Chat Connection */}
+          <LeadChat phone={canSeePersonalData ? lead.telefone : null} />
         </div>
 
       </main>

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 
 export function CotarButton() {
   return (
-    <Button render={<a href="https://cotadorsimplificado.com.br/" rel="noreferrer" target="_blank" />} size="sm">
+    <Button render={<a href="#cotacao" />} size="sm">
       <Calculator className="size-4" /> Cotar
     </Button>
   );
