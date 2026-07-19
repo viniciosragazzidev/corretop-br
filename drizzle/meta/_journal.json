@@ -99,6 +99,13 @@
       "when": 1784814700000,
       "tag": "0049_allow_multi_source_quote_plans",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1784814800000,
+      "tag": "0050_duty_schedule_source_filter",
+      "breakpoints": true
     }
   ]
 }
