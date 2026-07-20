@@ -202,6 +202,11 @@ export const branches = pgTable(
       .references(() => tenants.id),
     name: text("name").notNull(),
     externalId: text("external_id"),
+    sourceChannel: text("source_channel").notNull().default("landing_page"),
+    sourceCampaign: text("source_campaign"),
+    sourceAd: text("source_ad"),
+    sourceForm: text("source_form"),
+    sourceMetadata: jsonb("source_metadata"),
     status: branchStatus("status").notNull().default("active"),
     acceptingLeads: boolean("accepting_leads").notNull().default(true),
     autoDistribute: boolean("auto_distribute").notNull().default(true),
@@ -332,6 +337,11 @@ export const leads = pgTable(
     consentimentoLgpd: boolean("consentimento_lgpd").notNull().default(false),
     motivoPerda: text("motivo_perda"),
     externalId: text("external_id"),
+    sourceChannel: text("source_channel").notNull().default("landing_page"),
+    sourceCampaign: text("source_campaign"),
+    sourceAd: text("source_ad"),
+    sourceForm: text("source_form"),
+    sourceMetadata: jsonb("source_metadata"),
     webhookCredentialId: text("webhook_credential_id").references(() => leadWebhookCredentials.id),
     createdAt,
   },
@@ -342,7 +352,80 @@ export const leads = pgTable(
     index("leads_corretor_status_idx").on(table.corretorId, table.status),
     index("leads_webhook_credential_idx").on(table.webhookCredentialId),
     uniqueIndex("leads_credential_external_id_unique").on(table.webhookCredentialId, table.externalId).where(sql`${table.externalId} IS NOT NULL`),
+    uniqueIndex("leads_tenant_source_external_id_unique").on(table.tenantId, table.sourceChannel, table.externalId).where(sql`${table.externalId} IS NOT NULL AND ${table.sourceChannel} <> 'landing_page'`),
   ],
+);
+
+export const marketingConnectionStatusValues = ["active", "inactive", "error"] as const;
+export const marketingConnectionStatus = pgEnum("marketing_connection_status", marketingConnectionStatusValues);
+
+export const marketingConnections = pgTable(
+  "marketing_connections",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    branchId: text("branch_id").references(() => branches.id, { onDelete: "set null" }),
+    provider: text("provider").notNull(),
+    platform: text("platform").notNull(),
+    externalAccountId: text("external_account_id"),
+    externalPageId: text("external_page_id"),
+    externalFormId: text("external_form_id"),
+    name: text("name").notNull(),
+    status: marketingConnectionStatus("status").notNull().default("inactive"),
+    accessTokenCiphertext: text("access_token_ciphertext"),
+    lastWebhookAt: timestamp("last_webhook_at", { withTimezone: true }),
+    lastSyncAt: timestamp("last_sync_at", { withTimezone: true }),
+    lastError: text("last_error"),
+    createdBy: text("created_by").notNull().references(() => user.id),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("marketing_connections_tenant_idx").on(table.tenantId),
+    index("marketing_connections_page_idx").on(table.externalPageId),
+    uniqueIndex("marketing_connections_tenant_platform_account_unique").on(table.tenantId, table.platform, table.externalAccountId),
+  ],
+);
+
+export const marketingWebhookEvents = pgTable(
+  "marketing_webhook_events",
+  {
+    id: text("id").primaryKey(),
+    connectionId: text("connection_id").references(() => marketingConnections.id, { onDelete: "set null" }),
+    provider: text("provider").notNull(),
+    eventType: text("event_type").notNull(),
+    externalEventId: text("external_event_id"),
+    payloadHash: text("payload_hash").notNull(),
+    payload: jsonb("payload"),
+    status: text("status").notNull().default("received"),
+    errorMessage: text("error_message"),
+    receivedAt: timestamp("received_at", { withTimezone: true }).notNull().defaultNow(),
+    processedAt: timestamp("processed_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("marketing_webhook_events_connection_idx").on(table.connectionId, table.receivedAt),
+    uniqueIndex("marketing_webhook_events_provider_external_unique").on(table.provider, table.externalEventId).where(sql`${table.externalEventId} IS NOT NULL`),
+  ],
+);
+
+export const marketingDailyMetrics = pgTable(
+  "marketing_daily_metrics",
+  {
+    id: text("id").primaryKey(),
+    connectionId: text("connection_id").notNull().references(() => marketingConnections.id, { onDelete: "cascade" }),
+    metricDate: date("metric_date").notNull(),
+    campaignId: text("campaign_id"),
+    adsetId: text("adset_id"),
+    adId: text("ad_id"),
+    impressions: integer("impressions").notNull().default(0),
+    clicks: integer("clicks").notNull().default(0),
+    reach: integer("reach").notNull().default(0),
+    spend: numeric("spend", { precision: 12, scale: 2 }).notNull().default("0"),
+    raw: jsonb("raw"),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [uniqueIndex("marketing_daily_metrics_unique").on(table.connectionId, table.metricDate, table.campaignId, table.adsetId, table.adId)],
 );
 
 export const leadBeneficiaries = pgTable(

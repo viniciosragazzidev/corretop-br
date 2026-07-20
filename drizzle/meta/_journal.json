@@ -127,6 +127,20 @@
       "when": 1784815100000,
       "tag": "0053_reconcile_quote_builder_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1784815200000,
+      "tag": "0054_unified_lead_sources",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1784815300000,
+      "tag": "0055_marketing_attribution_foundation",
+      "breakpoints": true
     }
   ]
 }
