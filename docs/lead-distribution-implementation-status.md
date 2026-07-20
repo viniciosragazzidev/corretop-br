@@ -4,7 +4,7 @@
 
 - A tabela `lead_distribution_jobs` persiste trabalhos de atribuição e impede jobs ativos duplicados por lead.
 - O executor interno trabalha em lotes, usa atualização condicional, lease recuperável, backoff e falha visível após o limite configurado.
-- A rota protegida `/api/internal/jobs/distribution` é acionada pelo cron da Vercel; `CRON_SECRET` é obrigatório.
+- A rota protegida `/api/internal/jobs/distribution` está pronta para um agendador recorrente; `CRON_SECRET` é obrigatório. A conta Vercel Hobby não aceita frequência de cinco minutos, portanto a ativação contínua depende de Vercel Pro ou de um agendador externo autorizado.
 - O Super-admin pode pausar, parametrizar e executar um ciclo manual com auditoria.
 - A tela de Distribuição informa pendências, processamento e exceções reais. A migration 0059 é pré-requisito para esta telemetria.
 
