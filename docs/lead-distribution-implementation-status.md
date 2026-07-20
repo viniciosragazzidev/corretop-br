@@ -8,6 +8,10 @@
 - O Super-admin pode pausar, parametrizar e executar um ciclo manual com auditoria.
 - A tela de Distribuição informa pendências, processamento e exceções reais. A migration 0059 é pré-requisito para esta telemetria.
 
+### Pendência obrigatória de infraestrutura
+
+Quando o CorreTop migrar para **Vercel Pro** ou para qualquer ambiente com agendador recorrente compatível, ativar a versão completa do motor com chamada autenticada para `/api/internal/jobs/distribution` a cada **5 minutos**. A variável `CRON_SECRET` deve permanecer configurada no ambiente executor e no CRM. A conta Vercel Hobby não suporta essa frequência; até a mudança, a fila continua preservada, pode ser processada manualmente pelo Super-admin e não deve ser considerada automação contínua.
+
 Atualizado em 15/07/2026.
 
 ## O que está operacional

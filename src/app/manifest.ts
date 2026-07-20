@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "CorreTop CRM",
-    short_name: "CorreTop",
+    name: "Ancora Corretora CRM",
+    short_name: "Ancora",
     description: "CRM para corretoras de planos de saúde.",
     start_url: "/",
     display: "standalone",
@@ -22,52 +22,67 @@ export default function manifest(): MetadataRoute.Manifest {
     },
     icons: [
       {
-        src: "/logo_icon.jpg",
+        src: "/icon.png",
         sizes: "512x512",
-        type: "image/jpeg",
+        type: "image/png",
         purpose: "any",
       },
       {
-        src: "/logo_icon.jpg",
+        src: "/icon.png",
         sizes: "192x192",
-        type: "image/jpeg",
+        type: "image/png",
         purpose: "any",
       },
       {
-        src: "/logo_icon.jpg",
+        src: "/icon.png",
         sizes: "512x512",
-        type: "image/jpeg",
+        type: "image/png",
         purpose: "maskable",
       },
       {
-        src: "/logo_icon.jpg",
+        src: "/icon.png",
         sizes: "192x192",
-        type: "image/jpeg",
+        type: "image/png",
         purpose: "maskable",
       },
     ],
-    screenshots: [],
+    screenshots: [
+      {
+        src: "/logo.webp",
+        sizes: "512x512",
+        type: "image/webp",
+        form_factor: "wide",
+        label: "Ancora Corretora CRM",
+      },
+      {
+        src: "/logo.webp",
+        sizes: "512x512",
+        type: "image/webp",
+        form_factor: "narrow",
+        label: "Ancora Corretora CRM",
+      },
+    ],
     shortcuts: [
       {
         name: "Dashboard",
         short_name: "Início",
         description: "Ir para o dashboard",
         url: "/dashboard",
-        icons: [{ src: "/logo_icon.jpg", sizes: "192x192", type: "image/jpeg" }],
+        icons: [{ src: "/icon.png", sizes: "192x192", type: "image/png" }],
       },
       {
         name: "Conversas",
         short_name: "Chat",
         description: "Abrir central de mensagens",
         url: "/conversas",
-        icons: [{ src: "/logo_icon.jpg", sizes: "192x192", type: "image/jpeg" }],
+        icons: [{ src: "/icon.png", sizes: "192x192", type: "image/png" }],
       },
       {
         name: "Leads",
         short_name: "Leads",
         description: "Abrir fila de oportunidades",
         url: "/leads",
-        icons: [{ src: "/logo_icon.jpg", sizes: "192x192", type: "image/jpeg" }],
+        icons: [{ src: "/icon.png", sizes: "192x192", type: "image/png" }],
       },
     ],
   };

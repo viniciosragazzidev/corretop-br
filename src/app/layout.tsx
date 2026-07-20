@@ -21,9 +21,19 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CorreTop",
+    title: "Ancora Corretora CRM",
   description: "CRM para corretoras de planos de saúde.",
   manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+  title: "Ancora Corretora CRM",
+  },
+  other: {
+    "apple-mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-status-bar-style": "default",
+    "apple-touch-startup-image": "/logo.webp",
+  },
 };
 
 export default async function RootLayout({
