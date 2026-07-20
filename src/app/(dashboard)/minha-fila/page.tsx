@@ -1,4 +1,4 @@
-import { and, count, desc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, count, desc, eq, gte, inArray, isNotNull, isNull, ne, or, sql } from "drizzle-orm";
 
 import { DashboardHeader } from "@/components/dashboard-header";
 import { Badge } from "@/components/ui/badge";
@@ -44,8 +44,15 @@ export default async function MinhaFilaPage() {
       and(
         eq(schema.leads.tenantId, context.tenantId),
         eq(schema.leads.corretorId, context.userId),
+        or(
+          ne(schema.leads.status, "distributed"),
+          isNotNull(schema.leads.firstContactAt),
+          isNull(schema.leads.assignedAt),
+          gte(schema.leads.assignedAt, sql`now() - (${schema.tenants.slaFirstContactMinutes}::integer * interval '1 minute')`),
+        ),
       ),
     )
+    .innerJoin(schema.tenants, eq(schema.leads.tenantId, schema.tenants.id))
     .orderBy(desc(schema.leads.createdAt));
 
   // Interactions per lead

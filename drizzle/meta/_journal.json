@@ -120,6 +120,13 @@
       "when": 1784815000000,
       "tag": "0052_quote_builder",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1784815100000,
+      "tag": "0053_reconcile_quote_builder_columns",
+      "breakpoints": true
     }
   ]
 }

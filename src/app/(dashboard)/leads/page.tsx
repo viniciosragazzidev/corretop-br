@@ -1,4 +1,4 @@
-import { and, count, eq, ilike, inArray, isNull, lt, or, sql } from "drizzle-orm";
+import { and, count, eq, gte, ilike, inArray, isNull, isNotNull, lt, ne, or, sql } from "drizzle-orm";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -31,12 +31,20 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
   const isValidStatus = filters.status && (schema.leadStatusValues as readonly string[]).includes(filters.status);
   const statusFilter = attention === "unworked" ? and(inArray(schema.leads.status, ["new", "distributed"]), isNull(schema.leads.serviceStartedAt)) : attention === "stalled" ? and(inArray(schema.leads.status, ["in_contact", "quote_sent", "negotiation", "documentation_pending", "under_analysis"]), lt(schema.leads.stageEnteredAt, stalledSince)) : isValidStatus ? eq(schema.leads.status, filters.status as typeof schema.leadStatusValues[number]) : null;
   const searchFilter = filters.search ? or(ilike(schema.leads.nome, `%${filters.search}%`), ilike(schema.leads.telefone, `%${filters.search}%`)) : null;
+  const expiredUnworkedBrokerFilter = context.role === "broker"
+    ? or(
+      ne(schema.leads.status, "distributed"),
+      isNotNull(schema.leads.firstContactAt),
+      isNull(schema.leads.assignedAt),
+      gte(schema.leads.assignedAt, sql`now() - (${schema.tenants.slaFirstContactMinutes}::integer * interval '1 minute')`),
+    )
+    : null;
   const branchFilter = context.role === "manager" && context.branchId ? eq(schema.leads.branchId, context.branchId) : context.role === "broker" ? eq(schema.leads.corretorId, context.userId) : filters.branch ? eq(schema.leads.branchId, filters.branch) : null;
-  const where = and(eq(schema.leads.tenantId, context.tenantId), ...(statusFilter ? [statusFilter] : []), ...(searchFilter ? [searchFilter] : []), ...(branchFilter ? [branchFilter] : []));
+  const where = and(eq(schema.leads.tenantId, context.tenantId), ...(statusFilter ? [statusFilter] : []), ...(searchFilter ? [searchFilter] : []), ...(branchFilter ? [branchFilter] : []), ...(expiredUnworkedBrokerFilter ? [expiredUnworkedBrokerFilter] : []));
   const isDirector = context.role === "director";
   const [availablePlans, leads, legacyPlans, branches, pausedBranchCount] = await Promise.all([
     listAvailableCatalogPlans(context),
-    db.select({ id: schema.leads.id, nome: schema.leads.nome, telefone: schema.leads.telefone, status: schema.leads.status, origem: schema.leads.origem, createdAt: schema.leads.createdAt, corretorNome: schema.user.name, branchName: schema.branches.name }).from(schema.leads).leftJoin(schema.user, eq(schema.leads.corretorId, schema.user.id)).leftJoin(schema.branches, eq(schema.leads.branchId, schema.branches.id)).where(where),
+    db.select({ id: schema.leads.id, nome: schema.leads.nome, telefone: schema.leads.telefone, status: schema.leads.status, origem: schema.leads.origem, createdAt: schema.leads.createdAt, corretorNome: schema.user.name, branchName: schema.branches.name }).from(schema.leads).leftJoin(schema.user, eq(schema.leads.corretorId, schema.user.id)).leftJoin(schema.branches, eq(schema.leads.branchId, schema.branches.id)).innerJoin(schema.tenants, eq(schema.leads.tenantId, schema.tenants.id)).where(where),
     db.select({ id: schema.carrierPlans.id, name: schema.carrierPlans.name, carrierName: schema.carriers.name }).from(schema.carrierPlans).innerJoin(schema.carriers, eq(schema.carrierPlans.carrierId, schema.carriers.id)).where(and(eq(schema.carrierPlans.tenantId, context.tenantId), eq(schema.carrierPlans.active, true), eq(schema.carriers.status, "active"))).orderBy(schema.carriers.name, schema.carrierPlans.name),
     db.select({ id: schema.branches.id, name: schema.branches.name }).from(schema.branches).where(eq(schema.branches.tenantId, context.tenantId)),
     isDirector ? db.select({ count: count() }).from(schema.branches).where(and(eq(schema.branches.tenantId, context.tenantId), eq(schema.branches.acceptingLeads, false))).then((r) => Number(r[0]?.count ?? 0)) : Promise.resolve(0),

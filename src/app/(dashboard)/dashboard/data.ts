@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNotNull, isNull, ne, or, sql } from "drizzle-orm";
 
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
@@ -23,7 +23,20 @@ export async function getBrokerDashboardData(): Promise<BrokerDashboardData> {
   const [user, membership, leads] = await Promise.all([
     db.select({ name: schema.user.name }).from(schema.user).where(eq(schema.user.id, context.userId)).limit(1),
     db.select({ availabilityStatus: schema.tenantMemberships.availabilityStatus, branchName: schema.branches.name }).from(schema.tenantMemberships).leftJoin(schema.branches, eq(schema.tenantMemberships.branchId, schema.branches.id)).where(and(eq(schema.tenantMemberships.tenantId, context.tenantId), eq(schema.tenantMemberships.userId, context.userId))).limit(1),
-    db.select({ id: schema.leads.id, name: schema.leads.nome, phone: schema.leads.telefone, source: schema.leads.origem, status: schema.leads.status, createdAt: schema.leads.createdAt, assignedAt: schema.leads.assignedAt, serviceStartedAt: schema.leads.serviceStartedAt }).from(schema.leads).where(and(eq(schema.leads.tenantId, context.tenantId), eq(schema.leads.corretorId, context.userId))).orderBy(desc(schema.leads.createdAt)),
+    db.select({ id: schema.leads.id, name: schema.leads.nome, phone: schema.leads.telefone, source: schema.leads.origem, status: schema.leads.status, createdAt: schema.leads.createdAt, assignedAt: schema.leads.assignedAt, serviceStartedAt: schema.leads.serviceStartedAt })
+      .from(schema.leads)
+      .innerJoin(schema.tenants, eq(schema.leads.tenantId, schema.tenants.id))
+      .where(and(
+        eq(schema.leads.tenantId, context.tenantId),
+        eq(schema.leads.corretorId, context.userId),
+        or(
+          ne(schema.leads.status, "distributed"),
+          isNotNull(schema.leads.firstContactAt),
+          isNull(schema.leads.assignedAt),
+          gte(schema.leads.assignedAt, sql`now() - (${schema.tenants.slaFirstContactMinutes}::integer * interval '1 minute')`),
+        ),
+      ))
+      .orderBy(desc(schema.leads.createdAt)),
   ]);
   const interactions = leads.length ? await db.select({ leadId: schema.leadInteractions.leadId, createdAt: schema.leadInteractions.createdAt }).from(schema.leadInteractions).where(inArray(schema.leadInteractions.leadId, leads.map((lead) => lead.id))).orderBy(desc(schema.leadInteractions.createdAt)) : [];
   const latest = new Map<string, Date>();
