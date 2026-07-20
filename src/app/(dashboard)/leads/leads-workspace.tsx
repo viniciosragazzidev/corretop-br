@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
-import { ArrowUpRight, Phone, SquaresFour, UserList } from "@/components/huge-icons";
+import { ArrowUpRight, ChatCircleText, FileText, ListChecks, Phone, SquaresFour, UserList, WhatsappLogo } from "@/components/huge-icons";
 import { Badge } from "@/components/ui/badge";
 import { LeadStatusBadge } from "@/components/status-badges";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,8 @@ import {
 } from "@/components/ui/table";
 import { LEAD_STATUS_LABELS } from "@/features/leads/lead-status-constants";
 import { OwnershipContext } from "@/components/ownership-context";
+import { LeadQuickNote } from "@/features/leads/components/lead-quick-note";
+import { LeadReminder } from "@/features/leads/components/lead-reminder";
 
 export type LeadWorkspaceItem = {
   id: string;
@@ -246,20 +248,50 @@ export function LeadsWorkspace({
                     </Button>
                   </TabsContent>
                   <TabsContent value="actions" className="mt-4 space-y-3">
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button className="w-full" render={<Link href={`/leads/${selectedLead.id}`} />}>
+                        <ArrowUpRight />
+                        Abrir atendimento
+                      </Button>
+                      <Button className="w-full" render={<Link href={`/conversas?leadId=${selectedLead.id}`} />} variant="outline">
+                        <ChatCircleText />
+                        Conversas
+                      </Button>
+                    </div>
                     <Button className="w-full" render={<a href="https://cotadorsimplificado.com.br/" rel="noreferrer" target="_blank" />}>
                       <ArrowUpRight />
                       Nova cotação
                     </Button>
                     {canCall ? (
-                      <Button className="w-full" render={<a href={`tel:${selectedLead.telefone}`} />} variant="outline">
-                        <Phone />
-                        Ligar para o lead
-                      </Button>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button className="w-full" render={<a href={`tel:${selectedLead.telefone}`} />} variant="outline">
+                          <Phone />
+                          Ligar
+                        </Button>
+                        <Button className="w-full" render={<a href={`https://wa.me/${selectedLead.telefone.replace(/\D/g, "")}`} rel="noreferrer" target="_blank" />} variant="outline">
+                          <WhatsappLogo />
+                          WhatsApp
+                        </Button>
+                      </div>
                     ) : (
                       <p className="rounded-lg border border-amber-300/30 bg-amber-300/10 p-3 text-sm text-muted-foreground">
                         Os dados de contato serão liberados quando você iniciar este atendimento.
                       </p>
                     )}
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button className="w-full" render={<Link href={`/tarefas?leadId=${selectedLead.id}`} />} variant="outline">
+                        <ListChecks />
+                        Tarefas
+                      </Button>
+                      <Button className="w-full" render={<Link href="#documentos" />} variant="outline">
+                        <FileText />
+                        Documentos
+                      </Button>
+                    </div>
+                    <div className="flex flex-wrap gap-2 border-t border-border pt-3">
+                      <LeadQuickNote leadId={selectedLead.id} />
+                      <LeadReminder leadId={selectedLead.id} />
+                    </div>
                   </TabsContent>
                 </Tabs>
               </div>
