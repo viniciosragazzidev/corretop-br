@@ -11,6 +11,7 @@ import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { hasPermission } from "@/shared/auth/permissions";
 import { getDatabase, schema } from "@/shared/db";
 import { generateCommissionSchedule } from "@/features/commissions/commission-rules-service";
+import { publishNotification } from "@/features/notifications/send-push-helper";
 
 const registerSaleInput = z.object({
   leadId: z.string().min(1),
@@ -110,6 +111,23 @@ export async function registerSaleAction(rawInput: z.input<typeof registerSaleIn
     await tx.insert(schema.auditLogs).values({ id: randomUUID(), userId: context.userId, entidade: "sale", entidadeId: saleId, acao: "registrou" });
     await tx.insert(schema.notifications).values({ id: randomUUID(), tenantId: context.tenantId, recipientUserId: lead.corretorId ?? context.userId, leadId: lead.id, type: "sale_registered", title: "Venda registrada", message: `${lead.nome} foi convertido em cliente ativo.`, createdAt: now });
   });
+
+  // Notify via push (outside transaction — non-blocking)
+  if (lead.corretorId) {
+    void publishNotification({
+      capability: "lead_converted",
+      tenantId: context.tenantId,
+      recipientUserId: lead.corretorId,
+      leadId: lead.id,
+      type: "lead_converted",
+      title: "Venda registrada com sucesso!",
+      message: `${lead.nome} foi convertido em cliente ativo. Confira os detalhes.`,
+      pushTitle: "Venda Registrada! 🎉",
+      pushBody: `${lead.nome} foi convertido. Verifique a comissão.`,
+      url: `/leads/${lead.id}`,
+      tag: `sale-${saleId}`,
+    }).catch(() => { /* non-blocking */ });
+  }
   revalidatePath(`/leads/${lead.id}`); revalidatePath("/clientes"); revalidatePath("/vendas"); revalidatePath("/financeiro");
   return { success: true, saleId, activeCustomerId };
 }

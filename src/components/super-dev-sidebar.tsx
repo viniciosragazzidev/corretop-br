@@ -4,14 +4,12 @@ import {
   House,
   Buildings,
   Monitor,
-  Gear,
   SignOut,
   SlidersHorizontal,
   ShieldStar
 } from "@/components/huge-icons";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 
 import {
@@ -82,7 +80,7 @@ function NavigationGroup({
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       isActive={isActive}
-                      render={<a href={item.url} onClick={() => isMobile && setOpenMobile(false)} />}
+                      render={<Link href={item.url} onClick={() => isMobile && setOpenMobile(false)} prefetch />}
                       tooltip={item.label}
                     >
                       <Icon weight={isActive ? "fill" : "regular"} />

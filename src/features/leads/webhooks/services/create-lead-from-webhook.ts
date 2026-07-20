@@ -7,7 +7,7 @@ import { eq } from "drizzle-orm";
 
 import type { NormalizedLeadData } from "../types/lead-webhook.types";
 import { chooseAvailableBroker } from "@/features/leads/assignment";
-import { notifyNewLead } from "@/features/notifications/send-push-helper";
+import { notifyNewLead, notifyLeadArrived } from "@/features/notifications/send-push-helper";
 
 export type CreateLeadFromWebhookInput = {
   tenantId: string;
@@ -121,5 +121,8 @@ async function backgroundTasks(input: {
   });
 
   // ── Push notifications ──────────────────────────────────────────────
-  await notifyNewLead(leadId, tenantId, branchId, corretorId, normalized.name);
+  await Promise.all([
+    notifyLeadArrived(leadId, tenantId, branchId, normalized.name),
+    notifyNewLead(leadId, tenantId, branchId, corretorId, normalized.name),
+  ]);
 }

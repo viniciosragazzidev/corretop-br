@@ -15,6 +15,15 @@ describe("lead distribution domain", () => {
     expect(result).toBeNull();
   });
 
+  it("uses the oldest eligible broker for the current round-robin policy", () => {
+    const result = chooseBroker([
+      { id: "newer", createdAt: new Date("2026-02-01"), activeLeads: 0, capacity: null },
+      { id: "older", createdAt: new Date("2026-01-01"), activeLeads: 9, capacity: null },
+    ], "round_robin");
+
+    expect(result?.id).toBe("older");
+  });
+
   it("validates duty windows deterministically", () => {
     expect(isValidDutyWindow(1, "09:00", "18:00")).toBe(true);
     expect(isValidDutyWindow(1, "18:00", "09:00")).toBe(false);

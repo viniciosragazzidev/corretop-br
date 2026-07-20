@@ -10,6 +10,7 @@ import { z } from "zod";
 import { assertTenantAccess } from "@/shared/auth/authorization";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
+import { publishNotification } from "@/features/notifications/send-push-helper";
 
 type Database = ReturnType<typeof getDatabase>;
 type InteractionWriter = Pick<Database, "insert">;
@@ -55,7 +56,7 @@ export async function addLeadNoteAction(
     const context = await getRequiredTenantContext();
     const db = getDatabase();
     const [lead] = await db
-      .select({ id: schema.leads.id, tenantId: schema.leads.tenantId, corretorId: schema.leads.corretorId, branchId: schema.leads.branchId })
+      .select({ id: schema.leads.id, tenantId: schema.leads.tenantId, corretorId: schema.leads.corretorId, branchId: schema.leads.branchId, nome: schema.leads.nome })
       .from(schema.leads)
       .where(and(eq(schema.leads.id, parsed.data.leadId), eq(schema.leads.tenantId, context.tenantId)))
       .limit(1);
@@ -65,12 +66,33 @@ export async function addLeadNoteAction(
     if (context.role === "broker" && lead.corretorId !== context.userId) return { error: "Você só pode registrar notas nos seus leads." };
     if (context.role === "manager" && (!context.branchId || lead.branchId !== context.branchId)) return { error: "Você só pode registrar notas na sua filial." };
 
+    const isManagerOrDirector = context.role === "manager" || context.role === "director";
+
     await createLeadInteraction(db, {
       leadId: lead.id,
       userId: context.userId,
       tipo: "note",
       conteudo: parsed.data.content,
     });
+
+    // If a manager/director adds a note to a lead owned by a broker, notify the broker
+    if (isManagerOrDirector && lead.corretorId && lead.corretorId !== context.userId) {
+      const roleLabel = context.role === "director" ? "Diretor" : "Gestor";
+      void publishNotification({
+        capability: "manager_note",
+        tenantId: lead.tenantId,
+        recipientUserId: lead.corretorId,
+        leadId: lead.id,
+        type: "manager_note",
+        title: "Nova observação da gestão",
+        message: `${roleLabel} registrou uma nota sobre o lead ${lead.nome}.`,
+        pushTitle: "Nova Nota da Gestão! 📝",
+        pushBody: `${roleLabel} registrou uma observação sobre ${lead.nome}.`,
+        url: `/leads/${lead.id}`,
+        tag: `lead-${lead.id}`,
+      }).catch(() => { /* non-blocking */ });
+    }
+
     revalidatePath(`/leads/${lead.id}`);
     return { success: true };
   } catch (error) {

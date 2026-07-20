@@ -1,8 +1,8 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { NotificationPopover } from "@/components/notification-popover";
+import { AnimatedPageTitle } from "@/components/motion/animated-page-title";
 
 export function PlatformAdminHeader({
   breadcrumb,
@@ -12,12 +12,11 @@ export function PlatformAdminHeader({
   title: string;
 }) {
   return (
-    <header className="flex h-15 shrink-0 items-center gap-3 border-b border-border px-4 lg:px-6">
+    <header className="flex h-15 shrink-0 items-center gap-3 border-b border-border px-4 lg:px-6" style={{ viewTransitionName: "ct-shell-header" }}>
       <SidebarTrigger />
       <div className="h-4 w-px bg-border" />
       <div className="min-w-0 flex-1">
-        <p className="text-xs text-muted-foreground">{breadcrumb}</p>
-        <p className="truncate text-sm font-semibold">{title}</p>
+        <AnimatedPageTitle breadcrumb={breadcrumb} compact title={title} />
       </div>
       <NotificationPopover />
     </header>

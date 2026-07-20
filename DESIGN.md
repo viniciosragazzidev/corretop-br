@@ -111,6 +111,8 @@ O tema trabalha com as mesmas variáveis nos dois modos.
 - Use motion para transições de tabs, abertura de painel, loading e feedback.
 - Evite animação em tabela, métricas e listas densas.
 - Se houver animação, ela precisa respeitar redução de movimento.
+- Transições entre rotas devem usar View Transitions curtas sobre snapshots, nunca duas rotas renderizadas simultaneamente.
+- A camada global de motion precisa poder ser desligada pelo Super-admin; o desligamento e `prefers-reduced-motion` removem movimento sem bloquear navegação ou feedback textual.
 
 ## Componentes padrão
 

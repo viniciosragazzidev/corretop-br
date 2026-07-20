@@ -67,6 +67,26 @@ export async function updateGlobalSearchSettingsAction(formData: FormData) {
   revalidatePath("/super-admin/settings");
 }
 
+export async function updateInterfaceMotionSettingsAction(formData: FormData) {
+  const admin = await getRequiredPlatformAdmin();
+  const enabled = formData.get("interfaceMotionEnabled") === "true" ? "true" : "false";
+  const now = new Date();
+
+  await setSystemSetting("feature_interface_motion_enabled", enabled, now);
+  await getDatabase().insert(schema.platformAuditLogs).values({
+    id: crypto.randomUUID(),
+    actorUserId: admin.userId,
+    action: "interface_motion_feature.updated",
+    targetType: "system_settings",
+    targetId: "interface_motion",
+    metadata: { enabled },
+    createdAt: now,
+  });
+
+  revalidatePath("/");
+  revalidatePath("/super-admin/settings");
+}
+
 export async function updateMetaCloudWhatsAppSettingsAction(formData: FormData) {
   const admin = await getRequiredPlatformAdmin();
   const enabled = formData.get("metaCloudWhatsAppEnabled") === "true" ? "true" : "false";

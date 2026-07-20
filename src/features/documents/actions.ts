@@ -9,6 +9,7 @@ import { z } from "zod";
 
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
+import { publishNotification } from "@/features/notifications/send-push-helper";
 
 // ─── Requirements Actions ──────────────────────────────────────────────────
 
@@ -242,6 +243,8 @@ export async function reviewDocumentAction({
       ))
       .limit(1);
     if (!lead) return { error: "Este lead não pertence ao escopo da sua unidade." };
+    let reviewedFileName = "";
+
     await db.transaction(async (tx) => {
       const [doc] = await tx
         .update(schema.leadDocuments)
@@ -260,16 +263,40 @@ export async function reviewDocumentAction({
         .returning({ filename: schema.leadDocuments.filename });
 
       if (!doc) throw new Error("Documento não encontrado.");
+      reviewedFileName = doc.filename;
 
       await tx.insert(schema.leadInteractions).values({
         id: randomUUID(),
         leadId,
         userId: context.userId,
         tipo: "document_review",
-        conteudo: `Documento "${doc.filename}" foi ${status === "approved" ? "aprovado" : "rejeitado"}.`,
+        conteudo: `Documento "${reviewedFileName}" foi ${status === "approved" ? "aprovado" : "rejeitado"}.`,
         metadata: { documentId, status },
       });
     });
+
+    // Notify the broker responsible for the lead
+    const [leadData] = await db
+      .select({ corretorId: schema.leads.corretorId, nome: schema.leads.nome })
+      .from(schema.leads)
+      .where(and(eq(schema.leads.id, leadId), eq(schema.leads.tenantId, context.tenantId)))
+      .limit(1);
+
+    if (leadData?.corretorId) {
+      void publishNotification({
+        capability: "document_reviewed",
+        tenantId: context.tenantId,
+        recipientUserId: leadData.corretorId,
+        leadId,
+        type: status === "approved" ? "document_approved" : "document_rejected",
+        title: status === "approved" ? "Documento aprovado ✅" : "Documento rejeitado ❌",
+        message: `O documento "${reviewedFileName}" do lead ${leadData.nome} foi ${status === "approved" ? "aprovado" : "rejeitado"}.`,
+        pushTitle: status === "approved" ? "Documento Aprovado! ✅" : "Documento Rejeitado! ❌",
+        pushBody: `${leadData.nome} — documento ${status === "approved" ? "aprovado" : "rejeitado"}.`,
+        url: `/leads/${leadId}`,
+        tag: `doc-${documentId}`,
+      }).catch(() => { /* non-blocking */ });
+    }
 
     revalidatePath(`/leads/${leadId}`);
     revalidatePath("/documentos");

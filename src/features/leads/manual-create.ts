@@ -27,7 +27,7 @@ function normalizePhone(phone: string) {
   return digits.startsWith("55") ? digits : `55${digits}`;
 }
 
-import { notifyNewLead } from "@/features/notifications/send-push-helper";
+import { notifyNewLead, notifyLeadArrived } from "@/features/notifications/send-push-helper";
 
 export async function createManualLead(rawInput: unknown) {
   const input = leadInput.parse(rawInput);
@@ -65,6 +65,7 @@ export async function createManualLead(rawInput: unknown) {
   await db.insert(schema.auditLogs).values({ id: randomUUID(), userId: context.userId, entidade: "lead", entidadeId: leadId, acao: "criou" });
   
   // Trigger push notifications in background
+  void notifyLeadArrived(leadId, context.tenantId, context.branchId, input.nome).catch(console.error);
   void notifyNewLead(leadId, context.tenantId, context.branchId, corretorId, input.nome).catch(console.error);
 
   return { leadId };

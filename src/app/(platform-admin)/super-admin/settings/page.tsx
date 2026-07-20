@@ -1,6 +1,6 @@
 import { getSystemSettings } from "@/features/system-settings/queries";
 import { getNotificationCapabilityStates } from "@/features/notifications/queries";
-import { updateCentralAtencaoSettingsAction, updateGlobalSearchSettingsAction, updateMetaCloudWhatsAppSettingsAction, updateNotificationCapabilityAction, updateAiSettingsAction } from "@/app/(platform-admin)/super-admin/actions";
+import { updateCentralAtencaoSettingsAction, updateGlobalSearchSettingsAction, updateInterfaceMotionSettingsAction, updateMetaCloudWhatsAppSettingsAction, updateNotificationCapabilityAction, updateAiSettingsAction } from "@/app/(platform-admin)/super-admin/actions";
 import { setRouteOnboardingGlobalAction } from "@/features/onboarding/actions/route-onboarding-actions";
 import { PlatformAdminHeader } from "@/components/platform-admin-header";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ export default async function SuperAdminSettingsPage() {
     "feature_central_atencao_enabled", 
     "feature_central_atencao_stagnant_days", 
     "feature_global_search_enabled", 
+    "feature_interface_motion_enabled",
     "feature_route_onboarding_enabled",
     "feature_whatsapp_meta_cloud_enabled",
     "ai_enabled",
@@ -33,6 +34,7 @@ export default async function SuperAdminSettingsPage() {
   const centralEnabled = settingMap.get("feature_central_atencao_enabled") !== "false";
   const stagnantDays = settingMap.get("feature_central_atencao_stagnant_days") ?? "3";
   const globalSearchEnabled = settingMap.get("feature_global_search_enabled") !== "false";
+  const interfaceMotionEnabled = settingMap.get("feature_interface_motion_enabled") !== "false";
   const routeOnboardingEnabled = settingMap.get("feature_route_onboarding_enabled") !== "false";
   const metaCloudWhatsAppEnabled = settingMap.get("feature_whatsapp_meta_cloud_enabled") === "true";
 
@@ -142,6 +144,11 @@ export default async function SuperAdminSettingsPage() {
         <Card className="border-border bg-card shadow-none">
           <CardHeader><CardTitle>Busca global</CardTitle><CardDescription>Pesquisa leads, clientes, cotações, tarefas e equipe respeitando o escopo de cada usuário.</CardDescription></CardHeader>
           <CardContent><form action={updateGlobalSearchSettingsAction} className="flex flex-wrap items-center justify-between gap-4"><label className="flex items-center gap-2 text-sm"><input type="checkbox" name="globalSearchEnabled" value="true" defaultChecked={globalSearchEnabled} className="size-4 warning-[var(--primary)]" /><span><span className="font-medium">Busca global habilitada</span><span className="block text-xs text-muted-foreground">Permitir pesquisas pelo cabeçalho do sistema.</span></span></label><Button type="submit" variant="outline">Salvar busca</Button></form></CardContent>
+        </Card>
+
+        <Card className="border-border bg-card shadow-none">
+          <CardHeader><CardTitle>Movimento da interface</CardTitle><CardDescription>Controla transições curtas de rota, títulos e superfícies. Não altera a preferência de acessibilidade de cada pessoa.</CardDescription></CardHeader>
+          <CardContent><form action={updateInterfaceMotionSettingsAction} className="flex flex-wrap items-center justify-between gap-4"><label className="flex items-center gap-2 text-sm"><input type="checkbox" name="interfaceMotionEnabled" value="true" defaultChecked={interfaceMotionEnabled} className="size-4 warning-[var(--primary)]" /><span><span className="font-medium">Motion da interface habilitado</span><span className="block text-xs text-muted-foreground">Desative para trocar rotas e estados instantaneamente em toda a plataforma.</span></span></label><Button type="submit" variant="outline">Salvar motion</Button></form></CardContent>
         </Card>
 
         <Card className="border-border bg-card shadow-none">

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { DashboardHeader } from "@/components/dashboard-header";
@@ -17,6 +18,22 @@ export default async function DutySchedulePage() {
     : eq(schema.branches.tenantId, context.tenantId);
   const branches = await db.select({ id: schema.branches.id, name: schema.branches.name }).from(schema.branches).where(branchFilter);
   const branchIds = branches.map((branch) => branch.id);
+
+  // Auto-cria filas padrão para unidades que ainda não possuem filas ativas
+  if (branchIds.length > 0) {
+    const existingQueues = await db.select({ branchId: schema.leadQueues.branchId })
+      .from(schema.leadQueues)
+      .where(and(eq(schema.leadQueues.tenantId, context.tenantId), inArray(schema.leadQueues.branchId, branchIds), eq(schema.leadQueues.status, "active")));
+    const branchesWithQueues = new Set(existingQueues.map((q) => q.branchId));
+    for (const branch of branches) {
+      if (!branchesWithQueues.has(branch.id)) {
+        await db.insert(schema.leadQueues)
+          .values({ id: randomUUID(), tenantId: context.tenantId, branchId: branch.id, name: "Fila geral", slug: "geral", isDefault: true, createdAt: new Date(), updatedAt: new Date() })
+          .onConflictDoNothing();
+      }
+    }
+  }
+
   const queues = branchIds.length
     ? await db.select({ id: schema.leadQueues.id, branchId: schema.leadQueues.branchId, name: schema.leadQueues.name })
       .from(schema.leadQueues)

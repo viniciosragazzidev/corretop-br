@@ -99,3 +99,60 @@ export async function notifyNewLead(leadId: string, tenantId: string, branchId: 
     });
   }));
 }
+
+/**
+ * Notify managers and directors about a new lead arrival (pre-distribution).
+ * Separate from lead_assignment — focuses on the arrival event itself.
+ */
+export async function notifyLeadArrived(leadId: string, tenantId: string, branchId: string | null, leadName: string) {
+  if (!(await isNotificationCapabilityEnabled("lead_arrived"))) return;
+
+  const recipients = await getDatabase()
+    .select({ userId: schema.tenantMemberships.userId, role: schema.tenantMemberships.role })
+    .from(schema.tenantMemberships)
+    .where(and(
+      eq(schema.tenantMemberships.tenantId, tenantId),
+      eq(schema.tenantMemberships.status, "active"),
+      or(
+        eq(schema.tenantMemberships.role, "director"),
+        branchId ? and(eq(schema.tenantMemberships.role, "manager"), eq(schema.tenantMemberships.branchId, branchId)) : eq(schema.tenantMemberships.role, "manager"),
+      ),
+    ));
+
+  await Promise.all(recipients.map((recipient) =>
+    publishNotification({
+      capability: "lead_arrived",
+      tenantId,
+      recipientUserId: recipient.userId,
+      leadId,
+      type: "lead_arrived",
+      title: recipient.role === "director" ? "Novo lead na corretora" : "Novo lead na unidade",
+      message: `"${leadName}" chegou e ${recipient.role === "director" ? "está disponível na corretora" : "está disponível na unidade"}.`,
+      pushTitle: "Novo Lead Chegou! 📥",
+      pushBody: `"${leadName}" acabou de chegar no sistema.`,
+      url: `/leads/${leadId}`,
+      tag: `lead-${leadId}`,
+    })
+  ));
+}
+
+/**
+ * Notify the previous broker when a lead is reassigned.
+ */
+export async function notifyLeadReassigned(leadId: string, tenantId: string, previousOwnerId: string, leadName: string) {
+  if (!(await isNotificationCapabilityEnabled("lead_reassigned"))) return;
+
+  await publishNotification({
+    capability: "lead_reassigned",
+    tenantId,
+    recipientUserId: previousOwnerId,
+    leadId,
+    type: "lead_reassigned",
+    title: "Lead reatribuído",
+    message: `O lead ${leadName} foi reatribuído a outro corretor e não está mais sob sua responsabilidade.`,
+    pushTitle: "Lead Reatribuído 🔄",
+    pushBody: `${leadName} foi reatribuído para outro profissional.`,
+    url: `/leads/${leadId}`,
+    tag: `lead-${leadId}`,
+  });
+}

@@ -15,6 +15,9 @@ import {
   subscribeUserAction,
   unsubscribeUserAction,
 } from "../push-actions";
+import { getPushAvailability } from "../push-availability";
+
+const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
 function urlBase64ToArrayBuffer(base64String: string): ArrayBuffer {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -68,10 +71,17 @@ export function PushNotificationManager({
   }, [checkSubscription]);
 
   const subscribe = async () => {
-    if (!("serviceWorker" in navigator && "PushManager" in window)) return;
+    const availability = getPushAvailability({
+      hasNotificationApi: "Notification" in window,
+      hasPushManager: "PushManager" in window,
+      hasServiceWorker: "serviceWorker" in navigator,
+      permission: "Notification" in window ? Notification.permission : "unsupported",
+      hasVapidPublicKey: Boolean(vapidPublicKey),
+    });
+    if (availability === "unsupported") return;
     setLoading(true);
     try {
-      if (Notification.permission === "denied") {
+      if (availability === "blocked") {
         setPermission("denied");
         toast.error("As notificações estão bloqueadas neste navegador.", {
           description: "Libere a permissão nas configurações do navegador para ativá-las.",
@@ -80,7 +90,7 @@ export function PushNotificationManager({
       }
 
       const registration = await navigator.serviceWorker.ready;
-      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      const vapidKey = vapidPublicKey;
       if (!vapidKey) {
         toast.error("Notificações push não estão disponíveis nesta instalação.");
         return;
@@ -151,12 +161,19 @@ export function PushNotificationManager({
     }
   };
 
-  const isSupported = typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+  const availability = getPushAvailability({
+    hasNotificationApi: typeof window !== "undefined" && "Notification" in window,
+    hasPushManager: typeof window !== "undefined" && "PushManager" in window,
+    hasServiceWorker: typeof window !== "undefined" && "serviceWorker" in navigator,
+    permission,
+    hasVapidPublicKey: Boolean(vapidPublicKey),
+  });
+  const isSupported = availability !== "unsupported";
 
   if (variant === "compact") {
     if (checking || !isSupported || isSubscribed) return null;
 
-    const isBlocked = permission === "denied";
+    const isBlocked = availability === "blocked";
     return (
       <div className="mx-4 my-3 flex items-center gap-3 rounded-xl border border-primary/15 bg-primary/[0.035] px-3 py-3">
         <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
@@ -200,6 +217,30 @@ export function PushNotificationManager({
           <Bell className="mx-auto size-7 text-muted-foreground/50" />
           <p className="text-sm font-medium">Push indisponível neste navegador</p>
           <p className="text-xs leading-5 text-muted-foreground">Use Chrome, Edge ou Safari 16.4 ou superior para receber alertas fora do app.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (availability === "blocked") {
+    return (
+      <Card className="border-warning/30 bg-warning/[0.035] shadow-none">
+        <CardContent className="space-y-2 p-4 text-center">
+          <Bell className="mx-auto size-7 text-warning" />
+          <p className="text-sm font-medium">Notificações bloqueadas neste navegador</p>
+          <p className="text-xs leading-5 text-muted-foreground">Abra as configurações do site no navegador, permita as notificações para o CorreTop e atualize esta página.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (availability === "missing_configuration") {
+    return (
+      <Card className="border-border/80 bg-card shadow-none">
+        <CardContent className="space-y-2 p-4 text-center">
+          <Bell className="mx-auto size-7 text-muted-foreground/50" />
+          <p className="text-sm font-medium">Push temporariamente indisponível</p>
+          <p className="text-xs leading-5 text-muted-foreground">Tente novamente em alguns minutos ou fale com o suporte.</p>
         </CardContent>
       </Card>
     );

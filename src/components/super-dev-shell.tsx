@@ -1,13 +1,10 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
-import { usePathname } from "next/navigation";
-import { AnimatePresence, motion } from "motion/react";
 import { SuperDevSidebar } from "@/components/super-dev-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { SquaresFour, ShieldStar } from "@/components/huge-icons";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
 
 const railAreas = [
   { label: "Área do Sistema", href: "/dashboard", icon: SquaresFour },
@@ -15,8 +12,6 @@ const railAreas = [
 ] as const;
 
 export function SuperDevShell({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
-
   return (
     <SidebarProvider
       style={
@@ -59,18 +54,7 @@ export function SuperDevShell({ children }: { children: ReactNode }) {
       <SuperDevSidebar />
 
       <SidebarInset className="bg-background">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={pathname}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.18, ease: "easeInOut" }}
-            className="flex flex-1 flex-col"
-          >
-            {children}
-          </motion.div>
-        </AnimatePresence>
+        <div className="flex flex-1 flex-col">{children}</div>
       </SidebarInset>
     </SidebarProvider>
   );

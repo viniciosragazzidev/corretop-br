@@ -1,7 +1,7 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
-import { and, eq } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 import { z } from "zod";
 
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
@@ -9,6 +9,7 @@ import { assertTenantAccess } from "@/shared/auth/authorization";
 import { hasPermission } from "@/shared/auth/permissions";
 import { AuthorizationError } from "@/shared/auth/errors";
 import { getDatabase, schema } from "@/shared/db";
+import { publishNotification } from "@/features/notifications/send-push-helper";
 import type { TenantContext } from "@/shared/auth/types";
 import {
   LEAD_STATUS_LABELS,
@@ -238,20 +239,157 @@ export async function changeLeadStatus(
       entidadeId: lead.id,
       acao: auditAction,
     });
-
-    if (newStatus === "converted") {
-      await tx.insert(schema.notifications).values({
-        id: randomUUID(),
-        tenantId: context.tenantId,
-        recipientUserId: context.userId,
-        leadId: lead.id,
-        type: "lead_converted",
-        title: "Lead convertido em cliente",
-        message: `${lead.nome} foi convertido e agora está disponível em Clientes.`,
-        createdAt: now,
-      });
-    }
   });
+
+  // ─── Notificações fora da transação (push pode falhar sem efeito colateral) ───
+
+  if (newStatus === "converted") {
+    // Find managers and directors to notify
+    const scope = lead.branchId
+      ? or(eq(schema.tenantMemberships.role, "director"), and(eq(schema.tenantMemberships.role, "manager"), eq(schema.tenantMemberships.branchId, lead.branchId)))
+      : eq(schema.tenantMemberships.role, "director");
+    const supervisors = await db
+      .select({ userId: schema.tenantMemberships.userId })
+      .from(schema.tenantMemberships)
+      .where(and(eq(schema.tenantMemberships.tenantId, lead.tenantId), eq(schema.tenantMemberships.status, "active"), scope))
+      .groupBy(schema.tenantMemberships.userId)
+      .limit(5);
+
+    await Promise.allSettled([
+      // Notify the broker
+      ...(lead.corretorId
+        ? [publishNotification({
+            capability: "lead_converted",
+            tenantId: lead.tenantId,
+            recipientUserId: lead.corretorId,
+            leadId: lead.id,
+            type: "lead_converted",
+            title: "Lead convertido em cliente",
+            message: `${lead.nome} foi convertido e agora está disponível em Clientes.`,
+            pushTitle: "Lead Convertido! 🎉",
+            pushBody: `${lead.nome} foi convertido em cliente ativo.`,
+            url: `/leads/${lead.id}`,
+            tag: `lead-${lead.id}`,
+          })]
+        : []),
+      // Notify managers and directors
+      ...supervisors.map((supervisor) =>
+        publishNotification({
+          capability: "lead_converted",
+          tenantId: lead.tenantId,
+          recipientUserId: supervisor.userId,
+          leadId: lead.id,
+          type: "lead_converted",
+          title: "Lead convertido",
+          message: `${lead.nome} foi convertido em cliente por ${context.role === "broker" ? "o corretor" : "a gestão"}.`,
+          pushTitle: "Conversão! 📈",
+          pushBody: `${lead.nome} foi convertido. Verifique o resultado.`,
+          url: `/leads/${lead.id}`,
+          tag: `lead-${lead.id}`,
+        }),
+      ),
+    ].map((p) => p.catch(() => { /* non-blocking */ })));
+  }
+
+  if (newStatus === "lost") {
+    const scope = lead.branchId
+      ? or(eq(schema.tenantMemberships.role, "director"), and(eq(schema.tenantMemberships.role, "manager"), eq(schema.tenantMemberships.branchId, lead.branchId)))
+      : eq(schema.tenantMemberships.role, "director");
+    const supervisors = await db
+      .select({ userId: schema.tenantMemberships.userId })
+      .from(schema.tenantMemberships)
+      .where(and(eq(schema.tenantMemberships.tenantId, lead.tenantId), eq(schema.tenantMemberships.status, "active"), scope))
+      .groupBy(schema.tenantMemberships.userId)
+      .limit(5);
+
+    await Promise.allSettled([
+      // Notify the broker
+      ...(lead.corretorId
+        ? [publishNotification({
+            capability: "lead_lost",
+            tenantId: lead.tenantId,
+            recipientUserId: lead.corretorId,
+            leadId: lead.id,
+            type: "lead_lost",
+            title: "Lead perdido",
+            message: `${lead.nome} foi marcado como perdido. Motivo: ${MOTIVO_PERDA_LABELS[input.motivoPerda as MotivoPerda] ?? input.motivoPerda}`,
+            pushTitle: "Lead Perdido 💔",
+            pushBody: `${lead.nome} — ${MOTIVO_PERDA_LABELS[input.motivoPerda as MotivoPerda] ?? input.motivoPerda}.`,
+            url: `/leads/${lead.id}`,
+            tag: `lead-${lead.id}`,
+          })]
+        : []),
+      // Notify managers and directors
+      ...supervisors.map((supervisor) =>
+        publishNotification({
+          capability: "lead_lost",
+          tenantId: lead.tenantId,
+          recipientUserId: supervisor.userId,
+          leadId: lead.id,
+          type: "lead_lost",
+          title: "Lead perdido",
+          message: `${lead.nome} foi perdido. Motivo: ${MOTIVO_PERDA_LABELS[input.motivoPerda as MotivoPerda] ?? input.motivoPerda}`,
+          pushTitle: "Lead Perdido! 📉",
+          pushBody: `${lead.nome} foi perdido — ${MOTIVO_PERDA_LABELS[input.motivoPerda as MotivoPerda] ?? input.motivoPerda}.`,
+          url: `/leads/${lead.id}`,
+          tag: `lead-${lead.id}`,
+        }),
+      ),
+    ].map((p) => p.catch(() => { /* non-blocking */ })));
+  }
+
+  if (isReopening) {
+    const roleLabel = context.role === "director" ? "Diretor" : "Gestor";
+    const newStatusLabel = LEAD_STATUS_LABELS[newStatus] ?? newStatus;
+
+    // Notify the broker (if they exist and it's not the re-opening user)
+    if (lead.corretorId && lead.corretorId !== context.userId) {
+      void publishNotification({
+        capability: "lead_reopened",
+        tenantId: lead.tenantId,
+        recipientUserId: lead.corretorId,
+        leadId: lead.id,
+        type: "lead_reopened",
+        title: "Lead reaberto",
+        message: `${lead.nome} foi reaberto por ${roleLabel} e está agora em "${newStatusLabel}".`,
+        pushTitle: "Lead Reaberto! 🔄",
+        pushBody: `${lead.nome} foi reaberto por ${roleLabel} — status: ${newStatusLabel}.`,
+        url: `/leads/${lead.id}`,
+        tag: `lead-${lead.id}`,
+      }).catch(() => { /* non-blocking */ });
+    }
+
+    // Notify managers and directors
+    const scope = lead.branchId
+      ? or(eq(schema.tenantMemberships.role, "director"), and(eq(schema.tenantMemberships.role, "manager"), eq(schema.tenantMemberships.branchId, lead.branchId)))
+      : eq(schema.tenantMemberships.role, "director");
+    const supervisors = await db
+      .select({ userId: schema.tenantMemberships.userId })
+      .from(schema.tenantMemberships)
+      .where(and(eq(schema.tenantMemberships.tenantId, lead.tenantId), eq(schema.tenantMemberships.status, "active"), scope))
+      .groupBy(schema.tenantMemberships.userId)
+      .limit(5);
+
+    await Promise.allSettled(
+      supervisors
+        .filter((s) => s.userId !== context.userId)
+        .map((supervisor) =>
+          publishNotification({
+            capability: "lead_reopened",
+            tenantId: lead.tenantId,
+            recipientUserId: supervisor.userId,
+            leadId: lead.id,
+            type: "lead_reopened",
+            title: "Lead reaberto",
+            message: `${lead.nome} foi reaberto por ${roleLabel} e está em "${newStatusLabel}".`,
+            pushTitle: "Lead Reaberto! 🔄",
+            pushBody: `${lead.nome} foi reaberto — novo status: ${newStatusLabel}.`,
+            url: `/leads/${lead.id}`,
+            tag: `lead-${lead.id}`,
+          }).catch(() => { /* non-blocking */ }),
+        ),
+    );
+  }
 
   return {
     success: true,

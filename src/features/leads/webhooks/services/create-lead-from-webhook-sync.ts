@@ -2,11 +2,11 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 import { getDatabase, schema } from "@/shared/db";
 import { chooseAvailableBroker } from "@/features/leads/assignment";
-import { notifyNewLead } from "@/features/notifications/send-push-helper";
+import { notifyNewLead, notifyLeadArrived } from "@/features/notifications/send-push-helper";
 import { lpFormPayloadSchema } from "../schemas/lp-form-payload.schema";
 import {
   hashNormalizedWebhookPayload,
@@ -131,7 +131,6 @@ export async function createLeadFromWebhookSync(
 
   // ── Step 8: Create lead + beneficiary in a single transaction ──────
   const leadId = randomUUID();
-  const beneficiaryId = randomUUID();
   const now = new Date();
 
   await db.transaction(async (tx) => {
@@ -156,18 +155,8 @@ export async function createLeadFromWebhookSync(
       createdAt: now,
     });
 
-    // INSERT titular beneficiary (placeholder birthDate since LP doesn't collect it)
-    await tx.insert(schema.leadBeneficiaries).values({
-      id: beneficiaryId,
-      tenantId,
-      leadId,
-      name: normalizedName,
-      birthDate: "1900-01-01",
-      relationship: "titular",
-      isHolder: true,
-      createdAt: now,
-      updatedAt: now,
-    });
+    // A landing page does not collect a birth date. Do not persist a fictitious
+    // beneficiary: age-dependent quotes must wait for the broker to collect it.
   });
 
   // ── Step 9: Audit + interaction + delivery status (same request) ───
@@ -196,8 +185,11 @@ export async function createLeadFromWebhookSync(
       .where(eq(schema.webhookDeliveries.id, deliveryId));
   });
 
-  // ── Step 10: Push notification (synchronous) ────────────────────────
-  await notifyNewLead(leadId, tenantId, branchId, corretorId, normalizedName);
+  // ── Step 10: Push notifications (synchronous) ───────────────────────
+  await Promise.all([
+    notifyLeadArrived(leadId, tenantId, branchId, normalizedName),
+    notifyNewLead(leadId, tenantId, branchId, corretorId, normalizedName),
+  ]);
 
   return { success: true, leadId, duplicate: false };
 }

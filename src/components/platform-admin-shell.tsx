@@ -2,7 +2,6 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { AnimatePresence, motion } from "motion/react";
 import { PlatformAdminSidebar } from "./platform-admin-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { SquaresFour, ShieldStar } from "@/components/huge-icons";
@@ -64,18 +63,7 @@ export function PlatformAdminShell({ children }: { children: ReactNode }) {
       <PlatformAdminSidebar />
 
       <SidebarInset className="bg-background">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={pathname}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.18, ease: "easeInOut" }}
-            className="flex flex-1 flex-col"
-          >
-            {children}
-          </motion.div>
-        </AnimatePresence>
+        <div className="flex flex-1 flex-col">{children}</div>
       </SidebarInset>
     </SidebarProvider>
   );

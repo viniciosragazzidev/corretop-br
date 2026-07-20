@@ -35,16 +35,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ ten
   }
   if (!connection.active) return NextResponse.json({ accepted: true, discarded: true });
   const event = payload.data ?? payload;
-  console.info("[OpenWA] mensagem recebida", JSON.stringify({ event: (payload as OpenWaPayload & { event?: string }).event ?? "unknown", id: event.id ?? event.messageId ?? null, from: event.from ?? event.sender ?? null, to: event.to ?? event.recipient ?? null, chatId: event.chatId ?? null, body: event.body ?? event.text ?? event.content?.body ?? event.content?.text ?? event.message?.body ?? event.message?.text ?? null, fromMe: event.fromMe ?? false }));
+  console.info("[OpenWA] mensagem recebida", JSON.stringify({ event: (payload as OpenWaPayload & { event?: string }).event ?? "unknown", messageId: event.id ?? event.messageId ?? null, fromMe: event.fromMe ?? false }));
   let address = event.fromMe ? (event.to ?? event.recipient ?? event.chatId ?? event.from ?? event.sender) : (event.from ?? event.sender ?? event.chatId ?? event.to ?? event.recipient);
   if (typeof address === "string" && address.endsWith("@lid") && effectiveSessionId) {
     const contact = await getOpenWaContact(effectiveSessionId, address);
     address = contact?.id ?? contact?.number ?? address;
-    console.info("[OpenWA] LID resolvido", JSON.stringify({ lid: event.from ?? event.chatId, canonical: address }));
+    console.info("[OpenWA] LID resolvido");
   }
   const phone = String(address ?? "").replace(/\D/g, "");
   const body = String(event.body ?? event.text ?? event.content?.body ?? event.content?.text ?? event.message?.body ?? event.message?.text ?? "").trim();
-  if (!phone || !body) { console.info("[OpenWA] mensagem descartada: payload sem telefone ou corpo", JSON.stringify({ phone, body })); return NextResponse.json({ accepted: true, discarded: true }); }
+  if (!phone || !body) { console.info("[OpenWA] mensagem descartada: payload sem telefone ou corpo"); return NextResponse.json({ accepted: true, discarded: true }); }
   const [leads, clients] = await Promise.all([
     db.select({ id: schema.leads.id, phone: schema.leads.telefone, status: schema.leads.status }).from(schema.leads).where(eq(schema.leads.tenantId, tenantId)),
     db.select({ id: schema.clients.id, phone: schema.clients.telefone }).from(schema.clients).where(eq(schema.clients.tenantId, tenantId)),
@@ -53,9 +53,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ ten
   const matchingLeads = leads.filter((item) => samePhone(item.phone));
   const lead = matchingLeads.find((item) => ["in_contact", "quote_sent", "negotiation", "documentation_pending", "under_analysis"].includes(item.status)) ?? matchingLeads[0];
   const client = clients.find((item) => samePhone(item.phone));
-  if (!lead && !client) { console.info("[OpenWA] mensagem descartada: contato não vinculado", JSON.stringify({ phone, tenantId })); return NextResponse.json({ accepted: true, discarded: true }); }
+  if (!lead && !client) { console.info("[OpenWA] mensagem descartada: contato não vinculado"); return NextResponse.json({ accepted: true, discarded: true }); }
   await db.insert(schema.whatsappMessages).values({ id: randomUUID(), tenantId, leadId: lead?.id ?? null, clientId: client?.id ?? null, messageId: event.id ?? event.messageId ?? null, phone, direction: event.direction === "outgoing" || event.fromMe === true ? "outgoing" : "incoming", body, sentAt: event.timestamp ? new Date(event.timestamp * 1000) : new Date() }).onConflictDoNothing({ target: [schema.whatsappMessages.tenantId, schema.whatsappMessages.messageId] });
   if (lead?.id) revalidatePath(`/leads/${lead.id}`);
-  console.info("[OpenWA] mensagem persistida", JSON.stringify({ leadId: lead?.id ?? null, clientId: client?.id ?? null, phone, direction: event.direction === "outgoing" || event.fromMe === true ? "outgoing" : "incoming" }));
+  console.info("[OpenWA] mensagem persistida", JSON.stringify({ hasLead: Boolean(lead), hasClient: Boolean(client), direction: event.direction === "outgoing" || event.fromMe === true ? "outgoing" : "incoming" }));
   return NextResponse.json({ accepted: true, persisted: true });
 }

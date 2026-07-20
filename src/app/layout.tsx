@@ -5,6 +5,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { AppProviders } from "@/components/app-providers";
 import { SplashScreen } from "@/components/splash-screen";
+import { InterfaceMotionProvider } from "@/components/motion/interface-motion-provider";
+import { RouteViewTransition } from "@/components/motion/route-view-transition";
+import { getSystemSetting } from "@/features/system-settings/queries";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -29,15 +32,18 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const theme = (await cookies()).get("corretop-theme")?.value === "dark" ? "dark" : "light";
+  const motionEnabled = (await getSystemSetting("feature_interface_motion_enabled")) !== "false";
 
   return (
     <html lang="pt-BR" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable} ${theme === "dark" ? "dark" : ""} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <SplashScreen />
-        <AppProviders>
-          <TooltipProvider>{children}</TooltipProvider>
-          <Toaster />
-        </AppProviders>
+        <InterfaceMotionProvider enabled={motionEnabled}>
+          <AppProviders>
+            <TooltipProvider><RouteViewTransition>{children}</RouteViewTransition></TooltipProvider>
+            <Toaster />
+          </AppProviders>
+        </InterfaceMotionProvider>
       </body>
     </html>
   );

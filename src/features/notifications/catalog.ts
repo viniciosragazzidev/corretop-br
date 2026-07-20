@@ -7,7 +7,15 @@ export const notificationCapabilities = [
   { id: "sale_registered", label: "Venda registrada", description: "Confirmação de conversão e registro da venda.", channels: "Toast/in-app" },
   { id: "client_renewal", label: "Renovação de cliente", description: "Lembretes de aniversário e renovação contratual.", channels: "Toast/in-app" },
   { id: "lead_reengagement", label: "Reengajamento de lead", description: "Avisos de oportunidades de reengajamento.", channels: "Toast/in-app" },
-  { id: "lead_converted", label: "Lead convertido", description: "Aviso de mudança do lead para convertido.", channels: "Toast/in-app" },
+  { id: "lead_converted", label: "Lead convertido", description: "Aviso de mudança do lead para convertido.", channels: "Toast + push" },
+  { id: "lead_lost", label: "Lead perdido", description: "Aviso ao corretor e gestão quando um lead é marcado como perdido.", channels: "Toast + push" },
+  { id: "document_reviewed", label: "Documento revisado", description: "Notifica o corretor quando um documento é aprovado ou rejeitado.", channels: "Toast + push" },
+  { id: "lead_arrived", label: "Lead chegou", description: "Aviso aos gestores e diretores quando um novo lead chega no sistema, antes da distribuição.", channels: "Toast + push" },
+  { id: "task_overdue", label: "Tarefa vencida", description: "Lembrete ao responsável quando uma tarefa está com prazo vencido.", channels: "Toast + push" },
+  { id: "lead_reassigned", label: "Lead reatribuído", description: "Notifica o corretor anterior quando um lead é reatribuído a outro profissional.", channels: "Toast + push" },
+  { id: "manager_note", label: "Nota da gestão", description: "Notifica o corretor quando um gestor ou diretor adiciona uma observação ao seu lead.", channels: "Toast + push" },
+  { id: "lead_reopened", label: "Lead reaberto", description: "Notifica o corretor e a gestão quando um lead perdido é reaberto.", channels: "Toast + push" },
+  { id: "lead_archived", label: "Lead arquivado", description: "Notifica quando um lead é arquivado (disponível para uso futuro).", channels: "Toast/in-app" },
 ] as const;
 
 export type NotificationCapabilityId = (typeof notificationCapabilities)[number]["id"];

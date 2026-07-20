@@ -9,7 +9,7 @@ import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { AuthorizationError } from "@/shared/auth/errors";
 import { getDatabase, schema } from "@/shared/db";
 
-import { notifyNewLead } from "@/features/notifications/send-push-helper";
+import { notifyNewLead, notifyLeadReassigned } from "@/features/notifications/send-push-helper";
 
 const inputSchema = z.object({ leadId: z.string().uuid(), brokerId: z.string().uuid().nullable() });
 export type ManagementActionState = { success?: boolean; error?: string };
@@ -47,6 +47,10 @@ export async function reassignLeadAction(_prev: ManagementActionState, formData:
 
     // Trigger push notifications in background
     void notifyNewLead(lead.id, lead.tenantId, lead.branchId, input.brokerId, lead.nome).catch(console.error);
+    // Notify the previous broker that the lead was reassigned
+    if (lead.corretorId && lead.corretorId !== input.brokerId) {
+      void notifyLeadReassigned(lead.id, lead.tenantId, lead.corretorId, lead.nome).catch(console.error);
+    }
 
     revalidatePath(`/leads/${lead.id}`); revalidatePath("/leads"); revalidatePath("/dashboard");
     return { success: true };

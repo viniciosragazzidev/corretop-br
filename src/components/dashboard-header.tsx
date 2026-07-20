@@ -8,6 +8,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { GlobalSearch } from "@/components/global-search";
 import { NotificationPopover } from "@/components/notification-popover";
+import { AnimatedPageTitle } from "@/components/motion/animated-page-title";
 
 type DashboardHeaderProps = {
   breadcrumb: string;
@@ -23,6 +24,7 @@ export function DashboardHeader({
   return (
     <header
       className="sticky top-0 z-10 flex h-(--header-height) shrink-0 items-center gap-3 border-b border-border bg-background px-4 lg:px-6 max-[559px]:h-14 max-[559px]:gap-2 max-[559px]:px-3"
+      style={{ viewTransitionName: "ct-shell-header" }}
     >
       <div
         className="max-[559px]:shrink-0"
@@ -31,8 +33,7 @@ export function DashboardHeader({
       </div>
       <div className="h-4 w-px bg-border max-[559px]:hidden" />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[11px] text-muted-foreground max-[559px]:hidden">{breadcrumb}</p>
-        <p className="truncate text-sm font-semibold">{title}</p>
+        <AnimatedPageTitle breadcrumb={breadcrumb} title={title} />
       </div>
       {rightSlot}
       <div className="max-[559px]:hidden"><GlobalSearch /></div>

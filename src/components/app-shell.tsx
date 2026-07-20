@@ -3,13 +3,11 @@
 import type { CSSProperties, ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
-import { AnimatePresence, motion } from "motion/react";
 import { CorreTopSidebar } from "@/components/corretop-sidebar";
 import { CorreTopFinanceiroSidebar } from "@/components/corretop-financeiro-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { WorkspaceRail } from "@/components/workspace-rail";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
-import { pageTransitionVariants } from "@/shared/animations";
 
 type Branding = {
   brandColor: string | null;
@@ -94,18 +92,7 @@ export function AppShell({
         <CorreTopSidebar logoUrl={branding?.logoUrl ?? null} />
       )}
       <SidebarInset className="bg-background overflow-hidden max-[559px]:pb-[calc(4.5rem+env(safe-area-inset-bottom))]">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={pathname}
-            variants={pageTransitionVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            className="flex min-h-0 flex-1 flex-col"
-          >
-            {children}
-          </motion.div>
-        </AnimatePresence>
+        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
       </SidebarInset>
       <MobileBottomNav />
     </SidebarProvider>
