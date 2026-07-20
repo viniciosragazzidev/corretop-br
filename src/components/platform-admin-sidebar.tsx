@@ -1,6 +1,6 @@
 "use client";
 
-import { Buildings, Gear, House, RoadHorizon, ShieldStar, SignOut, Clock, ShieldWarning, RocketLaunch, FileText, Megaphone, LockKey, ChatCircleText, ChartLineUp } from "@/components/huge-icons";
+import { Buildings, Gear, House, RoadHorizon, ShieldStar, SignOut, Clock, ShieldWarning, RocketLaunch, FileText, Megaphone, LockKey, ChatCircleText, ChartLineUp, WhatsappLogo } from "@/components/huge-icons";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -66,6 +66,17 @@ export function PlatformAdminSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent className="mt-1.5">
             <SidebarMenu className="gap-1">
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={pathname === "/super-admin/whatsapp-review"}
+                  render={<Link href="/super-admin/whatsapp-review" prefetch />}
+                  tooltip="Revisão WhatsApp Meta"
+                  className="px-3.5 py-2 text-xs font-medium"
+                >
+                  <WhatsappLogo className="size-4" />
+                  <span>Revisão WhatsApp Meta</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
                   isActive={pathname === "/super-admin/catalogo"}

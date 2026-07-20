@@ -37,6 +37,13 @@ O CorreTop migra de OpenWA para a Cloud API oficial da Meta em etapas. `communic
 
 As rotas do aplicativo usam a integração experimental de View Transitions do Next.js para transições curtas entre snapshots do navegador. A rota anterior e a nova não coexistem no DOM do aplicativo, evitando o efeito de tela dividida. A capacidade é reversível pela chave global `feature_interface_motion_enabled`, administrada exclusivamente pelo Super-admin e auditada em `platform_audit_logs`. A preferência `prefers-reduced-motion` sempre prevalece. Tabelas, filas e métricas não recebem animação de entrada ou reordenação; nelas só são permitidas transições de estado de baixo impacto, como hover e foco.
 
+## DEC-035 — Serviço Fastify isolado para evidência e evolução da Cloud API
+
+**Estado:** Aceita
+**Data:** 2026-07-20
+
+O CorreTop usa `services/whatsapp-api` como fronteira Fastify separada para chamadas da Graph API que exigem credenciais privadas da Meta. O CRM não chama a Meta pelo navegador: uma Server Action restrita ao Super-admin e governada pela capacidade global encaminha o pedido ao Fastify usando segredo interno. O serviço recebe somente a solicitação autorizada, usa o token da Meta localmente e devolve ao CRM apenas o resultado seguro. A infraestrutura do Fastify é implantada separadamente da Vercel; Embedded Signup, templates e armazenamento de tokens por WABA continuam como fases explícitas.
+
 ## Pendentes bloqueantes
 
 | ID | Decisão necessária | Impacto | Dono sugerido |

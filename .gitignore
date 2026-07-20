@@ -20,6 +20,8 @@
 
 # production
 /build
+/services/whatsapp-api/dist/
+/services/whatsapp-api/node_modules/
 
 # misc
 .DS_Store

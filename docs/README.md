@@ -18,6 +18,7 @@
 | `setup-tutorial-pattern.md` | Padrão reutilizável para tutoriais de configuração em etapas | Norma de composição de onboarding |
 | `lead-distribution-implementation-status.md` | Estado, regras operacionais e pendências da distribuição de leads | Plano executado parcialmente |
 | `lead-intake-test-plan.md` | Fluxo observado, matriz de testes e lacunas do recebimento de leads | Referência de qualidade vigente |
+| `whatsapp-review-service.md` | Fronteira Fastify, controles e implantação do envio de revisão da Meta | Norma de integração vigente |
 | `plugin-first-architecture.md` | Direção arquitetural modular, contratos de domínio, plugins, eventos e hosts | Norma arquitetural vigente |
 | `features-log.md` | Histórico de funcionalidades adicionadas ao sistema por versão/etapa | Histórico de controle vigente |
 | `adr/` | Decisões de arquitetura imutáveis | Criar quando houver decisão relevante |
