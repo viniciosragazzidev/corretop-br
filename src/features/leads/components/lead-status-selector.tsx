@@ -31,6 +31,7 @@ import {
   MOTIVOS_PERDA,
   MOTIVO_PERDA_LABELS,
 } from "@/features/leads/lead-status-constants";
+import { LeadFeedbackDialog } from "./lead-feedback-dialog";
 
 type LeadStatusSelectorProps = {
   leadId: string;
@@ -63,6 +64,8 @@ export function LeadStatusSelector({
 }: LeadStatusSelectorProps) {
   const router = useRouter();
   const [showLostConfirm, setShowLostConfirm] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackAfterStatus, setFeedbackAfterStatus] = useState(false);
   const [motivoPerda, setMotivoPerda] = useState("");
   const [state, dispatch, pending] = useActionState<StatusChangeState, FormData>(
     changeLeadStatusAction,
@@ -89,8 +92,11 @@ export function LeadStatusSelector({
   useEffect(() => {
     if (state.success) {
       toast.success("Status alterado com sucesso.");
+      if (feedbackAfterStatus) setShowFeedback(true);
+      setFeedbackAfterStatus(false);
       router.refresh();
     } else if (state.error) {
+      setFeedbackAfterStatus(false);
       toast.error(state.error);
     }
   }, [state.success, state.error, router]);
@@ -100,6 +106,7 @@ export function LeadStatusSelector({
     formData.set("leadId", leadId);
     formData.set("newStatus", status);
     if (motivo) formData.set("motivoPerda", motivo);
+    setFeedbackAfterStatus(role === "broker" && status !== "lost");
     addOptimisticStatus(status);
     startTransition(() => dispatch(formData));
   };
@@ -234,6 +241,7 @@ export function LeadStatusSelector({
           </DialogPanel>
         </DialogPopup>
       </Dialog>
+      <LeadFeedbackDialog leadId={leadId} open={showFeedback} onOpenChange={setShowFeedback} />
     </>
   );
 }
