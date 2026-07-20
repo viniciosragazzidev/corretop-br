@@ -8,6 +8,9 @@ import { DistributionInbox } from "./_components/distribution-inbox";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { getDistributionJobConfig, getLeadDistributionJobHealth } from "@/features/lead-distribution/jobs";
 
 export const dynamic = "force-dynamic";
 
@@ -55,7 +58,9 @@ export default async function LeadDistributionPage() {
     memberCounts,
     availableCounts,
     leadCounts,
-    newLeadCounts
+    newLeadCounts,
+    jobHealth,
+    jobConfig,
   ] = await Promise.all([
     db
       .select({ id: schema.user.id, name: schema.user.name, email: schema.user.email, branchId: schema.tenantMemberships.branchId, branchName: schema.branches.name, availabilityStatus: schema.tenantMemberships.availabilityStatus })
@@ -93,7 +98,9 @@ export default async function LeadDistributionPage() {
       .select({ branchId: schema.leads.branchId, count: count(schema.leads.id) })
       .from(schema.leads)
       .where(and(eq(schema.leads.tenantId, context.tenantId), inArray(schema.leads.branchId, branchIds), eq(schema.leads.status, "new")))
-      .groupBy(schema.leads.branchId)
+      .groupBy(schema.leads.branchId),
+    getLeadDistributionJobHealth(context.tenantId),
+    getDistributionJobConfig(),
   ]);
 
   const activeBrokerLeadsMap = new Map(activeBrokerLeads.map((entry) => [entry.brokerId, Number(entry.count)]));
@@ -148,6 +155,18 @@ export default async function LeadDistributionPage() {
             totalNewLeads,
           }}
         />
+        <Card className="border-border bg-card shadow-none">
+          <CardHeader className="flex-row items-start justify-between gap-4 space-y-0">
+            <div><CardTitle>Automação da fila</CardTitle><CardDescription>Estado real do processamento assíncrono desta corretora.</CardDescription></div>
+            <Badge variant={!jobHealth.available ? "outline" : !jobConfig.enabled ? "outline" : jobHealth.failed > 0 ? "warning" : "success"}>{!jobHealth.available ? "Aguardando migration" : !jobConfig.enabled ? "Pausada globalmente" : jobHealth.failed > 0 ? "Requer atenção" : "Ativa"}</Badge>
+          </CardHeader>
+          <CardContent className="grid gap-3 text-sm sm:grid-cols-4">
+            <div><p className="text-xs text-muted-foreground">Aguardando</p><p className="mt-1 text-lg font-semibold">{jobHealth.pending + jobHealth.retrying}</p></div>
+            <div><p className="text-xs text-muted-foreground">Em processamento</p><p className="mt-1 text-lg font-semibold">{jobHealth.processing}</p></div>
+            <div><p className="text-xs text-muted-foreground">Exceções</p><p className="mt-1 text-lg font-semibold">{jobHealth.failed}</p></div>
+            <div><p className="text-xs text-muted-foreground">Próximo passo</p><p className="mt-1 text-sm font-medium">{jobHealth.failed > 0 ? "Revisar exceções com o Diretor" : jobHealth.pending + jobHealth.retrying > 0 ? "O motor tentará distribuir" : "Nenhuma pendência automática"}</p></div>
+          </CardContent>
+        </Card>
         <DistributionInbox
           branches={branches.map((branch) => ({ id: branch.id, name: branch.name }))}
           brokers={brokers.map((broker) => ({ id: broker.id, name: broker.name, branchId: broker.branchId, availabilityStatus: broker.availabilityStatus, activeLeads: activeBrokerLeadsMap.get(broker.id) ?? 0 }))}

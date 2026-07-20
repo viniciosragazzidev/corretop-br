@@ -1,6 +1,6 @@
 import { getSystemSettings } from "@/features/system-settings/queries";
 import { getNotificationCapabilityStates } from "@/features/notifications/queries";
-import { updateCentralAtencaoSettingsAction, updateGlobalSearchSettingsAction, updateInterfaceMotionSettingsAction, updateMetaCloudWhatsAppSettingsAction, updateNotificationCapabilityAction, updateAiSettingsAction } from "@/app/(platform-admin)/super-admin/actions";
+import { updateCentralAtencaoSettingsAction, updateGlobalSearchSettingsAction, updateInterfaceMotionSettingsAction, updateMetaCloudWhatsAppSettingsAction, updateNotificationCapabilityAction, updateAiSettingsAction, updateLeadDistributionJobsSettingsAction, runLeadDistributionJobsAction } from "@/app/(platform-admin)/super-admin/actions";
 import { setRouteOnboardingGlobalAction } from "@/features/onboarding/actions/route-onboarding-actions";
 import { PlatformAdminHeader } from "@/components/platform-admin-header";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,12 @@ export default async function SuperAdminSettingsPage() {
     "feature_interface_motion_enabled",
     "feature_route_onboarding_enabled",
     "feature_whatsapp_meta_cloud_enabled",
+    "feature_lead_distribution_jobs_enabled",
+    "lead_distribution_jobs_batch_size",
+    "lead_distribution_jobs_max_attempts",
+    "lead_distribution_jobs_retry_base_seconds",
+    "lead_distribution_jobs_lease_seconds",
+    "lead_distribution_jobs_recovery_minutes",
     "ai_enabled",
     "ai_primary_provider",
     "ai_primary_model",
@@ -37,6 +43,12 @@ export default async function SuperAdminSettingsPage() {
   const interfaceMotionEnabled = settingMap.get("feature_interface_motion_enabled") !== "false";
   const routeOnboardingEnabled = settingMap.get("feature_route_onboarding_enabled") !== "false";
   const metaCloudWhatsAppEnabled = settingMap.get("feature_whatsapp_meta_cloud_enabled") === "true";
+  const distributionJobsEnabled = settingMap.get("feature_lead_distribution_jobs_enabled") !== "false";
+  const distributionBatchSize = settingMap.get("lead_distribution_jobs_batch_size") ?? "25";
+  const distributionMaxAttempts = settingMap.get("lead_distribution_jobs_max_attempts") ?? "8";
+  const distributionRetryBaseSeconds = settingMap.get("lead_distribution_jobs_retry_base_seconds") ?? "60";
+  const distributionLeaseSeconds = settingMap.get("lead_distribution_jobs_lease_seconds") ?? "120";
+  const distributionRecoveryMinutes = settingMap.get("lead_distribution_jobs_recovery_minutes") ?? "5";
 
   const aiEnabled = settingMap.get("ai_enabled") === "true";
   const aiPrimaryProvider = settingMap.get("ai_primary_provider") ?? "groq";
@@ -92,6 +104,28 @@ export default async function SuperAdminSettingsPage() {
             <form action={setRouteOnboardingGlobalAction} className="flex flex-wrap items-center justify-between gap-4">
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="enabled" value="true" defaultChecked={routeOnboardingEnabled} className="size-4 warning-[var(--primary)]" /><span><span className="font-medium">Onboarding de rotas habilitado</span><span className="block text-xs text-muted-foreground">Desative temporariamente sem apagar progresso nem auditoria.</span></span></label>
               <Button type="submit">Salvar onboarding</Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border bg-card shadow-none">
+          <CardHeader>
+            <CardTitle>Motor de distribuição</CardTitle>
+            <CardDescription>Processa leads em fila, recupera execuções interrompidas e mantém exceções auditáveis. Desativar interrompe novas tentativas sem apagar a fila.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <form action={updateLeadDistributionJobsSettingsAction} className="grid gap-4 lg:grid-cols-3">
+              <label className="flex items-center gap-2 text-sm lg:col-span-3"><input type="checkbox" name="enabled" value="true" defaultChecked={distributionJobsEnabled} className="size-4" /><span><span className="font-medium">Distribuição automática resiliente habilitada</span><span className="block text-xs text-muted-foreground">A fila segue preservada quando desativada; Diretor e Gestor ainda podem atribuir manualmente.</span></span></label>
+              <label className="grid gap-1 text-xs font-medium">Leads por ciclo<Input name="batchSize" min={1} max={100} type="number" defaultValue={distributionBatchSize} /></label>
+              <label className="grid gap-1 text-xs font-medium">Tentativas máximas<Input name="maxAttempts" min={1} max={20} type="number" defaultValue={distributionMaxAttempts} /></label>
+              <label className="grid gap-1 text-xs font-medium">Lease (segundos)<Input name="leaseSeconds" min={30} max={900} type="number" defaultValue={distributionLeaseSeconds} /></label>
+              <label className="grid gap-1 text-xs font-medium">Retry inicial (segundos)<Input name="retryBaseSeconds" min={15} max={3600} type="number" defaultValue={distributionRetryBaseSeconds} /></label>
+              <label className="grid gap-1 text-xs font-medium">Recuperação (minutos)<Input name="recoveryMinutes" min={1} max={60} type="number" defaultValue={distributionRecoveryMinutes} /></label>
+              <div className="flex items-end"><Button type="submit">Salvar motor</Button></div>
+            </form>
+            <form action={runLeadDistributionJobsAction} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3">
+              <p className="text-xs text-muted-foreground">Use apenas para intervenção operacional: executa um ciclo com os limites configurados e registra a solicitação na auditoria.</p>
+              <Button type="submit" variant="outline">Processar fila agora</Button>
             </form>
           </CardContent>
         </Card>

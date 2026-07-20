@@ -1,5 +1,13 @@
 # Sistema de distribuição de leads — estado da implementação
 
+## Motor resiliente — 20/07/2026
+
+- A tabela `lead_distribution_jobs` persiste trabalhos de atribuição e impede jobs ativos duplicados por lead.
+- O executor interno trabalha em lotes, usa atualização condicional, lease recuperável, backoff e falha visível após o limite configurado.
+- A rota protegida `/api/internal/jobs/distribution` é acionada pelo cron da Vercel; `CRON_SECRET` é obrigatório.
+- O Super-admin pode pausar, parametrizar e executar um ciclo manual com auditoria.
+- A tela de Distribuição informa pendências, processamento e exceções reais. A migration 0059 é pré-requisito para esta telemetria.
+
 Atualizado em 15/07/2026.
 
 ## O que está operacional

@@ -496,6 +496,34 @@ export const leadDistributionEvents = pgTable(
   (table) => [index("lead_distribution_events_tenant_lead_idx").on(table.tenantId, table.leadId, table.createdAt)],
 );
 
+export const leadDistributionJobs = pgTable(
+  "lead_distribution_jobs",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    leadId: text("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+    type: text("type").notNull().default("process_queued_lead"),
+    status: text("status").notNull().default("pending"),
+    attemptCount: integer("attempt_count").notNull().default(0),
+    maxAttempts: integer("max_attempts").notNull().default(8),
+    runAfter: timestamp("run_after", { withTimezone: true }).notNull().defaultNow(),
+    lockedAt: timestamp("locked_at", { withTimezone: true }),
+    lockedBy: text("locked_by"),
+    leaseExpiresAt: timestamp("lease_expires_at", { withTimezone: true }),
+    lastErrorCode: text("last_error_code"),
+    lastErrorMessage: text("last_error_message"),
+    idempotencyKey: text("idempotency_key").notNull(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("lead_distribution_jobs_due_idx").on(table.status, table.runAfter),
+    index("lead_distribution_jobs_tenant_created_idx").on(table.tenantId, table.createdAt),
+    uniqueIndex("lead_distribution_jobs_active_unique").on(table.tenantId, table.leadId, table.type).where(sql`${table.status} in ('pending', 'retrying', 'processing')`),
+  ],
+);
+
 export const leadDistributionSettings = pgTable(
   "lead_distribution_settings",
   {

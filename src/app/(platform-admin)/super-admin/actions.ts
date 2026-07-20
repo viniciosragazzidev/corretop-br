@@ -19,6 +19,51 @@ import { getRequiredPlatformAdmin } from "@/shared/auth/platform-admin";
 import { setSystemSetting } from "@/features/system-settings/queries";
 import { notificationCapabilities, notificationCapabilitySettingKey } from "@/features/notifications/catalog";
 import { resetPlatformUserRouteOnboarding } from "@/features/onboarding/route-onboarding-service";
+import { runLeadDistributionProcessor } from "@/features/lead-distribution/jobs";
+
+function boundedDistributionSetting(value: FormDataEntryValue | null, fallback: number, min: number, max: number) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= min && parsed <= max ? String(parsed) : String(fallback);
+}
+
+export async function updateLeadDistributionJobsSettingsAction(formData: FormData) {
+  const admin = await getRequiredPlatformAdmin();
+  const db = getDatabase();
+  const now = new Date();
+  const values = {
+    enabled: formData.get("enabled") === "true" ? "true" : "false",
+    batchSize: boundedDistributionSetting(formData.get("batchSize"), 25, 1, 100),
+    maxAttempts: boundedDistributionSetting(formData.get("maxAttempts"), 8, 1, 20),
+    retryBaseSeconds: boundedDistributionSetting(formData.get("retryBaseSeconds"), 60, 15, 3600),
+    leaseSeconds: boundedDistributionSetting(formData.get("leaseSeconds"), 120, 30, 900),
+    recoveryMinutes: boundedDistributionSetting(formData.get("recoveryMinutes"), 5, 1, 60),
+  };
+  await Promise.all([
+    setSystemSetting("feature_lead_distribution_jobs_enabled", values.enabled, now),
+    setSystemSetting("lead_distribution_jobs_batch_size", values.batchSize, now),
+    setSystemSetting("lead_distribution_jobs_max_attempts", values.maxAttempts, now),
+    setSystemSetting("lead_distribution_jobs_retry_base_seconds", values.retryBaseSeconds, now),
+    setSystemSetting("lead_distribution_jobs_lease_seconds", values.leaseSeconds, now),
+    setSystemSetting("lead_distribution_jobs_recovery_minutes", values.recoveryMinutes, now),
+  ]);
+  await db.insert(schema.platformAuditLogs).values({
+    id: crypto.randomUUID(), actorUserId: admin.userId, action: "lead_distribution_jobs.settings_updated",
+    targetType: "system_settings", targetId: "lead_distribution_jobs", metadata: values, createdAt: now,
+  });
+  revalidatePath("/super-admin/settings");
+  revalidatePath("/leads/distribuicao");
+}
+
+export async function runLeadDistributionJobsAction() {
+  const admin = await getRequiredPlatformAdmin();
+  const result = await runLeadDistributionProcessor();
+  await getDatabase().insert(schema.platformAuditLogs).values({
+    id: crypto.randomUUID(), actorUserId: admin.userId, action: "lead_distribution_jobs.run_requested",
+    targetType: "lead_distribution_jobs", targetId: "global", metadata: result, createdAt: new Date(),
+  });
+  revalidatePath("/super-admin/settings");
+  revalidatePath("/leads/distribuicao");
+}
 
 export async function resetUserRouteOnboardingAction(formData: FormData) {
   const userId = String(formData.get("userId") ?? "").trim();

@@ -1,5 +1,7 @@
 # Catálogo de Regras de Negócio
 
+> **BR-029A — Distribuição automática recuperável e idempotente:** lead em fila gera trabalho persistente; o executor revalida elegibilidade e atribui somente se o lead continua sem owner. Lease vencido ou falha transitória devolve o trabalho à fila com motivo; falha definitiva fica visível e auditável para intervenção humana. Origem: DEC-038.
+
 **Estado:** base de implementação · **Fonte:** `CorreTop_Documento_Requisitos.md` ·
 **Convenção:** uma regra deve ter identificador, gatilho, resultado observável e
 rastreabilidade. Pendências que impedem uma implementação definitiva ficam no

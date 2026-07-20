@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { routeLeadToBranch, assignLeadToBroker, processQueuedLead } from "./service";
+import { enqueueLeadDistributionJob } from "./jobs";
 
 export type DistributionActionState = { success?: boolean; message?: string; error?: string; processed?: number; conflicts?: number };
 const leadId = z.string().uuid();
@@ -19,7 +20,7 @@ function refreshDistribution() {
 export async function routeLeadToBranchAction(_previous: DistributionActionState, formData: FormData): Promise<DistributionActionState> {
   const parsed = z.object({ leadId, branchId, reason: z.string().trim().min(3).max(200).optional() }).safeParse({ leadId: formData.get("leadId"), branchId: formData.get("branchId"), reason: String(formData.get("reason") ?? "") || undefined });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Selecione uma unidade válida." };
-  try { const result = await routeLeadToBranch(await getRequiredTenantContext(), parsed.data.leadId, parsed.data.branchId, parsed.data.reason); if (result.status !== "routed") return { error: result.status === "conflict" ? "Este lead já foi atribuído." : "A unidade não pode receber leads agora." }; refreshDistribution(); return { success: true, message: "Lead enviado para a fila da unidade." }; } catch (error) { return { error: error instanceof Error ? error.message : "Não foi possível enviar o lead para a unidade." }; }
+  try { const context = await getRequiredTenantContext(); const result = await routeLeadToBranch(context, parsed.data.leadId, parsed.data.branchId, parsed.data.reason); if (result.status !== "routed") return { error: result.status === "conflict" ? "Este lead já foi atribuído." : "A unidade não pode receber leads agora." }; await enqueueLeadDistributionJob({ tenantId: context.tenantId, leadId: parsed.data.leadId }); refreshDistribution(); return { success: true, message: "Lead enviado para a fila da unidade." }; } catch (error) { return { error: error instanceof Error ? error.message : "Não foi possível enviar o lead para a unidade." }; }
 }
 
 export async function assignLeadToBrokerAction(_previous: DistributionActionState, formData: FormData): Promise<DistributionActionState> {
