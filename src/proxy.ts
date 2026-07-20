@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { updateSession } from "@/utils/supabase/middleware";
 
 const protectedPathPrefixes = ["/welcome", "/dashboard", "/equipe", "/leads", "/roadmap", "/documentos", "/clientes", "/metas", "/relatorios", "/integridade", "/catalogo", "/assinatura", "/minha-fila", "/minha-meta", "/notificacoes", "/filiais", "/financeiro", "/configuracoes", "/diretor", "/gestor", "/corretor", "/super-admin", "/checklist", "/materiais-divulgacao"] as const;
+const publicPaths = ["/compartilhado", "/api/public"] as const;
 const authPaths = ["/login", "/verify", "/admin/login"] as const;
 
 function copyCookies(source: NextResponse, target: NextResponse) {
@@ -27,6 +28,13 @@ export async function proxy(request: NextRequest) {
       response.headers.set("x-request-id", requestId);
       return response;
     }
+    const response = supabaseResponse;
+    response.headers.set("x-request-id", requestId);
+    return response;
+  }
+
+  // Public paths bypass auth entirely
+  if (publicPaths.some((p) => pathname.startsWith(p))) {
     const response = supabaseResponse;
     response.headers.set("x-request-id", requestId);
     return response;

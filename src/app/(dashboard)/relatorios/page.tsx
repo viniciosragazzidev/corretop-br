@@ -18,6 +18,7 @@ import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
 import { hasPermission } from "@/shared/auth/permissions";
 import { ExportButtons } from "./_components/export-buttons";
+import { SpreadsheetSection } from "./_components/spreadsheet-section";
 
 export const dynamic = "force-dynamic";
 
@@ -211,6 +212,9 @@ export default async function ReportsPage() {
           </CardContent>
           </Card>
         )}
+
+        {/* Planilhas importadas */}
+        <SpreadsheetSection />
 
         {/* Report Cards Grid */}
         <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">

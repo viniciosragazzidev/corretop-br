@@ -56,7 +56,8 @@ rastreabilidade. Pendências que impedem uma implementação definitiva ficam no
 | BR-035 | Conversão cria venda e Cliente Ativo ligado a plano e aniversário. | Lead convertido → venda, cliente e eventos subsequentes são criados. | RF130 |
 
 | BR-036 | Todo atendimento pode representar mais de uma pessoa beneficiária e possui exatamente um titular. | Triagem/cotação cria beneficiários persistidos com vínculo ao lead e titular identificado. | Simulação ponta a ponta |
-| BR-037 | Requisitos marcados como individuais são exigidos para cada beneficiário; requisitos familiares são exigidos uma vez. | Checklist materializa itens por pessoa de forma idempotente. | Solução de beneficiários |
+| BR-037 | Requisitos marcados como individuais são exigidos para cada beneficiário; requisitos familiares são exigidos uma vez. | A checklist só considera um requisito individual concluído quando há documento aprovado para cada beneficiário vigente; requisitos familiares exigem uma aprovação. A materialização idempotente por pessoa permanece pendente. | Solução de beneficiários |
+| BR-037A | O contato principal do lead é a referência inicial de titular da contratação; seus dados cadastrais devem ser confirmados antes de incluir dependentes. | Detalhe do lead → contato exibido como titular pendente; confirmação da data de nascimento → cria o titular persistido. Dependente com cotação vinculada não pode ser excluído, preservando o histórico. | Atendimento e pós-venda |
 | BR-038 | Venda só é registrada com evidência da aprovação da operadora, apólice, início de vigência e valor final aprovado. | Registro incompleto é recusado e apresenta pendências explícitas. | Solução de registro de venda |
 | BR-039 | Cancelamento não apaga histórico nem desconta dinheiro automaticamente. | Parcelas futuras são canceladas e parcelas pagas na janela são sinalizadas para decisão manual. | Solução de cancelamento |
 

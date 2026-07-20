@@ -35,6 +35,7 @@ export const leadInteractionTypeValues = [
   "document_review",
   "quote_generated",
   "whatsapp_msg",
+  "service_started",
 ] as const;
 export const webhookCredentialStatusValues = ["active", "revoked"] as const;
 export const webhookDeliveryStatusValues = ["received", "processed", "rejected", "failed"] as const;
@@ -342,8 +343,9 @@ export const leads = pgTable(
     sourceAd: text("source_ad"),
     sourceForm: text("source_form"),
     sourceMetadata: jsonb("source_metadata"),
-    webhookCredentialId: text("webhook_credential_id").references(() => leadWebhookCredentials.id),
+    webhookCredentialId: text("webhook_credential_id").references(() => leadWebhookCredentials.id, { onDelete: "set null" }),
     createdAt,
+    updatedAt,
   },
   (table) => [
     index("leads_tenant_branch_status_idx").on(table.tenantId, table.branchId, table.status),
@@ -1930,6 +1932,34 @@ export const messageTemplateRelations = relations(
       references: [user.id],
     }),
   }),
+);
+
+export const importedSpreadsheets = pgTable(
+  "imported_spreadsheets",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => user.id),
+    name: text("name").notNull(),
+    description: text("description"),
+    columns: jsonb("columns").notNull().default([]),
+    data: jsonb("data").notNull().default([]),
+    rowCount: integer("row_count").notNull().default(0),
+    publicToken: text("public_token").unique(),
+    publicPasswordHash: text("public_password_hash"),
+    publicCreatedAt: timestamp("public_created_at", { withTimezone: true }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("imported_spreadsheets_tenant_idx").on(table.tenantId),
+    index("imported_spreadsheets_created_by_idx").on(table.createdBy),
+    uniqueIndex("imported_spreadsheets_public_token_unique").on(table.publicToken).where(sql`${table.publicToken} IS NOT NULL`),
+  ],
 );
 
 export type TenantRole = (typeof tenantRoleValues)[number];

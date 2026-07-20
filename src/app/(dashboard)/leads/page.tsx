@@ -107,7 +107,6 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
           initialBranch={filters.branch}
           initialSearch={filters.search}
           initialStatus={filters.status}
-          storageKey={`${context.tenantId}:${context.userId}`}
         />
 
         {/* Workspace or Empty State with CTA */}

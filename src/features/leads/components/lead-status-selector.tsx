@@ -30,6 +30,7 @@ import {
   LEAD_STATUS_LABELS,
   MOTIVOS_PERDA,
   MOTIVO_PERDA_LABELS,
+  VALID_TRANSITIONS,
 } from "@/features/leads/lead-status-constants";
 import { LeadFeedbackDialog } from "./lead-feedback-dialog";
 
@@ -40,16 +41,6 @@ type LeadStatusSelectorProps = {
   isOwner: boolean;
   isSameBranch: boolean;
 };
-
-const ACTIVE_STATUSES = [
-  "new",
-  "distributed",
-  "in_contact",
-  "quote_sent",
-  "negotiation",
-  "documentation_pending",
-  "under_analysis",
-];
 
 function statusLabel(status: string): string {
   return (LEAD_STATUS_LABELS as Record<string, string>)[status] ?? status;
@@ -137,15 +128,14 @@ export function LeadStatusSelector({
     setMotivoPerda("");
   };
 
-  // Build available statuses
+  // Build available statuses from VALID_TRANSITIONS
   const availableStatuses = (() => {
     if (displayedStatus === "lost") {
-      if (canReopen) return ACTIVE_STATUSES;
+      if (canReopen) return VALID_TRANSITIONS.lost as string[];
       return [];
     }
 
-    const statuses = ACTIVE_STATUSES.filter((s) => s !== displayedStatus);
-    return [...statuses, "converted", "lost"];
+    return [...(VALID_TRANSITIONS[displayedStatus] ?? [])];
   })();
 
   if (!canEdit || (displayedStatus === "lost" && !canReopen)) {
@@ -175,17 +165,16 @@ export function LeadStatusSelector({
               Reabrir lead
             </SelectItem>
           )}
-          {ACTIVE_STATUSES.filter((s) => s !== displayedStatus).map(
+          {availableStatuses.filter((s) => s !== "lost").map(
             (status) => (
               <SelectItem key={status} value={status}>
                 {statusLabel(status)}
               </SelectItem>
             ),
           )}
-          {displayedStatus !== "lost" && (
+          {availableStatuses.includes("lost") && (
             <>
               <SelectSeparator />
-              <SelectItem value="converted">Fechar atendimento e converter em cliente</SelectItem>
               <SelectItem value="lost" className="text-destructive">
                 Perdido
               </SelectItem>

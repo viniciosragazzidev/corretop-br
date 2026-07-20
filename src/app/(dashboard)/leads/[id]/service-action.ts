@@ -32,7 +32,7 @@ export async function startLeadServiceAction(_prev: StartLeadServiceState, formD
         .returning({ id: schema.leads.id });
       if (!result.length) return false;
       await tx.update(schema.leadAssignmentAttempts).set({ status: "submitted", firstContactAt: now }).where(and(eq(schema.leadAssignmentAttempts.leadId, lead.id), eq(schema.leadAssignmentAttempts.brokerId, context.userId), eq(schema.leadAssignmentAttempts.status, "open")));
-      await tx.insert(schema.leadInteractions).values({ id: randomUUID(), leadId: lead.id, userId: context.userId, tipo: "whatsapp_msg", conteudo: "Corretor iniciou o atendimento e os dados pessoais foram liberados." });
+      await tx.insert(schema.leadInteractions).values({ id: randomUUID(), leadId: lead.id, userId: context.userId, tipo: "service_started", conteudo: "Corretor iniciou o atendimento e os dados pessoais foram liberados." });
       await tx.insert(schema.auditLogs).values({ id: randomUUID(), userId: context.userId, entidade: "lead", entidadeId: lead.id, acao: "iniciou_atendimento_whatsapp" });
       const notify = managersAndDirectors.filter((recipient) => recipient.userId !== context.userId && (recipient.role === "director" || recipient.role === "manager"));
       // Notify managers and directors via publishNotification (in-app + push)

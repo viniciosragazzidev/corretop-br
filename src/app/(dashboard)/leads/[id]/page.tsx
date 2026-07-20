@@ -228,8 +228,8 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
               {lead.status !== "distributed" && (
                 <Card className="border-border bg-card shadow-sm" id="documentos">
                   <CardHeader className="pb-3 border-b border-border/40">
-                    <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Documentos Obrigatórios</CardTitle>
-                    <CardDescription className="text-xs">Upload de arquivos necessários para a contratação.</CardDescription>
+                    <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Documentação do atendimento</CardTitle>
+                    <CardDescription className="text-xs">Envie os arquivos por requisito e beneficiário. A aprovação é acompanhada pela fila central de Documentos.</CardDescription>
                   </CardHeader>
                   <CardContent className="pt-4">
                     <LeadDocumentsSection leadId={lead.id} requirements={requirements} documents={leadDocs} beneficiaries={beneficiaries.map((beneficiary) => ({ id: beneficiary.id, name: beneficiary.name, isHolder: beneficiary.isHolder }))} />
@@ -346,7 +346,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
 
             {/* Beneficiaries + Sale Registration */}
             <div className="space-y-4">
-              <BeneficiariesSection leadId={lead.id} initialBeneficiaries={beneficiaries} />
+              <BeneficiariesSection leadId={lead.id} contactName={lead.nome} initialBeneficiaries={beneficiaries} />
               {lead.status === "under_analysis" || lead.status === "documentation_pending" ? <RegisterSalePanel leadId={lead.id} documents={leadDocs.map((document) => ({ id: document.id, filename: document.filename, status: document.status }))} /> : null}
             </div>
           </div>

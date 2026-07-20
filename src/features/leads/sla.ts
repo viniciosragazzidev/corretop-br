@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto";
 
 import { getDatabase, schema } from "@/shared/db";
 import { chooseAvailableBroker } from "./assignment";
-import { notifyNewLead } from "@/features/notifications/send-push-helper";
+import { notifyLeadReassigned, notifyNewLead } from "@/features/notifications/send-push-helper";
 import { isNotificationCapabilityEnabled } from "@/features/notifications/queries";
 
 const activeStatuses = ["in_contact", "quote_sent", "negotiation", "documentation_pending", "under_analysis"] as const;
@@ -63,6 +63,9 @@ export async function runSlaSweep(tenantId?: string): Promise<SlaSweepResult> {
       
       if (kind === "lead_unworked") {
         unworked += 1;
+
+        // Save previous owner to notify them later
+        const previousOwnerId = lead.corretorId;
         
         // Active automatic redistribution of the unworked lead
         const nextBrokerId = await chooseAvailableBroker(tenant.id, lead.branchId, lead.corretorId, lead.webhookCredentialId);
@@ -107,16 +110,40 @@ export async function runSlaSweep(tenantId?: string): Promise<SlaSweepResult> {
         // Trigger real-time push and WS notifications in background
         void notifyNewLead(lead.id, tenant.id, lead.branchId, nextBrokerId, lead.nome).catch(console.error);
 
+        // Notify the previous broker that they lost the lead
+        if (previousOwnerId && previousOwnerId !== nextBrokerId) {
+          void notifyLeadReassigned(lead.id, tenant.id, previousOwnerId, lead.nome).catch(console.error);
+        }
+
       } else {
         stalled += 1;
       }
       
+      // Notify managers and directors
       for (const recipient of recipients) {
         if (recipient.role === "manager" && recipient.branchId !== lead.branchId) continue;
         const key = `${recipient.userId}:${lead.id}:${kind}`;
         if (existingKeys.has(key)) continue;
         existingKeys.add(key);
         pending.push({ id: randomUUID(), tenantId: tenant.id, recipientUserId: recipient.userId, leadId: lead.id, type: kind, title: kind === "lead_unworked" ? "Lead não trabalhado" : "Lead estagnado", message: kind === "lead_unworked" ? `O lead ${lead.nome} está sem primeiro contato há mais de ${firstContactMinutes} minutos.` : `O lead ${lead.nome} está sem avanço há mais de ${stagnantDays} dias.`, createdAt: new Date() });
+      }
+
+      // For stalled leads, also notify the broker who owns the lead
+      if (kind === "lead_stalled" && lead.corretorId) {
+        const brokerKey = `${lead.corretorId}:${lead.id}:${kind}`;
+        if (!existingKeys.has(brokerKey)) {
+          existingKeys.add(brokerKey);
+          pending.push({
+            id: randomUUID(),
+            tenantId: tenant.id,
+            recipientUserId: lead.corretorId,
+            leadId: lead.id,
+            type: kind,
+            title: "Seu lead está parado ⏳",
+            message: `O lead ${lead.nome} está sem avanço há mais de ${stagnantDays} dias. Registre um feedback para evitar redistribuição.`,
+            createdAt: new Date(),
+          });
+        }
       }
     }
     if (pending.length) { await db.insert(schema.notifications).values(pending); notifications += pending.length; }

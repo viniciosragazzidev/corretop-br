@@ -48,7 +48,7 @@ O CorreTop usa `services/whatsapp-api` como fronteira Fastify separada para cham
 
 | ID | Decisão necessária | Impacto | Dono sugerido |
 |---|---|---|---|
-| DEC-001 | Definir máquina de estados do funil: transições permitidas, reabertura e quem pode executá-las. | Dados, UX, relatórios e automações. | Produto |
+| DEC-001 | Definir máquina de estados do funil: transições permitidas, reabertura e quem pode executá-las. | **Decidida** — 2026-07-20 | ADR-001; implementation in lead-status-constants.ts, change-lead-status.ts, lead-status-selector.tsx |
 | DEC-002 | Definir round-robin: ordem inicial, desempate, comportamento quando não há elegível, limite de carga e reatribuição. | Distribuição e SLA. | Produto/Operação |
 | DEC-003 | Definir SLAs: duração, fuso, dias úteis/corridos, pausa e política de notificação/redistribuição. | Jobs, alertas e fila. | Operação |
 | DEC-004 | Definir comissão: moeda, percentual/base, vigência de regra, estorno/cancelamento e arredondamento. | Motor financeiro e relatórios. | Financeiro/Produto |
@@ -120,3 +120,30 @@ Tabelas comerciais serão versionadas e vigentes; registros históricos devem ma
 **Data:** 2026-07-16
 
 O CorreTop disponibilizará uma rota pública de termos que explica o uso permitido do CRM, a responsabilidade da corretora sobre seus usuários e dados de clientes, os limites da plataforma e orientações gerais de proteção de dados. O texto não substitui contrato, política de privacidade específica, definição formal de controlador/operador nem revisão jurídica. A versão jurídica definitiva exigirá identificação da pessoa jurídica, canal de privacidade e política de retenção aprovados.
+
+## ADR-001 — Máquina de estados do funil de leads
+
+**Estado:** Aceita
+**Data:** 2026-07-20
+**Decisor:** Engenharia (implementação)
+
+### Contexto
+
+O funil de leads não tinha transições formalizadas. O seletor de status permitia qualquer combinação de status ativo, o que levava a pipelines inconsistentes (ex: pular de "Em Atendimento" para "Em Análise" sem enviar cotação). Além disso, a opção "Convertido" aparecia no seletor mas era bloqueada no backend com erro, criando UX confusa.
+
+### Decisão
+
+1. **Transições sequenciais forçadas:** O pipeline segue ordem estrita: `new → distributed → in_contact → quote_sent → negotiation → documentation_pending → under_analysis → converted`. Cada status só avança para o próximo válido.
+
+2. **Conversão exclusiva via registerSale:** O status "converted" não pode ser definido manualmente. Ele é atribuído automaticamente por `registerSaleAction()` ao registrar uma venda (que cria client, sale, activeCustomer e commissionSchedule atomicamente).
+
+3. **Perda permite reabertura:** De qualquer status ativo pode ir para "lost". Ao reabrir de "lost", pode voltar para qualquer status ativo (gestor/diretor).
+
+4. **Validação server + client:** O mapa `VALID_TRANSITIONS` em `lead-status-constants.ts` é consumido tanto pelo server (`change-lead-status.ts`) quanto pelo client (`lead-status-selector.tsx`).
+
+### Consequências
+
+- Código morto para conversão em `change-lead-status.ts` foi removido (linhas 183-226 originais).
+- A enum `lead_interaction_type` ganhou o valor `service_started` para representar início de atendimento (antes usava `whatsapp_msg`).
+- A tabela `leads` ganhou coluna `updatedAt` para rastrear modificações.
+- `assumeLeadForInvestigation` continua saltando o pipeline para status `under_analysis` — é uma ação de gestão legítima.

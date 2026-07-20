@@ -478,7 +478,7 @@ async function getRecentActivity(context: TenantContext): Promise<ActivityItem[]
     .where(
       and(
         eq(schema.leads.tenantId, scope.tenantId),
-        sql`${schema.leadInteractions.tipo} = ANY(ARRAY['status_change','quote_generated']::lead_interaction_type[])`,
+        sql`${schema.leadInteractions.tipo} = ANY(ARRAY['status_change','quote_generated','service_started']::lead_interaction_type[])`,
         ...(scope.branchId ? [eq(schema.leads.branchId, scope.branchId)] : []),
       ),
     )
@@ -492,6 +492,9 @@ async function getRecentActivity(context: TenantContext): Promise<ActivityItem[]
     if (r.tipo === "quote_generated") {
       type = "quote";
       message = `Cotação gerada para ${r.leadNome}`;
+    } else if (r.tipo === "service_started") {
+      type = "status_change";
+      message = `Atendimento iniciado para ${r.leadNome}`;
     } else if (r.tipo === "status_change") {
       if (r.leadStatus === "converted") {
         type = "conversion";

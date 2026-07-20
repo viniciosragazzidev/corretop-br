@@ -37,6 +37,7 @@ export async function createLeadFeedbackReminders(tenantId?: string): Promise<Fe
       maxAttempts: schema.tenants.feedbackReminderMaxAttempts,
       pushEnabled: schema.tenants.feedbackPushEnabled,
       toastEnabled: schema.tenants.feedbackToastEnabled,
+      slaFirstContactMinutes: schema.tenants.slaFirstContactMinutes,
     })
     .from(schema.tenants)
     .where(tenantId ? eq(schema.tenants.id, tenantId) : eq(schema.tenants.status, "active"));
@@ -53,16 +54,24 @@ export async function createLeadFeedbackReminders(tenantId?: string): Promise<Fe
 
     const intervalMinutes = Math.max(Number.parseInt(tenant.reminderIntervalMinutes, 10) || 30, 1);
     const maxAttempts = Math.max(tenant.maxAttempts || 5, 1);
+    const slaFirstContactMinutes = Math.max(Number.parseInt(tenant.slaFirstContactMinutes, 10) || 15, 1);
+    // For unworked (distributed) leads, use a shorter interval so the
+    // reminder fires BEFORE the SLA sweep redistributes the lead.
+    const distributedIntervalMinutes = Math.max(1, Math.floor(slaFirstContactMinutes / 2));
+    const distributedMaxAttempts = 2; // only 2 reminders before SLA expires
     let tenantEscalated = 0;
 
-    // Find leads with active statuses that have been in the same stage beyond the interval
     const cutoff = new Date(now.getTime() - intervalMinutes * 60 * 1000);
-    const leads = await db
+    const distributedCutoff = new Date(now.getTime() - distributedIntervalMinutes * 60 * 1000);
+
+    // Leads in active statuses (post-first-contact) — regular feedback reminders
+    const activeLeads = await db
       .select({
         id: schema.leads.id,
         nome: schema.leads.nome,
         corretorId: schema.leads.corretorId,
         tenantId: schema.leads.tenantId,
+        status: schema.leads.status,
       })
       .from(schema.leads)
       .where(
@@ -74,9 +83,35 @@ export async function createLeadFeedbackReminders(tenantId?: string): Promise<Fe
         ),
       );
 
+    // Leads in distributed status (pre-first-contact) — SLA warnings
+    const distributedLeads = await db
+      .select({
+        id: schema.leads.id,
+        nome: schema.leads.nome,
+        corretorId: schema.leads.corretorId,
+        tenantId: schema.leads.tenantId,
+        status: schema.leads.status,
+      })
+      .from(schema.leads)
+      .where(
+        and(
+          eq(schema.leads.tenantId, tenant.id),
+          eq(schema.leads.status, "distributed"),
+          isNotNull(schema.leads.corretorId),
+          isNotNull(schema.leads.assignedAt),
+          lt(schema.leads.assignedAt, distributedCutoff),
+        ),
+      );
+
+    const leads = [...activeLeads, ...distributedLeads];
+
     if (!leads.length) continue;
 
-    // Count existing reminders sent within the current interval window
+    // Count existing reminders sent within a window wide enough for
+    // maxAttempts reminders to accumulate (intervalMinutes × maxAttempts).
+    // Without this, active leads (maxAttempts=5) would never escalate because
+    // only 2-3 reminders fit inside the interval window with a 15-minute cron.
+    const reminderCountWindow = intervalMinutes * maxAttempts;
     const existingReminders = await db
       .select({
         leadId: schema.notifications.leadId,
@@ -92,16 +127,14 @@ export async function createLeadFeedbackReminders(tenantId?: string): Promise<Fe
             schema.notifications.leadId,
             leads.map((l) => l.id),
           ),
-          gte(schema.notifications.createdAt, cutoff),
+          gte(schema.notifications.createdAt, new Date(now.getTime() - reminderCountWindow * 60 * 1000)),
         ),
       )
       .groupBy(schema.notifications.leadId, schema.notifications.recipientUserId);
 
     const sentCounts = new Map(
       existingReminders.map((r) => [`${r.leadId}:${r.recipientUserId}`, Number(r.count)]),
-    );
-
-    const toNotify: Array<{
+    );    const toNotify: Array<{
       tenantId: string;
       recipientUserId: string;
       leadId: string | null;
@@ -115,27 +148,53 @@ export async function createLeadFeedbackReminders(tenantId?: string): Promise<Fe
       const key = `${lead.id}:${lead.corretorId}`;
       const attemptCount = sentCounts.get(key) ?? 0;
 
-      if (attemptCount >= maxAttempts) {
-        tenantEscalated += 1;
+      if (lead.status === "distributed") {
+        // Distributed leads (pre-first-contact) — warn about impending SLA
+        if (attemptCount >= distributedMaxAttempts) {
+          tenantEscalated += 1;
+          toNotify.push({
+            tenantId: tenant.id,
+            recipientUserId: lead.corretorId,
+            leadId: lead.id,
+            type: "lead_feedback_reminder",
+            title: "⚠️ Primeiro contato urgente",
+            message: `O lead ${lead.nome} está sem primeiro contato há mais de ${slaFirstContactMinutes} minutos. Será redistribuído em breve.`,
+          });
+          continue;
+        }
+
         toNotify.push({
           tenantId: tenant.id,
           recipientUserId: lead.corretorId,
           leadId: lead.id,
           type: "lead_feedback_reminder",
-          title: "⚠️ Feedback urgente",
-          message: `O lead ${lead.nome} precisa de feedback há mais de ${maxAttempts} períodos. Registre agora para evitar redistribuição.`,
+          title: "⚡ Faça o primeiro contato",
+          message: `Você recebeu ${lead.nome} há mais de ${distributedIntervalMinutes} min. Inicie o atendimento para não perder o lead (${attemptCount + 1}/${distributedMaxAttempts}).`,
         });
-        continue;
-      }
+      } else {
+        // Active status leads (post-first-contact) — regular feedback reminders
+        if (attemptCount >= maxAttempts) {
+          tenantEscalated += 1;
+          toNotify.push({
+            tenantId: tenant.id,
+            recipientUserId: lead.corretorId,
+            leadId: lead.id,
+            type: "lead_feedback_reminder",
+            title: "⚠️ Feedback urgente",
+            message: `O lead ${lead.nome} precisa de feedback há mais de ${maxAttempts} períodos. Registre agora para evitar redistribuição.`,
+          });
+          continue;
+        }
 
-      toNotify.push({
-        tenantId: tenant.id,
-        recipientUserId: lead.corretorId,
-        leadId: lead.id,
-        type: "lead_feedback_reminder",
-        title: "Atualize o atendimento",
-        message: `Registre um feedback sobre ${lead.nome} e atualize o status (${attemptCount + 1}/${maxAttempts}).`,
-      });
+        toNotify.push({
+          tenantId: tenant.id,
+          recipientUserId: lead.corretorId,
+          leadId: lead.id,
+          type: "lead_feedback_reminder",
+          title: "Atualize o atendimento",
+          message: `Registre um feedback sobre ${lead.nome} e atualize o status (${attemptCount + 1}/${maxAttempts}).`,
+        });
+      }
     }
 
     if (!toNotify.length) continue;

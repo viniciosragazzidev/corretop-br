@@ -671,16 +671,16 @@ body {
   animation: ct-route-enter var(--duration-fast) var(--ease-smooth-out) both;
 }
 
-::view-transition-group(ct-shell-header) {
+html:not([data-magicui-theme-vt="active"])::view-transition-group(ct-shell-header) {
   z-index: 100;
   animation: none;
 }
 
-::view-transition-old(ct-shell-header) {
+html:not([data-magicui-theme-vt="active"])::view-transition-old(ct-shell-header) {
   display: none;
 }
 
-::view-transition-new(ct-shell-header) {
+html:not([data-magicui-theme-vt="active"])::view-transition-new(ct-shell-header) {
   animation: none;
 }
 

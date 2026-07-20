@@ -10,6 +10,22 @@ export const LEAD_STATUS_ORDER: Record<string, number> = {
   lost: 8,
 };
 
+/** Mapa de transições válidas entre status do pipeline.
+ *  Cada chave lista os status para os quais é possível avançar.
+ *  "lost" pode surgir de qualquer status ativo.
+ *  Ao reabrir de "lost", pode voltar para qualquer status ativo. */
+export const VALID_TRANSITIONS: Record<string, readonly string[]> = {
+  new: ["distributed", "lost"],
+  distributed: ["in_contact", "new", "lost"],
+  in_contact: ["quote_sent", "lost"],
+  quote_sent: ["negotiation", "lost"],
+  negotiation: ["documentation_pending", "lost"],
+  documentation_pending: ["under_analysis", "lost"],
+  under_analysis: ["converted", "lost"],
+  converted: [],
+  lost: ["new", "distributed", "in_contact", "quote_sent", "negotiation", "documentation_pending", "under_analysis"],
+};
+
 export const LEAD_STATUS_LABELS: Record<string, string> = {
   new: "Novo",
   distributed: "Distribuído",

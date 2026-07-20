@@ -141,6 +141,20 @@
       "when": 1784815300000,
       "tag": "0055_marketing_attribution_foundation",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1784815400000,
+      "tag": "0056_allow_lead_source_deletion",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1784815500000,
+      "tag": "0058_lead_updated_at_service_started",
+      "breakpoints": true
     }
   ]
 }

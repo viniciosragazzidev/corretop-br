@@ -15,9 +15,9 @@ import {
   LEAD_STATUS_LABELS,
   MOTIVOS_PERDA,
   MOTIVO_PERDA_LABELS,
+  VALID_TRANSITIONS,
 } from "./lead-status-constants";
 import type { MotivoPerda } from "./lead-status-constants";
-import { generateCommissionSchedule } from "@/features/commissions/commission-rules-service";
 
 // ─── Tipos ────────────────────────────────────────────────────────────
 
@@ -105,11 +105,8 @@ export async function changeLeadStatus(
       tenantId: schema.leads.tenantId,
       corretorId: schema.leads.corretorId,
       branchId: schema.leads.branchId,
-      planId: schema.leads.planId,
       status: schema.leads.status,
       nome: schema.leads.nome,
-      telefone: schema.leads.telefone,
-      email: schema.leads.email,
     })
     .from(schema.leads)
     .where(and(eq(schema.leads.id, input.leadId), eq(schema.leads.tenantId, context.tenantId)))
@@ -131,7 +128,15 @@ export async function changeLeadStatus(
     );
   }
 
-  // 2. perdido: exige motivo
+  // 2. validação de transição do pipeline
+  const allowedNext = VALID_TRANSITIONS[previousStatus];
+  if (allowedNext && !allowedNext.includes(newStatus)) {
+    throw new Error(
+      `Transição inválida: ${LEAD_STATUS_LABELS[previousStatus] ?? previousStatus} → ${LEAD_STATUS_LABELS[newStatus] ?? newStatus}.`,
+    );
+  }
+
+  // 3. perdido: exige motivo
   if (newStatus === "lost") {
     if (!input.motivoPerda || !(MOTIVOS_PERDA as readonly string[]).includes(input.motivoPerda)) {
       throw new Error(
@@ -180,51 +185,6 @@ export async function changeLeadStatus(
       conteudo: interactionContent,
     });
 
-    if (newStatus === "converted") {
-      const clientId = randomUUID();
-      await tx.insert(schema.clients).values({
-        id: clientId,
-        tenantId: context.tenantId,
-        leadId: lead.id,
-        branchId: lead.branchId,
-        corretorId: lead.corretorId,
-        nome: lead.nome,
-        telefone: lead.telefone,
-        email: lead.email,
-        convertedAt: now,
-      }).onConflictDoNothing({ target: schema.clients.leadId });
-
-      // Criar venda e cronograma de comissão
-      const saleId = randomUUID();
-      const saleValue = 0; // Valor será preenchido via cotação aceita em versão futura
-
-      await tx.insert(schema.sales).values({
-        id: saleId,
-        tenantId: context.tenantId,
-        leadId: lead.id,
-        clientId,
-        brokerId: lead.corretorId ?? context.userId,
-        carrierPlanId: lead.planId,
-        commissionRuleId: null,
-        saleDate: now,
-        saleValue: String(saleValue),
-        status: "active",
-        createdBy: context.userId,
-      });
-
-      // Gerar cronograma de comissão automaticamente
-      const schedule = await generateCommissionSchedule(
-        context.tenantId,
-        saleId,
-        lead.planId,
-        saleValue,
-      );
-
-      if (schedule.length > 0) {
-        await tx.insert(schema.commissionSchedule).values(schedule);
-      }
-    }
-
     // Criar auditoria
     const auditAction = isReopening
       ? "reabriu"
@@ -242,54 +202,6 @@ export async function changeLeadStatus(
   });
 
   // ─── Notificações fora da transação (push pode falhar sem efeito colateral) ───
-
-  if (newStatus === "converted") {
-    // Find managers and directors to notify
-    const scope = lead.branchId
-      ? or(eq(schema.tenantMemberships.role, "director"), and(eq(schema.tenantMemberships.role, "manager"), eq(schema.tenantMemberships.branchId, lead.branchId)))
-      : eq(schema.tenantMemberships.role, "director");
-    const supervisors = await db
-      .select({ userId: schema.tenantMemberships.userId })
-      .from(schema.tenantMemberships)
-      .where(and(eq(schema.tenantMemberships.tenantId, lead.tenantId), eq(schema.tenantMemberships.status, "active"), scope))
-      .groupBy(schema.tenantMemberships.userId)
-      .limit(5);
-
-    await Promise.allSettled([
-      // Notify the broker
-      ...(lead.corretorId
-        ? [publishNotification({
-            capability: "lead_converted",
-            tenantId: lead.tenantId,
-            recipientUserId: lead.corretorId,
-            leadId: lead.id,
-            type: "lead_converted",
-            title: "Lead convertido em cliente",
-            message: `${lead.nome} foi convertido e agora está disponível em Clientes.`,
-            pushTitle: "Lead Convertido! 🎉",
-            pushBody: `${lead.nome} foi convertido em cliente ativo.`,
-            url: `/leads/${lead.id}`,
-            tag: `lead-${lead.id}`,
-          })]
-        : []),
-      // Notify managers and directors
-      ...supervisors.map((supervisor) =>
-        publishNotification({
-          capability: "lead_converted",
-          tenantId: lead.tenantId,
-          recipientUserId: supervisor.userId,
-          leadId: lead.id,
-          type: "lead_converted",
-          title: "Lead convertido",
-          message: `${lead.nome} foi convertido em cliente por ${context.role === "broker" ? "o corretor" : "a gestão"}.`,
-          pushTitle: "Conversão! 📈",
-          pushBody: `${lead.nome} foi convertido. Verifique o resultado.`,
-          url: `/leads/${lead.id}`,
-          tag: `lead-${lead.id}`,
-        }),
-      ),
-    ].map((p) => p.catch(() => { /* non-blocking */ })));
-  }
 
   if (newStatus === "lost") {
     const scope = lead.branchId

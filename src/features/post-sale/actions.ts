@@ -3,7 +3,7 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
-import { and, eq, gte, inArray, isNull, lt, or } from "drizzle-orm";
+import { and, eq, gte, isNull, lt, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -66,12 +66,21 @@ export async function addLeadBeneficiaryAction(rawInput: z.input<typeof benefici
 }
 
 export async function removeLeadBeneficiaryAction(beneficiaryId: string) {
+  if (!z.string().uuid().safeParse(beneficiaryId).success) return { error: "Beneficiário inválido." };
   const context = await getRequiredTenantContext();
   const db = getDatabase();
   const [beneficiary] = await db.select({ id: schema.leadBeneficiaries.id, leadId: schema.leadBeneficiaries.leadId, isHolder: schema.leadBeneficiaries.isHolder }).from(schema.leadBeneficiaries).innerJoin(schema.leads, eq(schema.leadBeneficiaries.leadId, schema.leads.id)).where(and(eq(schema.leadBeneficiaries.id, beneficiaryId), eq(schema.leadBeneficiaries.tenantId, context.tenantId), context.role === "broker" ? eq(schema.leads.corretorId, context.userId) : context.role === "manager" ? eq(schema.leads.branchId, context.branchId ?? "") : undefined)).limit(1);
   if (!beneficiary) return { error: "Beneficiário não encontrado." };
   if (beneficiary.isHolder) return { error: "O titular não pode ser removido. Substitua-o antes." };
-  await db.delete(schema.leadBeneficiaries).where(and(eq(schema.leadBeneficiaries.id, beneficiary.id), eq(schema.leadBeneficiaries.tenantId, context.tenantId)));
+  const [quotedLineItem] = await db.select({ id: schema.quoteLineItems.id }).from(schema.quoteLineItems).where(and(eq(schema.quoteLineItems.tenantId, context.tenantId), eq(schema.quoteLineItems.beneficiaryId, beneficiary.id))).limit(1);
+  if (quotedLineItem) return { error: "Este beneficiário já faz parte de uma cotação. Exclua ou substitua a cotação antes de removê-lo." };
+  const [linkedDocument] = await db.select({ id: schema.leadDocuments.id }).from(schema.leadDocuments).where(and(eq(schema.leadDocuments.tenantId, context.tenantId), eq(schema.leadDocuments.beneficiaryId, beneficiary.id))).limit(1);
+  if (linkedDocument) return { error: "Este beneficiário possui documentos vinculados. Remova ou substitua os documentos antes de excluí-lo." };
+  try {
+    await db.delete(schema.leadBeneficiaries).where(and(eq(schema.leadBeneficiaries.id, beneficiary.id), eq(schema.leadBeneficiaries.tenantId, context.tenantId)));
+  } catch {
+    return { error: "Não foi possível excluir este beneficiário porque ele passou a ter vínculos operacionais. Atualize a página e tente novamente." };
+  }
   await db.insert(schema.auditLogs).values({ id: randomUUID(), userId: context.userId, entidade: "lead_beneficiary", entidadeId: beneficiary.id, acao: "removeu" });
   revalidatePath(`/leads/${beneficiary.leadId}`);
   return { success: true };

@@ -34,6 +34,13 @@ A entrada da landing page já executa autenticação, validação, idempotência
 resolução de filial, distribuição síncrona, notificações e auditoria. A migration
 0054 adiciona o contrato de atribuição comum sem alterar esse comportamento.
 
+Em Configurações > Integrações, o Diretor pode excluir fontes de webhook e
+conectar uma fonte Meta à Página, formulário e unidade de destino. Cada conexão
+expõe o estado operacional e os totais persistidos de eventos, cliques,
+impressões e investimento. Pausar ou excluir é auditado; a exclusão remove apenas
+a configuração da fonte e seus dados de métricas/eventos vinculados, nunca leads
+já criados no CRM.
+
 ## Próxima integração: Meta Lead Ads
 
 O receptor inicial está disponível em `POST /api/webhooks/meta/leads` e `GET`

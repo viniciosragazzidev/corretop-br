@@ -12,9 +12,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { addLeadNoteAction, type LeadNoteState } from "@/features/leads/actions";
 import { useReducedMotionPreference } from "@/shared/hooks/use-reduced-motion";
 
-type TimelineItem = { id: string; tipo: "status_change" | "note" | "system_alert" | "document_upload" | "document_review" | "quote_generated" | "whatsapp_msg"; conteudo: string; userName: string | null; createdAt: Date };
-const eventIcons = { status_change: ArrowsClockwise, note: Note, system_alert: BellRinging, document_upload: FileText, document_review: ClipboardText, quote_generated: Quotes, whatsapp_msg: ChatCircleText } as const;
-const eventLabels = { status_change: "Status", note: "Nota", system_alert: "Alerta do sistema", document_upload: "Documento enviado", document_review: "Documento revisado", quote_generated: "Cotação", whatsapp_msg: "WhatsApp" } as const;
+type TimelineItem = { id: string; tipo: "status_change" | "note" | "system_alert" | "document_upload" | "document_review" | "quote_generated" | "whatsapp_msg" | "service_started"; conteudo: string; userName: string | null; createdAt: Date };
+const eventIcons = { status_change: ArrowsClockwise, note: Note, system_alert: BellRinging, document_upload: FileText, document_review: ClipboardText, quote_generated: Quotes, whatsapp_msg: ChatCircleText, service_started: ChatCircleText } as const;
+const eventLabels = { status_change: "Status", note: "Nota", system_alert: "Alerta do sistema", document_upload: "Documento enviado", document_review: "Documento revisado", quote_generated: "Cotação", whatsapp_msg: "WhatsApp", service_started: "Atendimento iniciado" } as const;
 
 export function LeadTimeline({ leadId, interactions }: { leadId: string; interactions: TimelineItem[] }) {
   const router = useRouter();
