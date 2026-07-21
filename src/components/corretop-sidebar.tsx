@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { toast } from "sonner";
 
-import { Bell, BookOpen, Buildings, ChartBar, ChatCircleText, ClipboardText, CreditCard, CurrencyCircleDollar, FolderSimple, Handshake, House, Megaphone, Monitor, Note, ShieldCheck, SignOut, SlidersHorizontal, SquaresFour, Target, Users, WifiHigh } from "@/components/huge-icons";
+import { Bell, BookOpen, Buildings, ChartBar, ChatCircleText, ClipboardText, CreditCard, CurrencyCircleDollar, FileArrowDown, FolderSimple, Handshake, House, Megaphone, Monitor, Note, ShieldCheck, SignOut, SlidersHorizontal, SquaresFour, Target, Users, WifiHigh } from "@/components/huge-icons";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
 import { getUserDisplayInfo, type UserDisplayInfo } from "@/shared/auth/actions";
@@ -42,6 +42,7 @@ const operationItems: SidebarItem[] = [
   { label: "Notificações", icon: Bell, url: "/notificacoes", permission: "acessar_notificacoes" },
 ];
 const systemItems: SidebarItem[] = [
+  { label: "Importações Meta", icon: FileArrowDown, url: "/marketing/importacoes", permission: "ver_importacoes_meta" },
   { label: "Catálogo", icon: FolderSimple, url: "/catalogo", permission: "acessar_catalogo" },
   { label: "Comissões", icon: CurrencyCircleDollar, url: "/configuracoes/comissoes", permission: "gerenciar_comissoes" },
   { label: "Assinatura", icon: CreditCard, url: "/assinatura", permission: "configurar_white_label" },

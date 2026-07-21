@@ -60,6 +60,11 @@ export async function ensureRuntimeSchema() {
     const db = getDatabase();
     await db.execute(sql`ALTER TABLE "branches" ADD COLUMN IF NOT EXISTS "accepting_leads" boolean NOT NULL DEFAULT true`);
     await db.execute(sql`ALTER TABLE "branches" ADD COLUMN IF NOT EXISTS "auto_distribute" boolean NOT NULL DEFAULT true`);
+    await db.execute(sql`ALTER TABLE "branches" ADD COLUMN IF NOT EXISTS "source_channel" text NOT NULL DEFAULT 'landing_page'`);
+    await db.execute(sql`ALTER TABLE "branches" ADD COLUMN IF NOT EXISTS "source_campaign" text`);
+    await db.execute(sql`ALTER TABLE "branches" ADD COLUMN IF NOT EXISTS "source_ad" text`);
+    await db.execute(sql`ALTER TABLE "branches" ADD COLUMN IF NOT EXISTS "source_form" text`);
+    await db.execute(sql`ALTER TABLE "branches" ADD COLUMN IF NOT EXISTS "source_metadata" jsonb`);
     await db.execute(sql`ALTER TABLE "tenant_memberships" ADD COLUMN IF NOT EXISTS "job_title" text NOT NULL DEFAULT 'broker'`);
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS "system_settings" (
@@ -81,6 +86,40 @@ export async function ensureRuntimeSchema() {
     } catch {
       // Falha silenciosa
     }
+    // Marketing Import tables
+    await db.execute(sql`CREATE TABLE IF NOT EXISTS "marketing_imports" (
+      "id" text PRIMARY KEY NOT NULL,
+      "tenant_id" text NOT NULL REFERENCES "tenants"("id") ON DELETE CASCADE,
+      "user_id" text NOT NULL REFERENCES "user"("id"),
+      "branch_id" text REFERENCES "branches"("id") ON DELETE SET NULL,
+      "file_name" text NOT NULL,
+      "file_hash" text NOT NULL,
+      "file_size" integer NOT NULL DEFAULT 0,
+      "import_type" text NOT NULL DEFAULT 'pf',
+      "status" text NOT NULL DEFAULT 'uploading',
+      "total_rows" integer NOT NULL DEFAULT 0,
+      "imported_count" integer NOT NULL DEFAULT 0,
+      "duplicate_count" integer NOT NULL DEFAULT 0,
+      "invalid_count" integer NOT NULL DEFAULT 0,
+      "duration_ms" integer,
+      "error_message" text,
+      "created_at" timestamptz NOT NULL DEFAULT now(),
+      "updated_at" timestamptz NOT NULL DEFAULT now()
+    )`);
+    await db.execute(sql`CREATE TABLE IF NOT EXISTS "marketing_import_results" (
+      "id" text PRIMARY KEY NOT NULL,
+      "import_id" text NOT NULL REFERENCES "marketing_imports"("id") ON DELETE CASCADE,
+      "lead_id" text REFERENCES "leads"("id") ON DELETE SET NULL,
+      "row_index" integer NOT NULL,
+      "status" text NOT NULL DEFAULT 'created',
+      "message" text,
+      "external_lead_id" text,
+      "nome" text NOT NULL,
+      "telefone" text NOT NULL,
+      "email" text,
+      "created_at" timestamptz NOT NULL DEFAULT now()
+    )`);
+    await db.execute(sql`ALTER TABLE "leads" ADD COLUMN IF NOT EXISTS "captured_at" timestamptz`);
   })().catch((error) => {
     runtimeSchemaPromise = undefined;
     throw error;

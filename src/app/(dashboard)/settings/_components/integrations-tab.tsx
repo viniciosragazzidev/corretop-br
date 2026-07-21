@@ -15,15 +15,15 @@ import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { createIntegrationAction, createMarketingConnectionAction, deleteIntegrationAction, deleteMarketingConnectionAction, getIntegrationsData, revokeIntegrationAction, toggleIntegrationAction, toggleMarketingConnectionAction, type IntegrationRecord, type MarketingConnectionRecord } from "../integrations-actions";
+import { createIntegrationAction, getIntegrationsData, revokeIntegrationAction, toggleIntegrationAction, type IntegrationRecord } from "../integrations-actions";
 
 type Branch = { id: string; name: string };
-type Props = { integrations: IntegrationRecord[]; branches: Branch[]; marketingConnections: MarketingConnectionRecord[] };
-type QueryData = { integrations: IntegrationRecord[]; branches: Branch[]; marketingConnections: MarketingConnectionRecord[] };
+type Props = { integrations: IntegrationRecord[]; branches: Branch[] };
+type QueryData = { integrations: IntegrationRecord[]; branches: Branch[] };
 
 const sourceLabel: Record<string, string> = { site_pixel: "Pixel / Site", meta_ads: "Meta Lead Ads", landing_page: "Landing page" };
 
-export function IntegrationsTab({ integrations, branches, marketingConnections }: Props) {
+export function IntegrationsTab({ integrations, branches }: Props) {
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(integrations[0]?.id ?? null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -33,7 +33,6 @@ export function IntegrationsTab({ integrations, branches, marketingConnections }
   const [testOpen, setTestOpen] = useState(false);
   const [testStatus, setTestStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [testResult, setTestResult] = useState<{ leadId?: string; code?: string; message?: string } | null>(null);
-  const [metaOpen, setMetaOpen] = useState(false);
   const testNameRef = useRef<HTMLInputElement>(null);
   const testPhoneRef = useRef<HTMLInputElement>(null);
   const testEmailRef = useRef<HTMLInputElement>(null);
@@ -71,7 +70,7 @@ export function IntegrationsTab({ integrations, branches, marketingConnections }
     }
   }
 
-  const query = useQuery<QueryData>({ queryKey: ["settings-integrations"], queryFn: async () => ({ integrations, branches, marketingConnections }), initialData: { integrations, branches, marketingConnections }, staleTime: 30_000 });
+  const query = useQuery<QueryData>({ queryKey: ["settings-integrations"], queryFn: async () => ({ integrations, branches }), initialData: { integrations, branches }, staleTime: 30_000 });
   const data = query.data;
   const selected = data.integrations.find((item) => item.id === selectedId) ?? data.integrations[0] ?? null;
 
@@ -81,7 +80,7 @@ export function IntegrationsTab({ integrations, branches, marketingConnections }
       await queryClient.cancelQueries({ queryKey: ["settings-integrations"] });
       const previous = queryClient.getQueryData<QueryData>(["settings-integrations"]);
       const branchId = String(formData.get("branchId") ?? "") || null;
-      const optimistic: IntegrationRecord = { id: `temp-${crypto.randomUUID()}`, name: String(formData.get("name") ?? "Nova fonte"), source: String(formData.get("source") ?? "site_pixel"), branchId, branchName: data.branches.find((branch) => branch.id === branchId)?.name ?? null, status: "active", tokenPrefix: "sincronizando⬦", createdAt: new Date(), stats: { received: 0, processed: 0, failed: 0 } };
+      const optimistic: IntegrationRecord = { id: `temp-${crypto.randomUUID()}`, name: String(formData.get("name") ?? "Nova fonte"), source: String(formData.get("source") ?? "site_pixel"), branchId, branchName: data.branches.find((branch) => branch.id === branchId)?.name ?? null, status: "active", tokenPrefix: "sincronizando⬦", createdAt: new Date() };
       queryClient.setQueryData<QueryData>(["settings-integrations"], { ...data, integrations: [optimistic, ...data.integrations] });
       setSelectedId(optimistic.id);
       setCreateOpen(false);
@@ -114,15 +113,6 @@ export function IntegrationsTab({ integrations, branches, marketingConnections }
     onSuccess: (_result, id) => { queryClient.setQueryData<QueryData>(["settings-integrations"], (current) => current ? { ...current, integrations: current.integrations.filter((item) => item.id !== id) } : current); setSelectedId(null); toast.success("Integração revogada."); },
     onError: () => toast.error("Não foi possível revogar a integração."),
   });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => { const form = new FormData(); form.set("id", id); return deleteIntegrationAction(form); },
-    onSuccess: (result, id) => { if (!result.success) { toast.error(result.error); return; } queryClient.setQueryData<QueryData>(["settings-integrations"], (current) => current ? { ...current, integrations: current.integrations.filter((item) => item.id !== id) } : current); setSelectedId(null); toast.success("Fonte excluída."); },
-  });
-
-  async function submitMetaConnection(formData: FormData) { const result = await createMarketingConnectionAction(formData); if (!result.success) { toast.error(result.error); return; } toast.success("Fonte Meta conectada."); window.location.reload(); }
-  async function toggleMeta(id: string) { const form = new FormData(); form.set("id", id); const result = await toggleMarketingConnectionAction(form); if (!result.success) return toast.error(result.error); window.location.reload(); }
-  async function deleteMeta(id: string) { const form = new FormData(); form.set("id", id); const result = await deleteMarketingConnectionAction(form); if (!result.success) return toast.error(result.error); toast.success("Conexão Meta excluída."); window.location.reload(); }
 
   const snippet = useMemo(() => {
     if (!selected) return "";
@@ -157,7 +147,7 @@ export function IntegrationsTab({ integrations, branches, marketingConnections }
       <Card className="border-border bg-card shadow-none">
         <CardHeader className="flex-row items-start justify-between gap-4 border-b border-border"><div className="flex items-center gap-2"><CardTitle>Fontes de captura</CardTitle><button type="button" onClick={() => setHelpOpen(true)} className="text-muted-foreground hover:text-foreground transition-colors" title="Como integrar em um site externo?"><HelpCircle className="size-4" /></button></div><Button onClick={() => setCreateOpen(true)} size="sm"><Plus /> Nova fonte</Button></CardHeader>
         <CardContent className="p-0"><div className="divide-y divide-border">
-          {data.integrations.map((item) => <button className={`grid w-full grid-cols-[1fr_auto] gap-3 px-5 py-4 text-left transition-colors hover:bg-muted/40 ${selected?.id === item.id ? "bg-muted/30" : ""}`} key={item.id} onClick={() => setSelectedId(item.id)} type="button"><span className="min-w-0"><span className="flex items-center gap-2"><span className="truncate text-sm font-medium">{item.name}</span>{item.id.startsWith("temp-") ? <Badge variant="secondary">Sincronizando</Badge> : null}</span><span className="mt-1 block text-xs text-muted-foreground">{sourceLabel[item.source] ?? item.source} · {item.branchName ?? "Primeira filial ativa"} · {item.stats.received} recebidos</span></span><span className="flex items-center gap-3"><span className={`size-2 rounded-full ${item.status === "active" ? "bg-emerald-400" : "bg-muted-foreground"}`} /><span className="text-xs text-muted-foreground">{item.status === "active" ? "Ativo" : "Inativo"}</span></span></button>)}
+          {data.integrations.map((item) => <button className={`grid w-full grid-cols-[1fr_auto] gap-3 px-5 py-4 text-left transition-colors hover:bg-muted/40 ${selected?.id === item.id ? "bg-muted/30" : ""}`} key={item.id} onClick={() => setSelectedId(item.id)} type="button"><span className="min-w-0"><span className="flex items-center gap-2"><span className="truncate text-sm font-medium">{item.name}</span>{item.id.startsWith("temp-") ? <Badge variant="secondary">Sincronizando</Badge> : null}</span><span className="mt-1 block text-xs text-muted-foreground">{sourceLabel[item.source] ?? item.source} · {item.branchName ?? "Primeira filial ativa"}</span></span><span className="flex items-center gap-3"><span className={`size-2 rounded-full ${item.status === "active" ? "bg-emerald-400" : "bg-muted-foreground"}`} /><span className="text-xs text-muted-foreground">{item.status === "active" ? "Ativo" : "Inativo"}</span></span></button>)}
           {!data.integrations.length ? <div className="p-10 text-center"><ShieldCheck className="mx-auto size-7 text-muted-foreground" /><p className="mt-3 text-sm font-medium">Nenhuma fonte configurada</p><p className="mt-1 text-xs text-muted-foreground">Crie um token para começar a receber leads automaticamente.</p></div> : null}
         </div></CardContent>
       </Card>
@@ -222,18 +212,13 @@ export function IntegrationsTab({ integrations, branches, marketingConnections }
           )}
         </div>
 
-        <Button className="w-full" onClick={() => deleteMutation.mutate(selected.id)} variant="destructive"><Trash /> Excluir fonte</Button></CardContent></Card> : null}
+        <Button className="w-full" onClick={() => revokeMutation.mutate(selected.id)} variant="destructive"><Trash /> Revogar integração</Button></CardContent></Card> : null}
     </TabsContent>
-    <TabsContent value="meta" className="grid gap-5"><Card className="border-border bg-card shadow-none"><CardHeader className="flex-row items-start justify-between gap-4"><div><CardTitle>Meta Lead Ads</CardTitle><CardDescription>Vincule Página, formulário e unidade. O webhook global identifica a fonte e registra cada lead recebido.</CardDescription></div><Button onClick={() => setMetaOpen(true)} size="sm"><Plus /> Conectar fonte Meta</Button></CardHeader><CardContent className="grid gap-3">{data.marketingConnections.map((connection) => <div key={connection.id} className="grid gap-4 rounded-lg border border-border p-4 lg:grid-cols-[1fr_auto]"><div><div className="flex items-center gap-2"><p className="font-medium">{connection.name}</p><Badge variant={connection.status === "active" ? "default" : "secondary"}>{connection.status === "active" ? "Ativa" : connection.status === "error" ? "Com erro" : "Pausada"}</Badge></div><p className="mt-1 text-xs text-muted-foreground">{connection.platform === "instagram" ? "Instagram" : "Facebook"} · {connection.branchName ?? "Toda a corretora"} · Página {connection.externalPageId}</p><div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4"><Stat label="Eventos" value={connection.stats.webhookEvents} /><Stat label="Cliques" value={connection.stats.clicks} /><Stat label="Impressões" value={connection.stats.impressions} /><Stat label="Investimento" value={`R$ ${Number(connection.stats.spend).toFixed(2)}`} /></div>{connection.lastError ? <p className="mt-3 text-xs text-destructive">{connection.lastError}</p> : null}</div><div className="flex items-start gap-2"><Button onClick={() => toggleMeta(connection.id)} size="sm" variant="outline">{connection.status === "active" ? "Pausar" : "Ativar"}</Button><Button onClick={() => deleteMeta(connection.id)} size="sm" variant="destructive"><Trash /> Excluir</Button></div></div>)}{!data.marketingConnections.length ? <div className="rounded-lg border border-dashed border-border p-8 text-center"><WifiHigh className="mx-auto size-6 text-muted-foreground" /><p className="mt-3 text-sm font-medium">Nenhuma fonte Meta conectada</p><p className="mt-1 text-xs text-muted-foreground">Conecte a primeira Página e associe o formulário à unidade que receberá os leads.</p></div> : null}</CardContent></Card></TabsContent>
+    <TabsContent value="meta"><Card className="border-border bg-card shadow-none"><CardHeader><CardTitle>Meta Lead Ads</CardTitle><CardDescription>Conecte a conta administrativa para receber leads de campanhas.</CardDescription></CardHeader><CardContent><div className="flex items-center gap-3 rounded-lg border border-amber-300/20 bg-amber-300/5 p-4"><X className="text-amber-300" /><div><p className="text-sm font-medium">Não conectado</p><p className="mt-1 text-xs text-muted-foreground">A verificação da Meta Business ainda é uma dependência externa.</p></div><Button className="ml-auto" disabled variant="outline">Conectar em breve</Button></div></CardContent></Card></TabsContent>
     <CreateIntegrationDialog branches={branches} open={createOpen} onOpenChange={setCreateOpen} onSubmit={(formData) => createMutation.mutate(formData)} pending={createMutation.isPending} />
     <HelpIntegrationDialog open={helpOpen} onOpenChange={setHelpOpen} />
-    <MetaConnectionDialog branches={branches} open={metaOpen} onOpenChange={setMetaOpen} onSubmit={submitMetaConnection} />
   </Tabs>;
 }
-
-function Stat({ label, value }: { label: string; value: string | number }) { return <div className="rounded-md bg-muted/50 px-2.5 py-2"><p className="text-muted-foreground">{label}</p><p className="mt-1 font-medium text-foreground">{value}</p></div>; }
-
-function MetaConnectionDialog({ branches, open, onOpenChange, onSubmit }: { branches: Branch[]; open: boolean; onOpenChange: (open: boolean) => void; onSubmit: (formData: FormData) => Promise<void> }) { return <Dialog open={open} onOpenChange={onOpenChange}><DialogPopup className="sm:max-w-md"><DialogTitle>Conectar fonte Meta</DialogTitle><DialogDescription>Cadastre a Página e, se aplicável, o formulário de Lead Ads que alimentará esta unidade.</DialogDescription><form action={onSubmit} className="mt-4 grid gap-4"><Field><FieldLabel>Nome da conexão</FieldLabel><Input name="name" placeholder="Meta Ads — Unidade Centro" required /></Field><Field><FieldLabel>Canal</FieldLabel><Select defaultValue="facebook" name="platform"><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="facebook">Facebook</SelectItem><SelectItem value="instagram">Instagram</SelectItem></SelectContent></Select></Field><Field><FieldLabel>ID da Página Meta</FieldLabel><Input name="externalPageId" placeholder="Ex.: 123456789" required /></Field><Field><FieldLabel>ID do formulário <span className="text-muted-foreground">(opcional)</span></FieldLabel><Input name="externalFormId" placeholder="Ex.: 123456789" /></Field><Field><FieldLabel>Unidade de destino</FieldLabel><Select name="branchId"><SelectTrigger className="w-full"><SelectValue placeholder="Toda a corretora" /></SelectTrigger><SelectContent>{branches.map((branch) => <SelectItem key={branch.id} value={branch.id}>{branch.name}</SelectItem>)}</SelectContent></Select></Field><div className="flex justify-end gap-2"><DialogClose render={<Button type="button" variant="ghost">Cancelar</Button>} /><Button type="submit">Salvar conexão</Button></div></form></DialogPopup></Dialog>; }
 
 function CreateIntegrationDialog({ branches, open, onOpenChange, onSubmit, pending }: { branches: Branch[]; open: boolean; onOpenChange: (open: boolean) => void; onSubmit: (formData: FormData) => void; pending: boolean }) {
   return <Dialog open={open} onOpenChange={onOpenChange}><DialogPopup className="sm:max-w-md"><DialogTitle>Nova fonte de captura</DialogTitle><DialogDescription>Gere um token seguro vinculado à corretora e, opcionalmente, a uma filial.</DialogDescription><form action={onSubmit} className="grid gap-4"><Field><FieldLabel htmlFor="integration-name">Nome da fonte</FieldLabel><Input id="integration-name" name="name" placeholder="Meta Ads - Filial Centro" required /></Field><Field><FieldLabel>Origem padrão</FieldLabel><Select defaultValue="site_pixel" name="source" labels={{ site_pixel: "Pixel / Site", meta_ads: "Meta Lead Ads", landing_page: "Landing page" }}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="site_pixel">Pixel / Site</SelectItem><SelectItem value="meta_ads">Meta Lead Ads</SelectItem><SelectItem value="landing_page">Landing page</SelectItem></SelectContent></Select></Field><Field><FieldLabel>Filial de destino</FieldLabel><Select name="branchId"><SelectTrigger className="w-full"><SelectValue placeholder="Primeira filial ativa" /></SelectTrigger><SelectContent>{branches.map((branch) => <SelectItem key={branch.id} value={branch.id}>{branch.name}</SelectItem>)}</SelectContent></Select></Field><div className="flex gap-2"><Button className="flex-1" disabled={pending} type="submit">{pending ? "Gerando token..." : "Gerar token"}</Button><DialogClose render={<Button disabled={pending} type="button" variant="ghost">Cancelar</Button>} /></div></form></DialogPopup></Dialog>;

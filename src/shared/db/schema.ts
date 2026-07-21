@@ -35,6 +35,7 @@ export const leadInteractionTypeValues = [
   "document_review",
   "quote_generated",
   "whatsapp_msg",
+  "service_started",
 ] as const;
 export const webhookCredentialStatusValues = ["active", "revoked"] as const;
 export const webhookDeliveryStatusValues = ["received", "processed", "rejected", "failed"] as const;
@@ -53,6 +54,10 @@ export const leadOrigin = pgEnum("lead_origin", leadOriginValues);
 export const leadInteractionType = pgEnum("lead_interaction_type", leadInteractionTypeValues);
 export const webhookCredentialStatus = pgEnum("webhook_credential_status", webhookCredentialStatusValues);
 export const webhookDeliveryStatus = pgEnum("webhook_delivery_status", webhookDeliveryStatusValues);
+export const marketingImportStatusValues = ["uploading", "processing", "completed", "failed"] as const;
+export const marketingImportStatus = pgEnum("marketing_import_status", marketingImportStatusValues);
+export const marketingImportResultStatusValues = ["created", "duplicate", "invalid"] as const;
+export const marketingImportResultStatus = pgEnum("marketing_import_result_status", marketingImportResultStatusValues);
 
 export const quoteStatusValues = ["draft", "shared", "sent", "accepted", "expired"] as const;
 export const quoteStatus = pgEnum("quote_status", quoteStatusValues);
@@ -122,6 +127,30 @@ export const twoFactor = pgTable(
     lockedUntil: timestamp("locked_until", { withTimezone: true }),
   },
   (table) => [index("two_factor_user_id_idx").on(table.userId)],
+);
+
+export const passkey = pgTable(
+  "passkey",
+  {
+    id: text("id").primaryKey(),
+    name: text("name"),
+    publicKey: text("public_key").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    credentialID: text("credential_id").notNull().unique(),
+    counter: integer("counter").notNull(),
+    deviceType: text("device_type").notNull(),
+    backedUp: boolean("backed_up").notNull().default(false),
+    transports: text("transports"),
+    aaguid: text("aaguid"),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("passkey_user_id_idx").on(table.userId),
+    uniqueIndex("passkey_credential_id_unique").on(table.credentialID),
+  ],
 );
 
 export const account = pgTable(
@@ -202,6 +231,11 @@ export const branches = pgTable(
       .references(() => tenants.id),
     name: text("name").notNull(),
     externalId: text("external_id"),
+    sourceChannel: text("source_channel").notNull().default("landing_page"),
+    sourceCampaign: text("source_campaign"),
+    sourceAd: text("source_ad"),
+    sourceForm: text("source_form"),
+    sourceMetadata: jsonb("source_metadata"),
     status: branchStatus("status").notNull().default("active"),
     acceptingLeads: boolean("accepting_leads").notNull().default(true),
     autoDistribute: boolean("auto_distribute").notNull().default(true),
@@ -332,8 +366,15 @@ export const leads = pgTable(
     consentimentoLgpd: boolean("consentimento_lgpd").notNull().default(false),
     motivoPerda: text("motivo_perda"),
     externalId: text("external_id"),
-    webhookCredentialId: text("webhook_credential_id").references(() => leadWebhookCredentials.id),
+    capturedAt: timestamp("captured_at", { withTimezone: true }),
+    sourceChannel: text("source_channel").notNull().default("landing_page"),
+    sourceCampaign: text("source_campaign"),
+    sourceAd: text("source_ad"),
+    sourceForm: text("source_form"),
+    sourceMetadata: jsonb("source_metadata"),
+    webhookCredentialId: text("webhook_credential_id").references(() => leadWebhookCredentials.id, { onDelete: "set null" }),
     createdAt,
+    updatedAt,
   },
   (table) => [
     index("leads_tenant_branch_status_idx").on(table.tenantId, table.branchId, table.status),
@@ -342,6 +383,7 @@ export const leads = pgTable(
     index("leads_corretor_status_idx").on(table.corretorId, table.status),
     index("leads_webhook_credential_idx").on(table.webhookCredentialId),
     uniqueIndex("leads_credential_external_id_unique").on(table.webhookCredentialId, table.externalId).where(sql`${table.externalId} IS NOT NULL`),
+    uniqueIndex("leads_tenant_source_external_id_unique").on(table.tenantId, table.sourceChannel, table.externalId).where(sql`${table.externalId} IS NOT NULL AND ${table.sourceChannel} <> 'landing_page'`),
   ],
 );
 
@@ -409,6 +451,34 @@ export const leadDistributionEvents = pgTable(
     createdAt,
   },
   (table) => [index("lead_distribution_events_tenant_lead_idx").on(table.tenantId, table.leadId, table.createdAt)],
+);
+
+export const leadDistributionJobs = pgTable(
+  "lead_distribution_jobs",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    leadId: text("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+    type: text("type").notNull().default("process_queued_lead"),
+    status: text("status").notNull().default("pending"),
+    attemptCount: integer("attempt_count").notNull().default(0),
+    maxAttempts: integer("max_attempts").notNull().default(8),
+    runAfter: timestamp("run_after", { withTimezone: true }).notNull().defaultNow(),
+    lockedAt: timestamp("locked_at", { withTimezone: true }),
+    lockedBy: text("locked_by"),
+    leaseExpiresAt: timestamp("lease_expires_at", { withTimezone: true }),
+    lastErrorCode: text("last_error_code"),
+    lastErrorMessage: text("last_error_message"),
+    idempotencyKey: text("idempotency_key").notNull(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("lead_distribution_jobs_due_idx").on(table.status, table.runAfter),
+    index("lead_distribution_jobs_tenant_created_idx").on(table.tenantId, table.createdAt),
+    uniqueIndex("lead_distribution_jobs_active_unique").on(table.tenantId, table.leadId, table.type).where(sql`${table.status} in ('pending', 'retrying', 'processing')`),
+  ],
 );
 
 export const leadDistributionSettings = pgTable(
@@ -1266,6 +1336,51 @@ export const tenantMemberships = pgTable(
   ],
 );
 
+export const marketingImports = pgTable(
+  "marketing_imports",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    userId: text("user_id").notNull().references(() => user.id),
+    branchId: text("branch_id").references(() => branches.id, { onDelete: "set null" }),
+    fileName: text("file_name").notNull(),
+    fileHash: text("file_hash").notNull(),
+    fileSize: integer("file_size").notNull().default(0),
+    importType: text("import_type").notNull().default("pf"),
+    status: text("status").notNull().default("uploading"),
+    totalRows: integer("total_rows").notNull().default(0),
+    importedCount: integer("imported_count").notNull().default(0),
+    duplicateCount: integer("duplicate_count").notNull().default(0),
+    invalidCount: integer("invalid_count").notNull().default(0),
+    durationMs: integer("duration_ms"),
+    errorMessage: text("error_message"),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("marketing_imports_tenant_idx").on(table.tenantId, table.createdAt),
+    uniqueIndex("marketing_imports_tenant_hash_unique").on(table.tenantId, table.fileHash),
+  ],
+);
+
+export const marketingImportResults = pgTable(
+  "marketing_import_results",
+  {
+    id: text("id").primaryKey(),
+    importId: text("import_id").notNull().references(() => marketingImports.id, { onDelete: "cascade" }),
+    leadId: text("lead_id").references(() => leads.id, { onDelete: "set null" }),
+    rowIndex: integer("row_index").notNull(),
+    status: text("status").notNull().default("created"),
+    message: text("message"),
+    externalLeadId: text("external_lead_id"),
+    nome: text("nome").notNull(),
+    telefone: text("telefone").notNull(),
+    email: text("email"),
+    createdAt,
+  },
+  (table) => [index("marketing_import_results_import_idx").on(table.importId)],
+);
+
 export const invites = pgTable(
   "invites",
   {
@@ -1847,6 +1962,34 @@ export const messageTemplateRelations = relations(
       references: [user.id],
     }),
   }),
+);
+
+export const importedSpreadsheets = pgTable(
+  "imported_spreadsheets",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => user.id),
+    name: text("name").notNull(),
+    description: text("description"),
+    columns: jsonb("columns").notNull().default([]),
+    data: jsonb("data").notNull().default([]),
+    rowCount: integer("row_count").notNull().default(0),
+    publicToken: text("public_token").unique(),
+    publicPasswordHash: text("public_password_hash"),
+    publicCreatedAt: timestamp("public_created_at", { withTimezone: true }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("imported_spreadsheets_tenant_idx").on(table.tenantId),
+    index("imported_spreadsheets_created_by_idx").on(table.createdBy),
+    uniqueIndex("imported_spreadsheets_public_token_unique").on(table.publicToken).where(sql`${table.publicToken} IS NOT NULL`),
+  ],
 );
 
 export type TenantRole = (typeof tenantRoleValues)[number];
