@@ -13,6 +13,8 @@ para ADR se aplicável.
 
 ## Decididas
 
+> **DEC-041 — Visão de Marketing incremental e teste Lead Ads protegido (aceita em 2026-07-21):** a primeira entrega usa o `jobTitle=marketing` existente e a matriz (`branch_id` nulo), sem criar um novo cargo ou liberar integrações para unidades. A rota `/marketing` exibe somente agregados tenant-scoped e conexões Meta; a criação/exclusão de lead de teste usa o token cifrado da conexão no servidor e exige Diretor ou Marketing da matriz. A seleção de formulário permanece explícita até existir sincronização de formulários; a expansão plug-and-play por unidade fica para fase posterior.
+
 | ID | Decisão | Estado | Evidência |
 |---|---|---|---|
 | DEC-000 | O desenvolvimento começa sem instalar dependências adicionais. | Aprovada — 2026-07-11 | Solicitação de preparação do projeto |

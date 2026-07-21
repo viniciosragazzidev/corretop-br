@@ -22,6 +22,8 @@ export type UserDisplayInfo = {
   name: string;
   role: string | null;
   roleKey: TenantRole | null;
+  jobTitle: string | null;
+  branchId: string | null;
   redirectLogout: string;
 };
 
@@ -33,7 +35,7 @@ export async function getRoleRedirect(): Promise<string> {
   if (!session) return "/login";
 
   const [membership] = await getDatabase()
-    .select({ role: schema.tenantMemberships.role })
+    .select({ role: schema.tenantMemberships.role, jobTitle: schema.tenantMemberships.jobTitle, branchId: schema.tenantMemberships.branchId })
     .from(schema.tenantMemberships)
     .where(eq(schema.tenantMemberships.userId, session.user.id))
     .limit(1);
@@ -49,11 +51,11 @@ export async function getUserDisplayInfo(): Promise<UserDisplayInfo> {
   });
 
   if (!session) {
-    return { name: "Usuário", role: null, roleKey: null, redirectLogout: "/login" };
+    return { name: "Usuário", role: null, roleKey: null, jobTitle: null, branchId: null, redirectLogout: "/login" };
   }
 
   const [membership] = await getDatabase()
-    .select({ role: schema.tenantMemberships.role })
+    .select({ role: schema.tenantMemberships.role, jobTitle: schema.tenantMemberships.jobTitle, branchId: schema.tenantMemberships.branchId })
     .from(schema.tenantMemberships)
     .where(eq(schema.tenantMemberships.userId, session.user.id))
     .limit(1);
@@ -65,6 +67,8 @@ export async function getUserDisplayInfo(): Promise<UserDisplayInfo> {
     name: session.user.name,
     role: role ? ROLE_LABELS[role] ?? role : null,
     roleKey: role,
+    jobTitle: membership?.jobTitle ?? null,
+    branchId: membership?.branchId ?? null,
     redirectLogout,
   };
 }
