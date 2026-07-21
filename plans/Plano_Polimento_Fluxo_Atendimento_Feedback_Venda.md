@@ -84,19 +84,17 @@
 - Elimina a confusão "qual o próximo passo" — o stepper mostra visualmente
 - Conecta o SLA ao estágio correto: "SLA de primeiro contato" só aparece na etapa 1
 
-### Prioridade 4: Adicionar campo de operadora no registro de venda
+### Prioridade 4: Adicionar campo de operadora no registro de venda ✅ CONCLUÍDO
 
-**O que muda:**
-- No `RegisterSalePanel`, adicionar um `<select>` de operadora (carrier) **antes** dos campos existentes
-- O select lista as operadoras disponíveis (do tenant: `carriers` + `globalCarriers` que estão publicadas)
-- O `registerSaleAction` ganha um novo campo opcional `carrierId` no schema zod
-- Se `carrierId` for fornecido, o sistema busca o `carrierPlanId` correspondente (ou associa a venda à operadora mesmo sem plano específico)
-- A comissão passa a poder ser gerada mesmo sem `planId`, desde que a operadora seja conhecida
+**O que mudou:**
+- `RegisterSalePanel` agora tem um `<select>` de operadora **antes** dos campos existentes
+- O select lista as operadoras ativas do tenant (`carriers` com `status: "active"`)
+- `registerSaleAction` ganhou campo opcional `carrierId: z.string().uuid().optional()` no schema zod
+- Lógica de resolução de plano: se `carrierId` for fornecido, verifica se o `planId` do lead pertence à operadora; se não, busca o primeiro plano ativo da operadora
+- Metadados da interação incluem `carrierId` + `carrierName` quando selecionados
+- `page.tsx` consulta carriers no `Promise.all` e passa `carriers={carriers}` para o painel
 
-**Por que resolve:**
-- O corretor pode registrar a venda mesmo quando o lead não tinha um plano específico associado
-- A operadora fica registrada na venda para relatórios e comissão
-- Sem alteração de banco: o `carrierId` é opcional e usa infraestrutura já existente
+**Arquivos alterados:** `register-sale-panel.tsx`, `actions.ts`, `page.tsx`
 
 ### Prioridade 5: Remover redundâncias na página de detalhe do lead
 
@@ -117,8 +115,8 @@
 |---|---|
 | `src/features/leads/components/lead-action-hub.tsx` | Adicionar formulário de feedback inline (acordeão), stepper de progresso, integrar checklist como widget colapsável |
 | `src/app/(dashboard)/leads/[id]/lead-feedback-form.tsx` | Remover como card independente; exportar como componente inline para o hub (modo rápido) |
-| `src/app/(dashboard)/leads/[id]/register-sale-panel.tsx` | Adicionar `<select>` de operadora, passar carrierId |
-| `src/features/post-sale/actions.ts` | Adicionar `carrierId` opcional no schema `registerSaleInput`, consultar carriers, associar à venda |
+| `src/app/(dashboard)/leads/[id]/register-sale-panel.tsx` | ✅ Select de operadora + `carrierId` no submit |
+| `src/features/post-sale/actions.ts` | ✅ `carrierId` opcional + resolução automática de plano |
 | `src/app/(dashboard)/leads/[id]/page.tsx` | Remover `LeadFeedbackForm` como card separado, passar carriers disponíveis para o hub e sale panel |
 | `src/app/(dashboard)/leads/[id]/management-actions.tsx` | Simplificar para só mostrar ações não cobertas pelo hub |
 
@@ -138,11 +136,11 @@ Semana 2: Prioridade 3 (Stepper visual)
   ├── Derivar estágio do lead.status
   └── Injetar no topo do LeadActionHub ou do header
 
-Semana 3: Prioridade 4 (Operadora na venda)
-  ├── Adicionar consulta de carriers no lead detail page
-  ├── Adicionar select de operadora no RegisterSalePanel
-  ├── Estender registerSaleAction com carrierId opcional
-  └── Ajustar geração de comissão para fallback por operadora
+Semana 3: Prioridade 4 (Operadora na venda) ✅ CONCLUÍDO
+  ├── ✅ Adicionar consulta de carriers no lead detail page
+  ├── ✅ Adicionar select de operadora no RegisterSalePanel
+  ├── ✅ Estender registerSaleAction com carrierId opcional
+  └── ✅ Resolução automática de plano por operadora
 
 Semana 4: Prioridade 5 (Polimento final)
   ├── Simplificar LeadManagementActions
@@ -157,6 +155,7 @@ Semana 4: Prioridade 5 (Polimento final)
 
 - **Nenhuma migration ou alteração de schema** — tudo usa colunas e tabelas já existentes
 - O campo `carrierId` no `registerSaleAction` é **opcional** — vendas existentes continuam funcionando
+- ✅ P4 implementado: `carrierId` opcional no schema, select no painel, resolução automática de plano
 - O stepper é **puramente visual** derivado do `lead.status` — zero estado novo
 - O checklist colapsável usa o mesmo `localStorage` ou estado React, sem persistência extra
 - A remoção do `LeadFeedbackForm` como card independente precisa ser coordenada com links de âncora (`#feedback`) — redirecionar para `#lead-actions`

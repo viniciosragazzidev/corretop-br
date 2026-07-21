@@ -7,6 +7,7 @@ import { eq } from "drizzle-orm";
 import { getDatabase, schema } from "@/shared/db";
 import { chooseAvailableBroker } from "@/features/leads/assignment";
 import { notifyNewLead, notifyLeadArrived } from "@/features/notifications/send-push-helper";
+import { enqueueLeadDistributionJob } from "@/features/lead-distribution/jobs";
 import { lpFormPayloadSchema } from "../schemas/lp-form-payload.schema";
 import {
   hashNormalizedWebhookPayload,
@@ -185,7 +186,12 @@ export async function createLeadFromWebhookSync(
       .where(eq(schema.webhookDeliveries.id, deliveryId));
   });
 
-  // ── Step 10: Push notifications (synchronous) ───────────────────────
+  // ── Step 10: Enqueue distribution job if lead was queued ───────────
+  if (!assigned && branchId) {
+    await enqueueLeadDistributionJob({ tenantId, leadId }).catch(() => {});
+  }
+
+  // ── Step 11: Push notifications (synchronous) ───────────────────────
   await Promise.all([
     notifyLeadArrived(leadId, tenantId, branchId, normalizedName),
     notifyNewLead(leadId, tenantId, branchId, corretorId, normalizedName),

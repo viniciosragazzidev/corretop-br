@@ -9,6 +9,8 @@ para ADR se aplicável.
 
 ## Decididas
 
+> DEC-041 — Documentos são opcionais e podem ser vinculados ao lead, cliente, titular ou dependente. O checklist orienta o atendimento, mas nunca bloqueia distribuição, conversão ou pós-venda. Arquivos usam armazenamento privado, acesso temporário autorizado, auditoria e exclusão lógica.
+
 | ID | Decisão | Estado | Evidência |
 |---|---|---|---|
 | DEC-000 | O desenvolvimento começa sem instalar dependências adicionais. | Aprovada — 2026-07-11 | Solicitação de preparação do projeto |

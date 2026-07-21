@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join, normalize } from "node:path";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
@@ -20,7 +20,13 @@ export async function GET(request: NextRequest) {
     const [document] = await getDatabase()
       .select({ filename: schema.leadDocuments.filename, fileUrl: schema.leadDocuments.fileUrl })
       .from(schema.leadDocuments)
-      .where(and(eq(schema.leadDocuments.tenantId, context.tenantId), eq(schema.leadDocuments.fileUrl, fileUrl)))
+      .innerJoin(schema.leads, eq(schema.leadDocuments.leadId, schema.leads.id))
+      .where(and(
+        eq(schema.leadDocuments.tenantId, context.tenantId),
+        eq(schema.leadDocuments.fileUrl, fileUrl),
+        isNull(schema.leadDocuments.deletedAt),
+        context.role === "broker" ? eq(schema.leads.corretorId, context.userId) : context.role === "manager" && context.branchId ? eq(schema.leads.branchId, context.branchId) : undefined,
+      ))
       .limit(1);
     if (!document) return NextResponse.json({ error: "Documento não encontrado." }, { status: 404 });
 

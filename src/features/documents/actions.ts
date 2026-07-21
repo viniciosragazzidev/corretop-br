@@ -3,7 +3,7 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -23,6 +23,8 @@ const requirementInput = z.object({
 });
 
 export type DocumentActionState = { success?: boolean; error?: string };
+
+const documentCategory = z.enum(["identificacao", "proposta", "contratacao", "pos_venda", "outros"]);
 
 export async function createRequirementAction(
   _previous: DocumentActionState,
@@ -123,6 +125,12 @@ export async function getLeadDocuments(leadId: string) {
       filename: schema.leadDocuments.filename,
       fileUrl: schema.leadDocuments.fileUrl,
       status: schema.leadDocuments.status,
+      category: schema.leadDocuments.category,
+      description: schema.leadDocuments.description,
+      mimeType: schema.leadDocuments.mimeType,
+      sizeBytes: schema.leadDocuments.sizeBytes,
+      scanStatus: schema.leadDocuments.scanStatus,
+      version: schema.leadDocuments.version,
       requirementId: schema.leadDocuments.requirementId,
       beneficiaryId: schema.leadDocuments.beneficiaryId,
       requirementName: schema.documentRequirements.name,
@@ -136,6 +144,7 @@ export async function getLeadDocuments(leadId: string) {
       and(
         eq(schema.leadDocuments.leadId, leadId),
         eq(schema.leadDocuments.tenantId, context.tenantId),
+        isNull(schema.leadDocuments.deletedAt),
         context.role === "broker"
           ? eq(schema.leads.corretorId, context.userId)
           : context.role === "manager" && context.branchId
@@ -152,17 +161,36 @@ export async function confirmDocumentUploadAction({
   beneficiaryId,
   filename,
   fileUrl,
+  storageKey,
+  category,
+  description,
+  mimeType,
+  sizeBytes,
+  checksumSha256,
+  clientId,
 }: {
   leadId: string;
   requirementId: string | null;
   beneficiaryId?: string | null;
   filename: string;
   fileUrl: string;
+  storageKey?: string | null;
+  category?: string;
+  description?: string | null;
+  mimeType?: string | null;
+  sizeBytes?: number | null;
+  checksumSha256?: string | null;
+  clientId?: string | null;
 }): Promise<DocumentActionState> {
   const context = await getRequiredTenantContext();
   const db = getDatabase();
 
   try {
+    const parsedCategory = documentCategory.safeParse(category ?? "outros");
+    if (!parsedCategory.success) return { error: "Categoria documental inválida." };
+    if (!filename || filename.length > 180) return { error: "Nome de arquivo inválido." };
+    if (!fileUrl.startsWith("/api/documents/download?key=")) return { error: "Referência de arquivo inválida." };
+
     const [lead] = await db
       .select({ id: schema.leads.id, corretorId: schema.leads.corretorId, branchId: schema.leads.branchId })
       .from(schema.leads)
@@ -189,16 +217,29 @@ export async function confirmDocumentUploadAction({
       if (!beneficiary) return { error: "Beneficiário inválido para este lead." };
     }
 
+    const [client] = clientId
+      ? await db.select({ id: schema.clients.id, leadId: schema.clients.leadId }).from(schema.clients).where(and(eq(schema.clients.id, clientId), eq(schema.clients.leadId, leadId), eq(schema.clients.tenantId, context.tenantId))).limit(1)
+      : await db.select({ id: schema.clients.id, leadId: schema.clients.leadId }).from(schema.clients).where(and(eq(schema.clients.leadId, leadId), eq(schema.clients.tenantId, context.tenantId))).limit(1);
+    if (clientId && !client) return { error: "Cliente inválido para este lead." };
+
     const docId = randomUUID();
     await db.transaction(async (tx) => {
       await tx.insert(schema.leadDocuments).values({
         id: docId,
         tenantId: context.tenantId,
         leadId,
+        clientId: client?.id ?? null,
         requirementId,
         beneficiaryId: beneficiaryId || null,
         filename,
         fileUrl,
+        storageKey: storageKey || null,
+        category: parsedCategory.data,
+        description: description?.trim().slice(0, 500) || null,
+        mimeType: mimeType || null,
+        sizeBytes: sizeBytes ?? null,
+        checksumSha256: checksumSha256 || null,
+        scanStatus: "clean",
         status: "pending",
         uploadedBy: context.userId,
       });
@@ -211,6 +252,7 @@ export async function confirmDocumentUploadAction({
         conteudo: `Documento "${filename}" enviado para aprovação.`,
         metadata: { docId },
       });
+      await tx.insert(schema.auditLogs).values({ id: randomUUID(), userId: context.userId, entidade: "lead_document", entidadeId: docId, acao: "document.uploaded" });
     });
 
     revalidatePath(`/leads/${leadId}`);
@@ -224,10 +266,12 @@ export async function reviewDocumentAction({
   documentId,
   leadId,
   status,
+  reviewComment,
 }: {
   documentId: string;
   leadId: string;
   status: "approved" | "rejected";
+  reviewComment?: string | null;
 }): Promise<DocumentActionState> {
   const context = await getRequiredTenantContext();
   if (context.role === "broker") return { error: "Corretores não podem aprovar/rejeitar documentos." };
@@ -252,6 +296,7 @@ export async function reviewDocumentAction({
           status,
           reviewedBy: context.userId,
           reviewedAt: new Date(),
+          reviewComment: reviewComment?.trim().slice(0, 500) || null,
         })
         .where(
           and(
@@ -273,6 +318,7 @@ export async function reviewDocumentAction({
         conteudo: `Documento "${reviewedFileName}" foi ${status === "approved" ? "aprovado" : "rejeitado"}.`,
         metadata: { documentId, status },
       });
+      await tx.insert(schema.auditLogs).values({ id: randomUUID(), userId: context.userId, entidade: "lead_document", entidadeId: documentId, acao: `document.${status}` });
     });
 
     // Notify the broker responsible for the lead
@@ -306,6 +352,33 @@ export async function reviewDocumentAction({
   }
 }
 
+export async function deleteDocumentAction(documentId: string): Promise<DocumentActionState> {
+  const context = await getRequiredTenantContext();
+  const db = getDatabase();
+  try {
+    const [document] = await db
+      .select({ id: schema.leadDocuments.id, leadId: schema.leadDocuments.leadId, filename: schema.leadDocuments.filename, corretorId: schema.leads.corretorId, branchId: schema.leads.branchId })
+      .from(schema.leadDocuments)
+      .innerJoin(schema.leads, eq(schema.leadDocuments.leadId, schema.leads.id))
+      .where(and(eq(schema.leadDocuments.id, documentId), eq(schema.leadDocuments.tenantId, context.tenantId), isNull(schema.leadDocuments.deletedAt)))
+      .limit(1);
+    if (!document) return { error: "Documento não encontrado." };
+    const allowed = context.role === "director" || (context.role === "manager" && context.branchId === document.branchId) || (context.role === "broker" && context.userId === document.corretorId);
+    if (!allowed) return { error: "Você não pode excluir este documento." };
+
+    await db.transaction(async (tx) => {
+      await tx.update(schema.leadDocuments).set({ deletedAt: new Date(), deletedBy: context.userId }).where(and(eq(schema.leadDocuments.id, document.id), eq(schema.leadDocuments.tenantId, context.tenantId)));
+      await tx.insert(schema.leadInteractions).values({ id: randomUUID(), leadId: document.leadId, userId: context.userId, tipo: "document_upload", conteudo: `Documento "${document.filename}" removido.`, metadata: { documentId } });
+      await tx.insert(schema.auditLogs).values({ id: randomUUID(), userId: context.userId, entidade: "lead_document", entidadeId: document.id, acao: "document.deleted" });
+    });
+    revalidatePath(`/leads/${document.leadId}`);
+    revalidatePath("/documentos");
+    return { success: true };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Erro ao remover documento." };
+  }
+}
+
 // ─── Approval Queue & Bulk Actions ────────────────────────────────────────
 
 export async function getPendingDocuments() {
@@ -336,6 +409,7 @@ export async function getPendingDocuments() {
     .where(
       and(
         eq(schema.leadDocuments.status, "pending"),
+        isNull(schema.leadDocuments.deletedAt),
         eq(schema.leadDocuments.tenantId, context.tenantId)
       )
     )

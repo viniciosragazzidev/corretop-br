@@ -1537,19 +1537,36 @@ export const leadDocuments = pgTable(
     leadId: text("lead_id")
       .notNull()
       .references(() => leads.id, { onDelete: "cascade" }),
+    clientId: text("client_id").references(() => clients.id, { onDelete: "set null" }),
     requirementId: text("requirement_id").references(() => documentRequirements.id, { onDelete: "set null" }),
     beneficiaryId: text("beneficiary_id").references(() => leadBeneficiaries.id, { onDelete: "set null" }),
     filename: text("filename").notNull(),
     fileUrl: text("file_url").notNull(),
+    storageKey: text("storage_key"),
+    category: text("category").notNull().default("outros"),
+    description: text("description"),
+    mimeType: text("mime_type"),
+    sizeBytes: integer("size_bytes"),
+    checksumSha256: text("checksum_sha256"),
+    scanStatus: text("scan_status").notNull().default("clean"),
+    visibility: text("visibility").notNull().default("internal"),
+    version: integer("version").notNull().default(1),
+    previousDocumentId: text("previous_document_id"),
     status: documentStatus("status").notNull().default("pending"),
     uploadedBy: text("uploaded_by").notNull().references(() => user.id),
     reviewedBy: text("reviewed_by").references(() => user.id),
     reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    reviewComment: text("review_comment"),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    deletedBy: text("deleted_by").references(() => user.id),
     createdAt,
     updatedAt,
   },
   (table) => [
     index("lead_documents_tenant_lead_idx").on(table.tenantId, table.leadId),
+    index("lead_documents_tenant_client_idx").on(table.tenantId, table.clientId),
+    index("lead_documents_tenant_beneficiary_idx").on(table.tenantId, table.beneficiaryId),
+    index("lead_documents_checksum_idx").on(table.tenantId, table.checksumSha256),
   ]
 );
 

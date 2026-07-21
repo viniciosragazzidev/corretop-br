@@ -1,1 +1,8 @@
-{}
+{
+  "crons": [
+    {
+      "path": "/api/internal/jobs/distribution",
+      "schedule": "*/2 * * * *"
+    }
+  ]
+}

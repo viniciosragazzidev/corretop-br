@@ -11,6 +11,7 @@ import { AuthorizationError } from "@/shared/auth/errors";
 import { getDatabase, schema } from "@/shared/db";
 import { chooseAvailableBroker } from "@/features/leads/assignment";
 import { notifyNewLead, notifyLeadArrived } from "@/features/notifications/send-push-helper";
+import { enqueueLeadDistributionJob } from "@/features/lead-distribution/jobs";
 
 const MAX_FILE_BYTES = 2_000_000;
 const MAX_ROWS = 500;
@@ -77,6 +78,10 @@ export async function importLeadsFromCsvAction(formData: FormData) {
         });
         void notifyLeadArrived(leadId, context.tenantId, branchId, nome).catch(console.error);
         void notifyNewLead(leadId, context.tenantId, branchId, brokerId, nome).catch(console.error);
+        // Enqueue distribution job if lead was queued (no broker available)
+        if (!assigned) {
+          void enqueueLeadDistributionJob({ tenantId: context.tenantId, leadId }).catch(console.error);
+        }
         imported += 1;
       } catch (error) { errors.push({ row: row.row, message: error instanceof Error ? error.message : "linha inválida" }); }
     }

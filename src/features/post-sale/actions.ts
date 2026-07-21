@@ -19,6 +19,7 @@ const registerSaleInput = z.object({
   coverageStartDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe uma data de vigência válida."),
   approvedValue: z.coerce.number().finite().nonnegative("O valor aprovado não pode ser negativo."),
   confirmationDocumentId: z.string().min(1, "Anexe a confirmação da operadora."),
+  carrierId: z.string().uuid("Operadora inválida.").optional(),
 });
 
 const beneficiaryInput = z.object({
@@ -103,20 +104,59 @@ export async function registerSaleAction(rawInput: z.input<typeof registerSaleIn
   const missing = requirements.filter((requirement) => requirement.required && (requirement.appliesPerBeneficiary ? beneficiaries.some((beneficiary) => !documents.some((document) => document.requirementId === requirement.id && document.beneficiaryId === beneficiary.id && document.status === "approved")) : !documents.some((document) => document.requirementId === requirement.id && document.status === "approved")));
   if (missing.length) return { error: "Ainda existem documentos obrigatórios pendentes ou rejeitados." };
 
+  // Resolve the carrier plan — use lead's existing plan if it matches the
+  // selected carrier, otherwise pick the first active plan from that carrier.
+  // This allows the broker to record the carrier even when no plan was
+  // previously associated with the lead.
+  let resolvedPlanId = lead.planId;
+  let carrierName: string | null = null;
+  if (input.carrierId) {
+    const [carrier] = await db
+      .select({ id: schema.carriers.id, name: schema.carriers.name })
+      .from(schema.carriers)
+      .where(and(eq(schema.carriers.id, input.carrierId), eq(schema.carriers.tenantId, context.tenantId)))
+      .limit(1);
+    if (carrier) {
+      carrierName = carrier.name;
+      // If the lead already has a plan from this carrier, keep it
+      if (lead.planId) {
+        const [plan] = await db
+          .select({ id: schema.carrierPlans.id })
+          .from(schema.carrierPlans)
+          .where(and(eq(schema.carrierPlans.id, lead.planId), eq(schema.carrierPlans.carrierId, input.carrierId), eq(schema.carrierPlans.tenantId, context.tenantId)))
+          .limit(1);
+        if (!plan) resolvedPlanId = null; // lead's plan belongs to a different carrier
+      } else {
+        // Lead has no plan — pick the first active plan from this carrier
+        const [firstPlan] = await db
+          .select({ id: schema.carrierPlans.id })
+          .from(schema.carrierPlans)
+          .where(and(eq(schema.carrierPlans.carrierId, input.carrierId), eq(schema.carrierPlans.tenantId, context.tenantId), eq(schema.carrierPlans.active, true)))
+          .limit(1);
+        resolvedPlanId = firstPlan?.id ?? null;
+      }
+    }
+  }
+
   const now = new Date();
   const saleId = randomUUID();
   const clientId = randomUUID();
   const activeCustomerId = randomUUID();
-  const schedule = await generateCommissionSchedule(context.tenantId, saleId, lead.planId, input.approvedValue);
+  const schedule = await generateCommissionSchedule(context.tenantId, saleId, resolvedPlanId, input.approvedValue);
 
   await db.transaction(async (tx) => {
     await tx.insert(schema.clients).values({ id: clientId, tenantId: context.tenantId, leadId: lead.id, branchId: lead.branchId, corretorId: lead.corretorId ?? context.userId, nome: lead.nome, telefone: lead.telefone, email: lead.email, convertedAt: now }).onConflictDoNothing({ target: schema.clients.leadId });
     const [client] = await tx.select({ id: schema.clients.id }).from(schema.clients).where(and(eq(schema.clients.leadId, lead.id), eq(schema.clients.tenantId, context.tenantId))).limit(1);
-    await tx.insert(schema.sales).values({ id: saleId, tenantId: context.tenantId, leadId: lead.id, clientId: client?.id ?? clientId, brokerId: lead.corretorId ?? context.userId, carrierPlanId: lead.planId, saleDate: now, saleValue: input.approvedValue.toFixed(2), approvedValue: input.approvedValue.toFixed(2), policyNumber: input.policyNumber, coverageStartDate: input.coverageStartDate, confirmationDocumentId: input.confirmationDocumentId, status: "active", createdBy: context.userId });
+    await tx.insert(schema.sales).values({ id: saleId, tenantId: context.tenantId, leadId: lead.id, clientId: client?.id ?? clientId, brokerId: lead.corretorId ?? context.userId, carrierPlanId: resolvedPlanId, saleDate: now, saleValue: input.approvedValue.toFixed(2), approvedValue: input.approvedValue.toFixed(2), policyNumber: input.policyNumber, coverageStartDate: input.coverageStartDate, confirmationDocumentId: input.confirmationDocumentId, status: "active", createdBy: context.userId });
     if (schedule.length) await tx.insert(schema.commissionSchedule).values(schedule);
     await tx.insert(schema.activeCustomers).values({ id: activeCustomerId, tenantId: context.tenantId, saleId, clientId: client?.id ?? clientId, leadId: lead.id, brokerId: lead.corretorId ?? context.userId, branchId: lead.branchId, coverageStartDate: input.coverageStartDate, contractAnniversary: addYears(input.coverageStartDate, 1) });
     await tx.update(schema.leads).set({ status: "converted", stageEnteredAt: now }).where(and(eq(schema.leads.id, lead.id), eq(schema.leads.tenantId, context.tenantId)));
-    await tx.insert(schema.leadInteractions).values({ id: randomUUID(), leadId: lead.id, userId: context.userId, tipo: "status_change", conteudo: "Venda registrada com confirmação da operadora.", metadata: { saleId, policyNumber: input.policyNumber } });
+    const metadata: Record<string, unknown> = { saleId, policyNumber: input.policyNumber };
+    if (carrierName) {
+      metadata.carrierId = input.carrierId;
+      metadata.carrierName = carrierName;
+    }
+    await tx.insert(schema.leadInteractions).values({ id: randomUUID(), leadId: lead.id, userId: context.userId, tipo: "status_change", conteudo: carrierName ? `Venda registrada com ${carrierName}.` : "Venda registrada com confirmação da operadora.", metadata });
     await tx.insert(schema.auditLogs).values({ id: randomUUID(), userId: context.userId, entidade: "sale", entidadeId: saleId, acao: "registrou" });
     await tx.insert(schema.notifications).values({ id: randomUUID(), tenantId: context.tenantId, recipientUserId: lead.corretorId ?? context.userId, leadId: lead.id, type: "sale_registered", title: "Venda registrada", message: `${lead.nome} foi convertido em cliente ativo.`, createdAt: now });
   });

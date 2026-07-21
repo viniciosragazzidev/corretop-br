@@ -7,9 +7,10 @@ import {
   Eye,
   Plus,
   FolderSimple,
+  Trash,
 } from "@/components/huge-icons";
 import { Badge } from "@/components/ui/badge";
-import { confirmDocumentUploadAction } from "@/features/documents/actions";
+import { confirmDocumentUploadAction, deleteDocumentAction } from "@/features/documents/actions";
 
 type Requirement = {
   id: string;
@@ -26,6 +27,9 @@ type UserDoc = {
   status: string;
   requirementId: string | null;
   beneficiaryId: string | null;
+  category?: string;
+  description?: string | null;
+  version?: number;
 };
 
 type Beneficiary = { id: string; name: string; isHolder: boolean };
@@ -43,11 +47,13 @@ function getDocumentFolder(name: string, appliesPerBeneficiary: boolean) {
 
 export function LeadDocumentsSection({
   leadId,
+  clientId,
   requirements,
   documents: initialDocs,
   beneficiaries,
 }: {
   leadId: string;
+  clientId?: string | null;
   requirements: Requirement[];
   documents: UserDoc[];
   beneficiaries?: Beneficiary[];
@@ -55,6 +61,8 @@ export function LeadDocumentsSection({
   const [documents] = useState<UserDoc[]>(initialDocs);
   const [selectedBeneficiaryByRequirement, setSelectedBeneficiaryByRequirement] = useState<Record<string, string>>({});
   const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const [category, setCategory] = useState("outros");
+  const [description, setDescription] = useState("");
   const [, startTransition] = useTransition();
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, reqId: string | null, beneficiaryId: string | null = null) => {
@@ -92,6 +100,13 @@ export function LeadDocumentsSection({
           beneficiaryId,
           filename: data.filename,
           fileUrl: data.fileUrl,
+          storageKey: data.storageKey,
+          category,
+          description,
+          mimeType: data.mimeType,
+          sizeBytes: data.sizeBytes,
+          checksumSha256: data.checksumSha256,
+          clientId,
         });
 
         if (res.error) {
@@ -120,6 +135,13 @@ export function LeadDocumentsSection({
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
+  };
+
+  const handleDelete = async (documentId: string) => {
+    if (!window.confirm("Remover este documento do atendimento? O arquivo ficará indisponível para consulta.")) return;
+    const result = await deleteDocumentAction(documentId);
+    if (result.error) toast.error(result.error);
+    else { toast.success("Documento removido."); window.location.reload(); }
   };
 
   const groupedRequirements = documentFolderOrder
@@ -205,6 +227,9 @@ export function LeadDocumentsSection({
                         {doc.filename.slice(-20)} <Eye className="size-3.5" />
                       </a>
                       {getStatusBadge(doc.status)}
+                      <button type="button" className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-destructive" onClick={() => void handleDelete(doc.id)}>
+                        <Trash className="size-3" /> Remover
+                      </button>
                     </div>
 
                     {(doc.status === "rejected" || doc.status === "pending") && (
@@ -245,6 +270,10 @@ export function LeadDocumentsSection({
       <div className="pt-4 border-t">
         <div className="flex items-center justify-between mb-3">
           <h4 className="font-heading text-xs font-semibold">Documentos Adicionais (Avulsos)</h4>
+          <div className="flex items-center gap-2">
+          <select aria-label="Categoria do documento" className="h-7 rounded-md border border-input bg-background px-2 text-xs" value={category} onChange={(event) => setCategory(event.target.value)}>
+            <option value="outros">Outros</option><option value="identificacao">Identificação</option><option value="proposta">Proposta</option><option value="contratacao">Contratação</option><option value="pos_venda">Pós-venda</option>
+          </select>
           <label className="relative inline-flex h-7 cursor-pointer items-center justify-center rounded-lg border border-border px-2.5 text-xs font-medium hover:bg-muted transition-colors gap-1">
             <input
               type="file"
@@ -256,7 +285,9 @@ export function LeadDocumentsSection({
             <Plus className="size-3.5" />
             {uploadingId === "avulso" ? "Enviando..." : "Adicionar outro"}
           </label>
+          </div>
         </div>
+        <input aria-label="Observação do documento" className="mb-3 h-8 w-full rounded-md border border-input bg-background px-2 text-xs" placeholder="Observação opcional (ex.: documento recebido por WhatsApp)" value={description} onChange={(event) => setDescription(event.target.value)} />
 
         <div className="grid gap-2">
           {documents

@@ -7,6 +7,7 @@ import { motion } from "motion/react";
 import { ArrowRight, ArrowSquareOut, Calculator, ChatCircleText, CheckCircle, Clock, ClipboardText, FileText, ListChecks, Phone, Plus, WhatsappLogo } from "@/components/huge-icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { LeadProgressStepper } from "@/features/leads/components/lead-progress-stepper";
 import { LeadReminder } from "@/features/leads/components/lead-reminder";
 import { LeadQuickNote } from "@/features/leads/components/lead-quick-note";
 import { InlineFeedbackForm } from "@/app/(dashboard)/leads/[id]/inline-feedback-form";
@@ -44,6 +45,11 @@ export function LeadActionHub({ leadId, status, currentOwner, hasQuotes, hasPend
 
   return (
     <section aria-labelledby="lead-next-action-title" className="rounded-xl border border-primary/20 bg-card p-4 shadow-sm sm:p-5">
+      {/* Progress Stepper */}
+      <div className="mb-4">
+        <LeadProgressStepper status={status} />
+      </div>
+
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-primary">Próxima ação</p>

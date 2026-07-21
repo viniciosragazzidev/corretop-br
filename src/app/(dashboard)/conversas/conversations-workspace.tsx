@@ -534,6 +534,10 @@ function ClientProfile({ client }: { client: ConversationItem }) {
                 <FileText />
                 Ver tarefas e documentos
               </Button>
+              <Button className="w-full justify-start" render={<Link href={`/leads/${client.id}#documentos`} />} size="sm" variant="ghost">
+                <FileText />
+                Adicionar documento
+              </Button>
             </div>
           </ProfileSection>
 

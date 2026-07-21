@@ -441,6 +441,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ c
                   <CardContent className="pt-4">
                     <LeadDocumentsSection
                       leadId={client.leadId}
+                      clientId={client.id}
                       requirements={requirements}
                       documents={leadDocs}
                       beneficiaries={beneficiaries.map((b) => ({ id: b.id, name: b.name, isHolder: b.isHolder }))}

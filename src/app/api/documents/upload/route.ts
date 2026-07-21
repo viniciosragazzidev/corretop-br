@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
 import { writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
+import { createHash } from "node:crypto";
 import { z } from "zod";
 import { and, eq } from "drizzle-orm";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
@@ -69,14 +70,15 @@ export async function POST(req: NextRequest) {
     const filePath = join(uploadDir, uniqueFilename);
     await writeFile(filePath, buffer);
 
+    const checksumSha256 = createHash("sha256").update(buffer).digest("hex");
     const storageKey = `${context.tenantId}/${uniqueFilename}`;
     const fileUrl = `/api/documents/download?key=${encodeURIComponent(storageKey)}`;
 
-    return NextResponse.json({ fileUrl, filename: file.name });
+    return NextResponse.json({ fileUrl, storageKey, filename: file.name, mimeType: file.type, sizeBytes: file.size, checksumSha256 });
   } catch (error) {
-    console.error("Upload error:", error);
+    console.error("Document upload failed", { error: error instanceof Error ? error.name : "unknown" });
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Erro interno no upload." },
+      { error: "Não foi possível concluir o upload. Tente novamente." },
       { status: 500 }
     );
   }

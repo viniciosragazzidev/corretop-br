@@ -17,7 +17,6 @@ import { getQuotesByLead } from "@/features/quotes/queries";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
 import { StartServiceButton } from "./start-service-button";
-import { LeadManagementActions } from "./management-actions";
 import { SupervisionPanel } from "./supervision-panel";
 import { CotarButton } from "./cotar-button";
 import { QuoteBuilder } from "@/features/leads/components/quote-builder";
@@ -104,7 +103,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
   const remainingMinutes = Math.max(0, slaMinutes - elapsedMinutes);
   const slaUrgent = remainingMinutes <= Math.max(5, Math.round(slaMinutes * 0.25));
 
-  const [interactions, tasks, requirements, leadDocs, beneficiaries, quotes, plans] = await Promise.all([
+  const [interactions, tasks, requirements, leadDocs, beneficiaries, quotes, plans, carriers] = await Promise.all([
     getLeadTimeline(id),
     getDatabase().select({ id: schema.leadTasks.id, title: schema.leadTasks.title, description: schema.leadTasks.description, priority: schema.leadTasks.priority, dueAt: schema.leadTasks.dueAt, completedAt: schema.leadTasks.completedAt, createdAt: schema.leadTasks.createdAt, assignedTo: schema.leadTasks.assignedTo, assigneeName: schema.user.name })
       .from(schema.leadTasks).leftJoin(schema.user, eq(schema.leadTasks.assignedTo, schema.user.id)).where(and(eq(schema.leadTasks.tenantId, context.tenantId), eq(schema.leadTasks.leadId, id)))
@@ -117,6 +116,10 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
       .from(schema.globalPlans)
       .where(eq(schema.globalPlans.status, "published"))
       .orderBy(schema.globalPlans.name),
+    getDatabase().select({ id: schema.carriers.id, name: schema.carriers.name })
+      .from(schema.carriers)
+      .where(and(eq(schema.carriers.tenantId, context.tenantId), eq(schema.carriers.status, "active")))
+      .orderBy(schema.carriers.name),
   ]);
 
   if (!interactions) notFound();
@@ -283,18 +286,15 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             </TabsList>
 
             <TabsContent value="summary" className="mt-4 space-y-6">
-              {/* Documents Checklist (Only show if not in distributed state) */}
-              {lead.status !== "distributed" && (
-                <Card className="border-border bg-card shadow-sm" id="documentos">
+              <Card className="border-border bg-card shadow-sm" id="documentos">
                   <CardHeader className="pb-3 border-b border-border/40">
                     <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Documentação do atendimento</CardTitle>
-                    <CardDescription className="text-xs">Envie os arquivos por requisito e beneficiário. A aprovação é acompanhada pela fila central de Documentos.</CardDescription>
+                    <CardDescription className="text-xs">Anexe documentos opcionais por titular ou beneficiário. A aprovação é acompanhada pela fila central de Documentos.</CardDescription>
                   </CardHeader>
                   <CardContent className="pt-4">
                     <LeadDocumentsSection leadId={lead.id} requirements={requirements} documents={leadDocs} beneficiaries={beneficiaries.map((beneficiary) => ({ id: beneficiary.id, name: beneficiary.name, isHolder: beneficiary.isHolder }))} />
                   </CardContent>
                 </Card>
-              )}
 
 
             </TabsContent>
@@ -407,18 +407,15 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
               </CardContent>
             </Card>
 
-            {/* Management Actions + Person Details */}
+            {/* Person Details (management actions now in SupervisionPanel above) */}
             <div className="space-y-4">
-              {!isManagement && (
-                <LeadManagementActions leadId={lead.id} brokers={brokers} canManage={context.role === "manager" || context.role === "director"} isLost={lead.status === "lost"} currentStatus={lead.status} currentOwner={lead.corretorNome} />
-              )}
               <PersonRecordDetails kind="lead" createdAt={lead.createdAt} consentimentoLgpd={lead.consentimentoLgpd} dependents={beneficiaries} documentCount={leadDocs.length} />
             </div>
 
             {/* Beneficiaries + Sale Registration */}
             <div className="space-y-4">
               <BeneficiariesSection leadId={lead.id} contactName={lead.nome} initialBeneficiaries={beneficiaries} />
-              {lead.status === "under_analysis" || lead.status === "documentation_pending" ? <RegisterSalePanel leadId={lead.id} documents={leadDocs.map((document) => ({ id: document.id, filename: document.filename, status: document.status }))} /> : null}
+              {lead.status === "under_analysis" || lead.status === "documentation_pending" ? <RegisterSalePanel leadId={lead.id} documents={leadDocs.map((document) => ({ id: document.id, filename: document.filename, status: document.status }))} carriers={carriers} /> : null}
             </div>
           </div>
 

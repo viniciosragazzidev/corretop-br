@@ -75,7 +75,7 @@ export function TeamInviteSection({ branches, canInviteManager }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); else setOpen(true); }}>
-      <DialogTrigger render={<Button><UserPlus weight="bold" /> Novo membro</Button>} />
+      <DialogTrigger render={<Button><UserPlus weight="bold" /> Novo Funcionário</Button>} />
       <DialogPopup className="sm:max-w-md">
         {createdLink ? (
           <div className="space-y-4 pt-2">
@@ -103,23 +103,21 @@ export function TeamInviteSection({ branches, canInviteManager }: Props) {
           </div>
         ) : (
           <div className="space-y-4">
-            <DialogTitle>Novo membro</DialogTitle>
+            <DialogTitle>Novo Funcionário</DialogTitle>
             <DialogDescription>Escolha o cadastro manual ou a importação em lote por CSV.</DialogDescription>
-            
+
             <div className="flex rounded-lg bg-muted p-1 text-xs">
               <button
-                className={`flex-1 rounded-md py-1.5 font-medium transition-all ${
-                  activeTab === 'manual' ? 'bg-background shadow-sm text-foreground font-semibold' : 'text-muted-foreground'
-                }`}
+                className={`flex-1 rounded-md py-1.5 font-medium transition-all ${activeTab === 'manual' ? 'bg-background shadow-sm text-foreground font-semibold' : 'text-muted-foreground'
+                  }`}
                 onClick={() => setActiveTab('manual')}
                 type="button"
               >
                 Cadastro Manual
               </button>
               <button
-                className={`flex-1 rounded-md py-1.5 font-medium transition-all ${
-                  activeTab === 'csv' ? 'bg-background shadow-sm text-foreground font-semibold' : 'text-muted-foreground'
-                }`}
+                className={`flex-1 rounded-md py-1.5 font-medium transition-all ${activeTab === 'csv' ? 'bg-background shadow-sm text-foreground font-semibold' : 'text-muted-foreground'
+                  }`}
                 onClick={() => setActiveTab('csv')}
                 type="button"
               >

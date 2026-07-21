@@ -6,6 +6,7 @@ import { and, eq, lt, or, isNull } from "drizzle-orm";
 import { getDatabase, schema } from "@/shared/db";
 import type { TenantContext } from "@/shared/auth/types";
 import { processQueuedLead } from "@/features/lead-distribution/service";
+import { enqueueLeadDistributionJob } from "@/features/lead-distribution/jobs";
 import { isNotificationCapabilityEnabled } from "@/features/notifications/queries";
 
 export type FeedbackSlaResult = { checked: number; released: number; reassigned: number; notifications: number };
@@ -54,7 +55,12 @@ export async function runFeedbackSlaSweep(tenantId?: string): Promise<FeedbackSl
       const context: TenantContext = { userId: actor.userId, tenantId: tenant.id, role: "director", jobTitle: "director", branchId: null };
       const origin = lead.distributionOrigin ?? (lead.assignmentSource === "manual_director" ? "parent" : "unit");
       const reassigned = await processQueuedLead(context, lead.id, brokerId);
-      if (reassigned.status === "assigned") result.reassigned += 1;
+      if (reassigned.status === "assigned") {
+        result.reassigned += 1;
+      } else if (origin !== "parent") {
+        // Queue a background job for retry; lead stays in unit queue
+        void enqueueLeadDistributionJob({ tenantId: tenant.id, leadId: lead.id }).catch(() => {});
+      }
       if (reassigned.status !== "assigned" && origin === "parent") {
         const returnedToParent = await db.transaction(async (tx) => {
           const moved = await tx.update(schema.leads).set({ branchId: null, queueId: null, distributionStatus: "unassigned", distributionOrigin: "parent", assignmentStrategy: "manual", distributionUpdatedAt: new Date() }).where(and(eq(schema.leads.id, lead.id), eq(schema.leads.tenantId, tenant.id), isNull(schema.leads.corretorId), eq(schema.leads.distributionStatus, "queued"))).returning({ id: schema.leads.id });

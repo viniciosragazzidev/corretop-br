@@ -29,6 +29,7 @@ function normalizePhone(phone: string) {
 }
 
 import { notifyNewLead, notifyLeadArrived } from "@/features/notifications/send-push-helper";
+import { enqueueLeadDistributionJob } from "@/features/lead-distribution/jobs";
 
 export async function createManualLead(rawInput: unknown) {
   const input = leadInput.parse(rawInput);
@@ -68,6 +69,11 @@ export async function createManualLead(rawInput: unknown) {
   // Trigger push notifications in background
   void notifyLeadArrived(leadId, context.tenantId, context.branchId, input.nome).catch(console.error);
   void notifyNewLead(leadId, context.tenantId, context.branchId, corretorId, input.nome).catch(console.error);
+
+  // Enqueue distribution job if lead was queued (no broker available immediately)
+  if (!assigned) {
+    void enqueueLeadDistributionJob({ tenantId: context.tenantId, leadId }).catch(console.error);
+  }
 
   return { leadId };
 }

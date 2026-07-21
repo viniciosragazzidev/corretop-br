@@ -29,7 +29,7 @@ export default async function CreateTeamMemberPage() {
         </div>
         <Card className="max-w-xl border-border bg-card shadow-none">
           <CardHeader>
-            <CardTitle>Novo membro</CardTitle>
+            <CardTitle>Novo Funcionário</CardTitle>
             <CardDescription>
               {context.role === "director"
                 ? "Voce pode criar Gestores e Corretores."
