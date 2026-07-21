@@ -67,30 +67,6 @@ O CorreTop usa `services/whatsapp-api` como fronteira Fastify separada para cham
 | DEC-021 | Integração de Meta Lead Ads. | Pode começar pelo webhook genérico. |
 | DEC-022 | Estratégia de PWA e push. | Requer escopo de browser e políticas de permissão. |
 
-## DEC-036 — Entrada unificada de leads por canal
-
-**Estado:** Aceita como fundação incremental
-**Data:** 2026-07-20
-
-Landing Page, Facebook Lead Ads, Instagram Lead Ads e WhatsApp usarão um único
-contrato de ingestão e o mesmo motor de unidade, distribuição, SLA, notificação e
-auditoria. A origem e a atribuição de campanha são metadados do lead; nunca
-concedem escopo de acesso. A migration 0054 adiciona os campos comuns e a chave de
-idempotência por tenant/canal/identificador externo. A conexão real da Meta Lead
-Ads permanece uma etapa posterior, dependente de credenciais, permissões e revisão
-da Meta.
-
-## DEC-037 — Atribuição de anúncios separa Pixel, webhook e Insights
-
-**Estado:** Aceita como implementação incremental
-**Data:** 2026-07-20
-
-O Pixel mede eventos em páginas públicas, o webhook recebe leads de formulários
-nativos e a Insights API fornece métricas de entrega/custo. Nenhum desses canais
-substitui o motor de distribuição do CRM. O painel de atribuição combinará as três
-fontes por campanha, anúncio, formulário, tenant e unidade, sem enviar tokens ou
-PII desnecessária ao navegador.
-
 ## DecisÃµes registradas durante a implementaÃ§Ã£o
 
 | ID | DecisÃ£o | Estado | EvidÃªncia |

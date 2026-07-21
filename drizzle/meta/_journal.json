@@ -127,55 +127,6 @@
       "when": 1784815100000,
       "tag": "0053_reconcile_quote_builder_columns",
       "breakpoints": true
-    },
-    {
-      "idx": 18,
-      "version": "7",
-      "when": 1784815200000,
-      "tag": "0054_unified_lead_sources",
-      "breakpoints": true
-    },
-    {
-      "idx": 19,
-      "version": "7",
-      "when": 1784815300000,
-      "tag": "0055_marketing_attribution_foundation",
-      "breakpoints": true
-    },
-    {
-      "idx": 20,
-      "version": "7",
-      "when": 1784815400000,
-      "tag": "0056_allow_lead_source_deletion",
-      "breakpoints": true
-    },
-    {
-      "idx": 21,
-      "version": "7",
-      "when": 1784815450000,
-      "tag": "0057_imported_spreadsheets",
-      "breakpoints": true
-    },
-    {
-      "idx": 22,
-      "version": "7",
-      "when": 1784815500000,
-      "tag": "0058_lead_updated_at_service_started",
-      "breakpoints": true
-    },
-    {
-      "idx": 23,
-      "version": "7",
-      "when": 1784815600000,
-      "tag": "0059_lead_distribution_jobs",
-      "breakpoints": true
-    },
-    {
-      "idx": 24,
-      "version": "7",
-      "when": 1784638774266,
-      "tag": "0024_rare_blacklash",
-      "breakpoints": true
     }
   ]
 }

@@ -152,8 +152,6 @@ export async function createLeadFromWebhookSync(
       assignedAt: assigned ? now : null,
       consentimentoLgpd: false,
       webhookCredentialId: credentialId,
-      sourceChannel: "landing_page",
-      sourceMetadata: { requestId },
       createdAt: now,
     });
 
