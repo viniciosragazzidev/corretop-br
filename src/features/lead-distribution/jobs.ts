@@ -104,7 +104,7 @@ async function getAutomationContext(tenantId: string): Promise<TenantContext | n
     ))
     .orderBy(asc(schema.tenantMemberships.createdAt))
     .limit(1);
-  return director ? { userId: director.userId, tenantId, role: "director", jobTitle: "director", branchId: null } : null;
+  return director ? { userId: director.userId, tenantId, role: "director", branchId: null } : null;
 }
 
 function sanitizeError(error: unknown) {

@@ -51,7 +51,7 @@ export async function runFeedbackSlaSweep(tenantId?: string): Promise<FeedbackSl
       if (!released) continue;
       result.released += 1;
       result.notifications += 2;
-      const context: TenantContext = { userId: actor.userId, tenantId: tenant.id, role: "director", jobTitle: "director", branchId: null };
+      const context: TenantContext = { userId: actor.userId, tenantId: tenant.id, role: "director", branchId: null };
       const origin = lead.distributionOrigin ?? (lead.assignmentSource === "manual_director" ? "parent" : "unit");
       const reassigned = await processQueuedLead(context, lead.id, brokerId);
       if (reassigned.status === "assigned") result.reassigned += 1;

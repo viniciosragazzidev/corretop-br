@@ -26,23 +26,6 @@ export function requireAnyRole(
   return context;
 }
 
-/**
- * Meta Lead Ads is a central intake capability: Directors manage it tenant-wide
- * and Marketing can manage it only when its membership belongs to the matrix
- * (represented by a null branchId). A job title never expands branch access.
- */
-export function canManageCentralMetaLeadAds(context: TenantContext): boolean {
-  return context.role === "director" || (context.jobTitle === "marketing" && context.branchId === null);
-}
-
-export function requireCentralMetaLeadAdsManager(context: TenantContext): TenantContext {
-  if (!canManageCentralMetaLeadAds(context)) {
-    throw new AuthorizationError("A integração Meta é administrada apenas pelo Diretor ou Marketing da matriz.");
-  }
-
-  return context;
-}
-
 export function assertTenantAccess(
   context: TenantContext,
   resourceTenantId: string,

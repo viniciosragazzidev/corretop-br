@@ -6,7 +6,6 @@ export type TenantContext = {
   userId: string;
   tenantId: string;
   role: TenantRole;
-  jobTitle: string;
   branchId: string | null;
 };
 

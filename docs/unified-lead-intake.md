@@ -34,8 +34,8 @@ A entrada da landing page já executa autenticação, validação, idempotência
 resolução de filial, distribuição síncrona, notificações e auditoria. A migration
 0054 adiciona o contrato de atribuição comum sem alterar esse comportamento.
 
-Em Configurações > Integrações, Diretor e Marketing da matriz podem excluir fontes de webhook e
-conectar Páginas Meta pelo OAuth oficial. Cada conexão
+Em Configurações > Integrações, o Diretor pode excluir fontes de webhook e
+conectar uma fonte Meta à Página, formulário e unidade de destino. Cada conexão
 expõe o estado operacional e os totais persistidos de eventos, cliques,
 impressões e investimento. Pausar ou excluir é auditado; a exclusão remove apenas
 a configuração da fonte e seus dados de métricas/eventos vinculados, nunca leads
@@ -43,25 +43,12 @@ já criados no CRM.
 
 ## Próxima integração: Meta Lead Ads
 
-### Escopo temporário: matriz
-
-Até a conclusão do fluxo plug-and-play por unidade, fontes Meta são cadastradas
-somente na matriz e não recebem `branch_id`. Diretor e Marketing sem vínculo de
-unidade são os únicos administradores permitidos. O webhook ignora fontes inativas
-ou vinculadas a unidade, e a distribuição posterior decide a unidade atendente.
-
-O Super-admin controla a capacidade por `feature_meta_lead_ads_enabled`. A conexão
-oficial usa OAuth no servidor, cifra o token de Página em repouso e inscreve a Página
-no campo `leadgen`. A futura liberação por unidade depende apenas de uma decisão de
-escopo e superfície plug-and-play por unidade; não exige expor tokens no navegador.
-
-O receptor está disponível em `POST /api/webhooks/meta/leads` e `GET` para
-verificação da Meta. Ele valida `X-Hub-Signature-256`, respeita a feature flag,
-resolve a conexão pela Página, registra o evento `leadgen` de forma idempotente,
-recupera o `leadgen_id` pela Graph API e cria o lead na fila central. Nome, telefone,
-e-mail, campanha, anúncio, formulário e identificador externo são normalizados sem
-registrar token ou payload sensível em logs. Falhas permanecem no evento com erro
-operacional para reprocessamento controlado posterior.
+O receptor inicial está disponível em `POST /api/webhooks/meta/leads` e `GET`
+para verificação da Meta. Ele valida `X-Hub-Signature-256`, respeita a feature flag
+`feature_meta_lead_ads_enabled`, resolve a conexão pela Página e registra eventos
+`leadgen` idempotentes. A busca dos dados completos do `leadgen_id`, criação do
+lead e sincronização de Insights continuam bloqueadas até a conexão administrativa
+e as permissões aprovadas da Meta estarem configuradas.
 
 A conexão de Facebook/Instagram deve ser uma superfície administrativa do
 Super-admin/Diretor, com status ativo/inativo, auditoria, última entrega e erro de
@@ -88,10 +75,10 @@ provedor.
 
 ## Critérios de conclusão da fase Meta
 
-- lead de Facebook aparece na fila central correta, sem selecionar uma unidade por inferência;
+- lead de Facebook e Instagram aparece na unidade correta;
 - WhatsApp cria/reconcilia lead sem duplicação;
 - origem/campanha/formulário permanecem visíveis no detalhe e relatórios;
-- distribuição posterior e SLA usam as regras já existentes após a unidade ser definida;
+- distribuição e SLA são idênticos aos da landing page;
 - reprocessamento não duplica leads;
 - conexão pode ser pausada e reconectada pelo administrador;
 - testes de assinatura, isolamento de tenant e auditoria passam.

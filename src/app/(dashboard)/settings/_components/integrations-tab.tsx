@@ -15,15 +15,15 @@ import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { beginMetaLeadAdsOAuthAction, createIntegrationAction, deleteIntegrationAction, deleteMarketingConnectionAction, getIntegrationsData, revokeIntegrationAction, toggleIntegrationAction, toggleMarketingConnectionAction, type IntegrationRecord, type MarketingConnectionRecord } from "../integrations-actions";
+import { createIntegrationAction, createMarketingConnectionAction, deleteIntegrationAction, deleteMarketingConnectionAction, getIntegrationsData, revokeIntegrationAction, toggleIntegrationAction, toggleMarketingConnectionAction, type IntegrationRecord, type MarketingConnectionRecord } from "../integrations-actions";
 
 type Branch = { id: string; name: string };
-type Props = { integrations: IntegrationRecord[]; branches: Branch[]; marketingConnections: MarketingConnectionRecord[]; showGenericSources?: boolean };
+type Props = { integrations: IntegrationRecord[]; branches: Branch[]; marketingConnections: MarketingConnectionRecord[] };
 type QueryData = { integrations: IntegrationRecord[]; branches: Branch[]; marketingConnections: MarketingConnectionRecord[] };
 
 const sourceLabel: Record<string, string> = { site_pixel: "Pixel / Site", meta_ads: "Meta Lead Ads", landing_page: "Landing page" };
 
-export function IntegrationsTab({ integrations, branches, marketingConnections, showGenericSources = integrations.length > 0 }: Props) {
+export function IntegrationsTab({ integrations, branches, marketingConnections }: Props) {
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(integrations[0]?.id ?? null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -33,8 +33,7 @@ export function IntegrationsTab({ integrations, branches, marketingConnections, 
   const [testOpen, setTestOpen] = useState(false);
   const [testStatus, setTestStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [testResult, setTestResult] = useState<{ leadId?: string; code?: string; message?: string } | null>(null);
-  const [connectingMeta, setConnectingMeta] = useState(false);
-  const [metaGuideOpen, setMetaGuideOpen] = useState(false);
+  const [metaOpen, setMetaOpen] = useState(false);
   const testNameRef = useRef<HTMLInputElement>(null);
   const testPhoneRef = useRef<HTMLInputElement>(null);
   const testEmailRef = useRef<HTMLInputElement>(null);
@@ -121,12 +120,7 @@ export function IntegrationsTab({ integrations, branches, marketingConnections, 
     onSuccess: (result, id) => { if (!result.success) { toast.error(result.error); return; } queryClient.setQueryData<QueryData>(["settings-integrations"], (current) => current ? { ...current, integrations: current.integrations.filter((item) => item.id !== id) } : current); setSelectedId(null); toast.success("Fonte excluída."); },
   });
 
-  async function connectMeta() {
-    setConnectingMeta(true);
-    const result = await beginMetaLeadAdsOAuthAction();
-    if (!result.success || !result.authorizationUrl) { toast.error(result.error ?? "Não foi possível iniciar a conexão com a Meta."); setConnectingMeta(false); return; }
-    window.location.assign(result.authorizationUrl);
-  }
+  async function submitMetaConnection(formData: FormData) { const result = await createMarketingConnectionAction(formData); if (!result.success) { toast.error(result.error); return; } toast.success("Fonte Meta conectada."); window.location.reload(); }
   async function toggleMeta(id: string) { const form = new FormData(); form.set("id", id); const result = await toggleMarketingConnectionAction(form); if (!result.success) return toast.error(result.error); window.location.reload(); }
   async function deleteMeta(id: string) { const form = new FormData(); form.set("id", id); const result = await deleteMarketingConnectionAction(form); if (!result.success) return toast.error(result.error); toast.success("Conexão Meta excluída."); window.location.reload(); }
 
@@ -154,15 +148,11 @@ export function IntegrationsTab({ integrations, branches, marketingConnections, 
 
   async function copySnippet() { await navigator.clipboard.writeText(snippet); setCopied(true); window.setTimeout(() => setCopied(false), 1400); }
 
-  return <Tabs className="gap-5" defaultValue={showGenericSources ? "sources" : "meta"}>
+  return <Tabs className="gap-5" defaultValue="sources">
     <TabsList variant="line" className="w-full justify-start border-b border-border">
-      {showGenericSources ? <TabsTrigger value="sources"><LinkSimple /> Webhooks & Pixels</TabsTrigger> : null}
+      <TabsTrigger value="sources"><LinkSimple /> Webhooks & Pixels</TabsTrigger>
       <TabsTrigger value="meta"><WifiHigh /> Meta Lead Ads</TabsTrigger>
     </TabsList>
-    <div className="flex items-center justify-between rounded-lg border border-blue-500/20 bg-blue-500/5 px-4 py-3 text-sm">
-      <div><p className="font-medium text-foreground">Primeira vez conectando uma Página?</p><p className="text-xs text-muted-foreground">Veja o que o administrador precisa liberar na Meta antes do login.</p></div>
-      <Button onClick={() => setMetaGuideOpen(true)} size="sm" variant="outline"><HelpCircle /> Tutorial</Button>
-    </div>
     <TabsContent value="sources" className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
       <Card className="border-border bg-card shadow-none">
         <CardHeader className="flex-row items-start justify-between gap-4 border-b border-border"><div className="flex items-center gap-2"><CardTitle>Fontes de captura</CardTitle><button type="button" onClick={() => setHelpOpen(true)} className="text-muted-foreground hover:text-foreground transition-colors" title="Como integrar em um site externo?"><HelpCircle className="size-4" /></button></div><Button onClick={() => setCreateOpen(true)} size="sm"><Plus /> Nova fonte</Button></CardHeader>
@@ -234,28 +224,19 @@ export function IntegrationsTab({ integrations, branches, marketingConnections, 
 
         <Button className="w-full" onClick={() => deleteMutation.mutate(selected.id)} variant="destructive"><Trash /> Excluir fonte</Button></CardContent></Card> : null}
     </TabsContent>
-    <TabsContent value="meta" className="grid gap-5"><Card className="border-border bg-card shadow-none"><CardHeader className="flex-row items-start justify-between gap-4"><div><CardTitle>Meta Lead Ads</CardTitle><CardDescription>Conecte suas Páginas pelo login oficial da Meta. Os leads de formulários nativos chegam à fila geral da matriz; nenhuma unidade é escolhida automaticamente.</CardDescription></div><Button disabled={connectingMeta} onClick={connectMeta} size="sm"><Plus /> {connectingMeta ? "Abrindo Meta..." : "Conectar com a Meta"}</Button></CardHeader><CardContent className="grid gap-3">{data.marketingConnections.map((connection) => <div key={connection.id} className="grid gap-4 rounded-lg border border-border p-4 lg:grid-cols-[1fr_auto]"><div><div className="flex items-center gap-2"><p className="font-medium">{connection.name}</p><Badge variant={connection.status === "active" ? "default" : "secondary"}>{connection.status === "active" ? "Ativa" : connection.status === "error" ? "Com erro" : "Pausada"}</Badge></div><p className="mt-1 text-xs text-muted-foreground">{connection.platform === "instagram" ? "Instagram" : "Facebook"} · Captação geral da matriz · Página {connection.externalPageId}</p><div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4"><Stat label="Eventos" value={connection.stats.webhookEvents} /><Stat label="Cliques" value={connection.stats.clicks} /><Stat label="Impressões" value={connection.stats.impressions} /><Stat label="Investimento" value={`R$ ${Number(connection.stats.spend).toFixed(2)}`} /></div>{connection.lastError ? <p className="mt-3 text-xs text-destructive">{connection.lastError}</p> : null}</div><div className="flex items-start gap-2"><Button onClick={() => toggleMeta(connection.id)} size="sm" variant="outline">{connection.status === "active" ? "Pausar" : "Ativar"}</Button><Button onClick={() => deleteMeta(connection.id)} size="sm" variant="destructive"><Trash /> Excluir</Button></div></div>)}{!data.marketingConnections.length ? <div className="rounded-lg border border-dashed border-border p-8 text-center"><WifiHigh className="mx-auto size-6 text-muted-foreground" /><p className="mt-3 text-sm font-medium">Nenhuma Página Meta conectada</p><p className="mt-1 text-xs text-muted-foreground">Use o login oficial para conceder somente as Páginas que podem alimentar a fila geral.</p></div> : null}</CardContent></Card></TabsContent>
+    <TabsContent value="meta" className="grid gap-5"><Card className="border-border bg-card shadow-none"><CardHeader className="flex-row items-start justify-between gap-4"><div><CardTitle>Meta Lead Ads</CardTitle><CardDescription>Vincule Página, formulário e unidade. O webhook global identifica a fonte e registra cada lead recebido.</CardDescription></div><Button onClick={() => setMetaOpen(true)} size="sm"><Plus /> Conectar fonte Meta</Button></CardHeader><CardContent className="grid gap-3">{data.marketingConnections.map((connection) => <div key={connection.id} className="grid gap-4 rounded-lg border border-border p-4 lg:grid-cols-[1fr_auto]"><div><div className="flex items-center gap-2"><p className="font-medium">{connection.name}</p><Badge variant={connection.status === "active" ? "default" : "secondary"}>{connection.status === "active" ? "Ativa" : connection.status === "error" ? "Com erro" : "Pausada"}</Badge></div><p className="mt-1 text-xs text-muted-foreground">{connection.platform === "instagram" ? "Instagram" : "Facebook"} · {connection.branchName ?? "Toda a corretora"} · Página {connection.externalPageId}</p><div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4"><Stat label="Eventos" value={connection.stats.webhookEvents} /><Stat label="Cliques" value={connection.stats.clicks} /><Stat label="Impressões" value={connection.stats.impressions} /><Stat label="Investimento" value={`R$ ${Number(connection.stats.spend).toFixed(2)}`} /></div>{connection.lastError ? <p className="mt-3 text-xs text-destructive">{connection.lastError}</p> : null}</div><div className="flex items-start gap-2"><Button onClick={() => toggleMeta(connection.id)} size="sm" variant="outline">{connection.status === "active" ? "Pausar" : "Ativar"}</Button><Button onClick={() => deleteMeta(connection.id)} size="sm" variant="destructive"><Trash /> Excluir</Button></div></div>)}{!data.marketingConnections.length ? <div className="rounded-lg border border-dashed border-border p-8 text-center"><WifiHigh className="mx-auto size-6 text-muted-foreground" /><p className="mt-3 text-sm font-medium">Nenhuma fonte Meta conectada</p><p className="mt-1 text-xs text-muted-foreground">Conecte a primeira Página e associe o formulário à unidade que receberá os leads.</p></div> : null}</CardContent></Card></TabsContent>
     <CreateIntegrationDialog branches={branches} open={createOpen} onOpenChange={setCreateOpen} onSubmit={(formData) => createMutation.mutate(formData)} pending={createMutation.isPending} />
     <HelpIntegrationDialog open={helpOpen} onOpenChange={setHelpOpen} />
-    <MetaAccessGuideDialog open={metaGuideOpen} onOpenChange={setMetaGuideOpen} />
+    <MetaConnectionDialog branches={branches} open={metaOpen} onOpenChange={setMetaOpen} onSubmit={submitMetaConnection} />
   </Tabs>;
 }
 
 function Stat({ label, value }: { label: string; value: string | number }) { return <div className="rounded-md bg-muted/50 px-2.5 py-2"><p className="text-muted-foreground">{label}</p><p className="mt-1 font-medium text-foreground">{value}</p></div>; }
 
+function MetaConnectionDialog({ branches, open, onOpenChange, onSubmit }: { branches: Branch[]; open: boolean; onOpenChange: (open: boolean) => void; onSubmit: (formData: FormData) => Promise<void> }) { return <Dialog open={open} onOpenChange={onOpenChange}><DialogPopup className="sm:max-w-md"><DialogTitle>Conectar fonte Meta</DialogTitle><DialogDescription>Cadastre a Página e, se aplicável, o formulário de Lead Ads que alimentará esta unidade.</DialogDescription><form action={onSubmit} className="mt-4 grid gap-4"><Field><FieldLabel>Nome da conexão</FieldLabel><Input name="name" placeholder="Meta Ads — Unidade Centro" required /></Field><Field><FieldLabel>Canal</FieldLabel><Select defaultValue="facebook" name="platform"><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="facebook">Facebook</SelectItem><SelectItem value="instagram">Instagram</SelectItem></SelectContent></Select></Field><Field><FieldLabel>ID da Página Meta</FieldLabel><Input name="externalPageId" placeholder="Ex.: 123456789" required /></Field><Field><FieldLabel>ID do formulário <span className="text-muted-foreground">(opcional)</span></FieldLabel><Input name="externalFormId" placeholder="Ex.: 123456789" /></Field><Field><FieldLabel>Unidade de destino</FieldLabel><Select name="branchId"><SelectTrigger className="w-full"><SelectValue placeholder="Toda a corretora" /></SelectTrigger><SelectContent>{branches.map((branch) => <SelectItem key={branch.id} value={branch.id}>{branch.name}</SelectItem>)}</SelectContent></Select></Field><div className="flex justify-end gap-2"><DialogClose render={<Button type="button" variant="ghost">Cancelar</Button>} /><Button type="submit">Salvar conexão</Button></div></form></DialogPopup></Dialog>; }
+
 function CreateIntegrationDialog({ branches, open, onOpenChange, onSubmit, pending }: { branches: Branch[]; open: boolean; onOpenChange: (open: boolean) => void; onSubmit: (formData: FormData) => void; pending: boolean }) {
   return <Dialog open={open} onOpenChange={onOpenChange}><DialogPopup className="sm:max-w-md"><DialogTitle>Nova fonte de captura</DialogTitle><DialogDescription>Gere um token seguro vinculado à corretora e, opcionalmente, a uma filial.</DialogDescription><form action={onSubmit} className="grid gap-4"><Field><FieldLabel htmlFor="integration-name">Nome da fonte</FieldLabel><Input id="integration-name" name="name" placeholder="Meta Ads - Filial Centro" required /></Field><Field><FieldLabel>Origem padrão</FieldLabel><Select defaultValue="site_pixel" name="source" labels={{ site_pixel: "Pixel / Site", meta_ads: "Meta Lead Ads", landing_page: "Landing page" }}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="site_pixel">Pixel / Site</SelectItem><SelectItem value="meta_ads">Meta Lead Ads</SelectItem><SelectItem value="landing_page">Landing page</SelectItem></SelectContent></Select></Field><Field><FieldLabel>Filial de destino</FieldLabel><Select name="branchId"><SelectTrigger className="w-full"><SelectValue placeholder="Primeira filial ativa" /></SelectTrigger><SelectContent>{branches.map((branch) => <SelectItem key={branch.id} value={branch.id}>{branch.name}</SelectItem>)}</SelectContent></Select></Field><div className="flex gap-2"><Button className="flex-1" disabled={pending} type="submit">{pending ? "Gerando token..." : "Gerar token"}</Button><DialogClose render={<Button disabled={pending} type="button" variant="ghost">Cancelar</Button>} /></div></form></DialogPopup></Dialog>;
-}
-
-function MetaAccessGuideDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
-  const steps = [
-    ["Confirme o administrador", "Entre no Meta Business Suite com um usuário que seja administrador da Página e tenha acesso aos leads."],
-    ["Libere o acesso a leads", "Em Configurações do negócio, abra Integrações → Acesso a leads (Gerenciador de Acesso a Leads), selecione a Página e adicione o app CorreTop API Oficial como CRM autorizado."],
-    ["Confira o formulário", "Verifique se o formulário usado no anúncio pertence à mesma Página. A Meta permite apenas um lead de teste por formulário."],
-    ["Volte ao CorreTop", "Clique em Conectar com a Meta, faça login, selecione a Página autorizada e aceite as permissões solicitadas. O token é guardado apenas no servidor."],
-    ["Valide o recebimento", "Use a ferramenta Lead Ads Testing da Meta para criar um lead. Depois acompanhe o status e confirme a entrada em Leads no CorreTop."],
-  ] as const;
-  return <Dialog open={open} onOpenChange={onOpenChange}><DialogPopup className="max-h-[85vh] overflow-y-auto sm:max-w-2xl"><DialogTitle>Como liberar uma Página Meta para o CorreTop</DialogTitle><DialogDescription>Este é o passo obrigatório antes de conectar uma Página. A autorização é feita uma vez por Página.</DialogDescription><div className="grid gap-3 pt-2">{steps.map(([title, description], index) => <div className="flex gap-3 rounded-lg border border-border p-3" key={title}><span className="grid size-7 shrink-0 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary">{index + 1}</span><div className="grid gap-1"><p className="text-sm font-medium text-foreground">{title}</p><p className="text-sm leading-relaxed text-muted-foreground">{description}</p></div></div>)}</div><div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-700 dark:text-amber-300"><strong>Importante:</strong> o CRM não consegue conceder acesso automaticamente. O administrador da Página precisa confirmar a autorização na Meta.</div><div className="flex flex-wrap justify-end gap-2"><a className="inline-flex h-9 items-center rounded-md px-3 text-sm text-primary underline-offset-4 hover:underline" href="https://business.facebook.com/settings" target="_blank" rel="noreferrer">Abrir Configurações do negócio</a><a className="inline-flex h-9 items-center rounded-md px-3 text-sm text-primary underline-offset-4 hover:underline" href="https://developers.facebook.com/tools/lead-ads-testing" target="_blank" rel="noreferrer">Abrir teste de leads</a><DialogClose render={<Button type="button">Entendi</Button>} /></div></DialogPopup></Dialog>;
 }
 
 function HelpIntegrationDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
