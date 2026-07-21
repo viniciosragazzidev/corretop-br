@@ -62,7 +62,13 @@ export function getMetaLeadAdsAuthorizationUrl(context: TenantContext) {
   // `pages_manage_metadata` is no longer accepted as a login scope for every
   // app configuration. Keep the default minimal and allow an approved app to
   // opt into an additional scope without changing application code.
-  const scopes = process.env.META_LEAD_ADS_SCOPES?.trim() || "pages_show_list,pages_read_engagement,leads_retrieval";
+  const scopes =
+    process.env.META_LEAD_ADS_SCOPES?.trim() ||
+    [
+      "pages_show_list",
+      "pages_read_engagement",
+      "leads_retrieval",
+    ].join(",");
   url.searchParams.set("scope", scopes);
   return url.toString();
 }
