@@ -3,14 +3,15 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
-import { and, count, eq, sql, sum } from "drizzle-orm";
+import { and, count, eq, isNull, sql, sum } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { requireRole } from "@/shared/auth/authorization";
+import { requireCentralMetaLeadAdsManager, requireRole } from "@/shared/auth/authorization";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
 import { generateWebhookToken } from "@/features/leads/webhooks/utils/lead-webhook.utils";
+import { getSystemSetting } from "@/features/system-settings/queries";
 
 const sourceSchema = z.enum(["site_pixel", "meta_ads", "landing_page"]);
 const createSchema = z.object({
@@ -66,11 +67,21 @@ async function requireDirector() {
   return requireRole(await getRequiredTenantContext(), "director");
 }
 
+async function requireCentralMetaManager() {
+  return requireCentralMetaLeadAdsManager(await getRequiredTenantContext());
+}
+
+async function requireMetaLeadAdsEnabled() {
+  if ((await getSystemSetting("feature_meta_lead_ads_enabled")) === "false") {
+    throw new Error("A captação Meta está desativada pelo Super-admin.");
+  }
+}
+
 export async function getIntegrationsData() {
-  const context = await requireDirector();
+  const context = await requireCentralMetaManager();
   const db = getDatabase();
   const [integrations, branches, marketingRows] = await Promise.all([
-    db.select({
+    (context.role === "director" ? db.select({
       id: schema.leadWebhookCredentials.id,
       name: schema.leadWebhookCredentials.name,
       source: schema.leadWebhookCredentials.source,
@@ -81,7 +92,8 @@ export async function getIntegrationsData() {
       createdAt: schema.leadWebhookCredentials.createdAt,
     }).from(schema.leadWebhookCredentials)
       .leftJoin(schema.branches, eq(schema.leadWebhookCredentials.branchId, schema.branches.id))
-      .where(eq(schema.leadWebhookCredentials.tenantId, context.tenantId)),
+      .where(eq(schema.leadWebhookCredentials.tenantId, context.tenantId))
+      : Promise.resolve([])),
     db.select({ id: schema.branches.id, name: schema.branches.name })
       .from(schema.branches)
       .where(and(eq(schema.branches.tenantId, context.tenantId), eq(schema.branches.status, "active"))),
@@ -99,7 +111,7 @@ export async function getIntegrationsData() {
       lastError: schema.marketingConnections.lastError,
     }).from(schema.marketingConnections)
       .leftJoin(schema.branches, eq(schema.marketingConnections.branchId, schema.branches.id))
-      .where(eq(schema.marketingConnections.tenantId, context.tenantId)),
+      .where(and(eq(schema.marketingConnections.tenantId, context.tenantId), isNull(schema.marketingConnections.branchId))),
   ]);
   const integrationsWithStats: IntegrationRecord[] = await Promise.all(integrations.map(async (integration) => {
     const [received, processed, failed] = await Promise.all([
@@ -204,14 +216,12 @@ export async function deleteIntegrationAction(formData: FormData) {
 
 export async function createMarketingConnectionAction(formData: FormData) {
   try {
-    const context = await requireDirector();
+    const context = await requireCentralMetaManager();
+    await requireMetaLeadAdsEnabled();
     const input = marketingConnectionSchema.parse(Object.fromEntries(formData));
     const db = getDatabase();
-    const branchId = input.branchId || null;
-    if (branchId) {
-      const [branch] = await db.select({ id: schema.branches.id }).from(schema.branches).where(and(eq(schema.branches.id, branchId), eq(schema.branches.tenantId, context.tenantId), eq(schema.branches.status, "active"))).limit(1);
-      if (!branch) return { success: false, error: "A unidade selecionada não pertence à corretora." };
-    }
+    if (input.branchId) return { success: false, error: "A captação Meta está centralizada na matriz. A unidade é definida somente na distribuição posterior." };
+    const branchId = null;
     const id = randomUUID();
     await db.transaction(async (tx) => {
       await tx.insert(schema.marketingConnections).values({ id, tenantId: context.tenantId, branchId, provider: "meta", platform: input.platform, externalPageId: input.externalPageId, externalFormId: input.externalFormId || null, name: input.name, status: "active", createdBy: context.userId });
@@ -224,8 +234,8 @@ export async function createMarketingConnectionAction(formData: FormData) {
 
 export async function toggleMarketingConnectionAction(formData: FormData) {
   try {
-    const context = await requireDirector(); const { id } = idSchema.parse(Object.fromEntries(formData)); const db = getDatabase();
-    const [connection] = await db.select({ id: schema.marketingConnections.id, status: schema.marketingConnections.status }).from(schema.marketingConnections).where(and(eq(schema.marketingConnections.id, id), eq(schema.marketingConnections.tenantId, context.tenantId))).limit(1);
+    const context = await requireCentralMetaManager(); await requireMetaLeadAdsEnabled(); const { id } = idSchema.parse(Object.fromEntries(formData)); const db = getDatabase();
+    const [connection] = await db.select({ id: schema.marketingConnections.id, status: schema.marketingConnections.status }).from(schema.marketingConnections).where(and(eq(schema.marketingConnections.id, id), eq(schema.marketingConnections.tenantId, context.tenantId), isNull(schema.marketingConnections.branchId))).limit(1);
     if (!connection) return { success: false, error: "Conexão não encontrada." };
     const status = connection.status === "active" ? "inactive" : "active";
     await db.transaction(async (tx) => { await tx.update(schema.marketingConnections).set({ status, updatedAt: new Date() }).where(eq(schema.marketingConnections.id, id)); await tx.insert(schema.auditLogs).values({ id: randomUUID(), userId: context.userId, entidade: "marketing_connection", entidadeId: id, acao: status === "active" ? "marketing_connection.activated" : "marketing_connection.deactivated" }); });
@@ -235,8 +245,8 @@ export async function toggleMarketingConnectionAction(formData: FormData) {
 
 export async function deleteMarketingConnectionAction(formData: FormData) {
   try {
-    const context = await requireDirector(); const { id } = idSchema.parse(Object.fromEntries(formData)); const db = getDatabase();
-    const [connection] = await db.select({ id: schema.marketingConnections.id }).from(schema.marketingConnections).where(and(eq(schema.marketingConnections.id, id), eq(schema.marketingConnections.tenantId, context.tenantId))).limit(1);
+    const context = await requireCentralMetaManager(); const { id } = idSchema.parse(Object.fromEntries(formData)); const db = getDatabase();
+    const [connection] = await db.select({ id: schema.marketingConnections.id }).from(schema.marketingConnections).where(and(eq(schema.marketingConnections.id, id), eq(schema.marketingConnections.tenantId, context.tenantId), isNull(schema.marketingConnections.branchId))).limit(1);
     if (!connection) return { success: false, error: "Conexão não encontrada." };
     await db.transaction(async (tx) => { await tx.delete(schema.marketingConnections).where(and(eq(schema.marketingConnections.id, id), eq(schema.marketingConnections.tenantId, context.tenantId))); await tx.insert(schema.auditLogs).values({ id: randomUUID(), userId: context.userId, entidade: "marketing_connection", entidadeId: id, acao: "marketing_connection.deleted" }); });
     revalidatePath("/settings"); return { success: true };
