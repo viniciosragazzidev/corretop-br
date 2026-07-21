@@ -110,25 +110,3 @@ export function decryptMetaPageToken(ciphertext: string) {
 export async function fetchMetaLead(leadgenId: string, pageAccessToken: string) {
   return metaFetch<{ id: string; created_time?: string; field_data?: Array<{ name?: string; values?: string[] }>; ad_id?: string; adset_id?: string; campaign_id?: string; form_id?: string }>(`${encodeURIComponent(leadgenId)}?fields=id,created_time,field_data,ad_id,adset_id,campaign_id,form_id`, { method: "GET" }, pageAccessToken);
 }
-
-export async function createMetaTestLead(formId: string, pageAccessToken: string) {
-  return metaFetch<{ id?: string }>(`${encodeURIComponent(formId)}/test_leads`, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      field_data: JSON.stringify([
-        { name: "full_name", values: ["Lead de teste CorreTop"] },
-        { name: "email", values: ["lead-teste@corretop.local"] },
-        { name: "phone_number", values: ["+5521999999999"] },
-      ]),
-    }),
-  }, pageAccessToken);
-}
-
-export async function readMetaTestLeads(formId: string, pageAccessToken: string) {
-  return metaFetch<{ data?: Array<{ id?: string }> }>(`${encodeURIComponent(formId)}/test_leads`, { method: "GET" }, pageAccessToken);
-}
-
-export async function deleteMetaTestLead(leadId: string, pageAccessToken: string) {
-  return metaFetch<{ success?: boolean }>(encodeURIComponent(leadId), { method: "DELETE" }, pageAccessToken);
-}

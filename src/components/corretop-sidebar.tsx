@@ -32,7 +32,6 @@ const managementItems: SidebarItem[] = [
   { label: "Equipe", icon: Users, url: "/equipe", permission: "convidar_corretor" },
   { label: "Metas", icon: Target, url: "/metas", permission: "gerenciar_metas" },
   { label: "Relatórios", icon: ChartBar, url: "/relatorios", permission: "acessar_relatorios" },
-  { label: "Marketing", icon: Megaphone, url: "/marketing", permission: "acessar_relatorios" },
   { label: "Filiais", icon: Buildings, url: "/filiais", permission: "gerenciar_filiais" },
   { label: "Distribuição", icon: WifiHigh, url: "/leads/distribuicao", permission: "gerenciar_filiais" },
   { label: "Comissões", icon: CurrencyCircleDollar, url: "/configuracoes/comissoes", permission: "gerenciar_comissoes" },
