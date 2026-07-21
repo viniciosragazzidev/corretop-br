@@ -59,7 +59,11 @@ export function getMetaLeadAdsAuthorizationUrl(context: TenantContext) {
   url.searchParams.set("redirect_uri", config.redirectUri);
   url.searchParams.set("response_type", "code");
   url.searchParams.set("state", createState(context, config));
-  url.searchParams.set("scope", "pages_show_list,pages_read_engagement,pages_manage_metadata,leads_retrieval");
+  // `pages_manage_metadata` is no longer accepted as a login scope for every
+  // app configuration. Keep the default minimal and allow an approved app to
+  // opt into an additional scope without changing application code.
+  const scopes = process.env.META_LEAD_ADS_SCOPES?.trim() || "pages_show_list,pages_read_engagement,leads_retrieval";
+  url.searchParams.set("scope", scopes);
   return url.toString();
 }
 
