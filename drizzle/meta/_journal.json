@@ -134,6 +134,13 @@
       "when": 1784815200000,
       "tag": "0066_add_broker_onboarding_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1784815300000,
+      "tag": "0067_add_broker_profiles_invited_deactivated",
+      "breakpoints": true
     }
   ]
 }
