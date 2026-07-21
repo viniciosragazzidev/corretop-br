@@ -4,13 +4,18 @@
 
 - A tabela `lead_distribution_jobs` persiste trabalhos de atribuição e impede jobs ativos duplicados por lead.
 - O executor interno trabalha em lotes, usa atualização condicional, lease recuperável, backoff e falha visível após o limite configurado.
-- A rota protegida `/api/internal/jobs/distribution` está pronta para um agendador recorrente; `CRON_SECRET` é obrigatório. A conta Vercel Hobby não aceita frequência de cinco minutos, portanto a ativação contínua depende de Vercel Pro ou de um agendador externo autorizado.
+- A rota protegida `/api/internal/jobs/distribution` está pronta para um agendador recorrente; `CRON_SECRET` é obrigatório. Enquanto o projeto permanecer no Vercel Hobby, o deploy usa uma execução diária às 03:00 UTC (00:00 em São Paulo) como contingência operacional. Essa frequência é insuficiente para o SLA de distribuição e o upgrade para Vercel Pro ou a adoção de um agendador externo é uma pendência urgente.
 - O Super-admin pode pausar, parametrizar e executar um ciclo manual com auditoria.
 - A tela de Distribuição informa pendências, processamento e exceções reais. A migration 0059 é pré-requisito para esta telemetria.
 
 ### Pendência obrigatória de infraestrutura
 
-Quando o CorreTop migrar para **Vercel Pro** ou para qualquer ambiente com agendador recorrente compatível, ativar a versão completa do motor com chamada autenticada para `/api/internal/jobs/distribution` a cada **5 minutos**. A variável `CRON_SECRET` deve permanecer configurada no ambiente executor e no CRM. A conta Vercel Hobby não suporta essa frequência; até a mudança, a fila continua preservada, pode ser processada manualmente pelo Super-admin e não deve ser considerada automação contínua.
+Quando o CorreTop migrar para **Vercel Pro** ou para qualquer ambiente com agendador recorrente compatível, substituir o cron diário por chamada autenticada para `/api/internal/jobs/distribution` a cada **2 minutos**. A variável `CRON_SECRET` deve permanecer configurada no ambiente executor e no CRM. Até a mudança, a fila continua preservada, pode ser processada manualmente pelo Super-admin e a distribuição automática deve ser considerada degradada, não contínua.
+
+## Pendência urgente de infraestrutura
+
+- **Upgrade do agendador:** atualizar o projeto para Vercel Pro ou configurar um executor externo autorizado para recuperar a frequência de 2 minutos. O cron diário atual existe somente para manter o deploy compatível com o plano Hobby; ele não atende o SLA operacional de recebimento e distribuição.
+- **Critério de conclusão:** deploy de produção aprovado com `schedule: "*/2 * * * *"`, duas execuções consecutivas confirmadas nos logs e um lead de teste processado sem intervenção manual.
 
 Atualizado em 15/07/2026.
 

@@ -61,6 +61,15 @@ O CorreTop usa `services/whatsapp-api` como fronteira Fastify separada para cham
 | DEC-011 | Definir planos comerciais, limites, cobrança, tolerância e provedor de pagamento. | Billing e bloqueio. | Negócio |
 | DEC-012 | Definir política de filial: gestores multi-filial, fallback de distribuição e visibilidade consolidada. | Permissões e relatórios. | Produto |
 
+## DEC-042 — Contingência de cron no Vercel Hobby
+
+**Estado:** Contingência temporária; upgrade urgente pendente
+**Data:** 2026-07-21
+
+O plano Vercel Hobby aceita somente uma execução diária de cron. Para manter o deploy de produção publicável enquanto o upgrade não é realizado, o CorreTop usa `0 3 * * *` em `vercel.json`. Essa execução não atende o SLA de distribuição automática; a fila permanece persistida e pode ser processada pelo Super-admin.
+
+O critério para encerrar a contingência é migrar para Vercel Pro ou para um executor externo autorizado e restaurar `*/2 * * * *`, validar duas execuções consecutivas e confirmar o processamento de um lead de teste sem intervenção manual.
+
 ## Pendentes não bloqueantes para o MVP inicial
 
 | ID | Decisão necessária | Observação |
