@@ -13,6 +13,8 @@ para ADR se aplicável.
 
 ## Decididas
 
+> **DEC-042 — Importacao CSV como ponte operacional (aceita em 2026-07-21):** enquanto Lead Ads nao estiver disponivel, Diretor e Marketing da matriz podem importar contatos para qualquer unidade e Gestor somente para sua propria unidade. O servidor valida o arquivo, exige confirmacao de base legal, deduplica por telefone no tenant, usa o motor de distribuicao existente e registra auditoria por lead. O limite inicial e 500 linhas/2 MB; processamento assincrono de arquivos maiores fica para uma fase posterior.
+
 > **DEC-041 — Visão de Marketing incremental e teste Lead Ads protegido (aceita em 2026-07-21):** a primeira entrega usa o `jobTitle=marketing` existente e a matriz (`branch_id` nulo), sem criar um novo cargo ou liberar integrações para unidades. A rota `/marketing` exibe somente agregados tenant-scoped e conexões Meta; a criação/exclusão de lead de teste usa o token cifrado da conexão no servidor e exige Diretor ou Marketing da matriz. A seleção de formulário permanece explícita até existir sincronização de formulários; a expansão plug-and-play por unidade fica para fase posterior.
 
 | ID | Decisão | Estado | Evidência |

@@ -213,6 +213,18 @@ distribution.manage
 - ROAS/receita antes da Conversions API e da política financeira;
 - conexão de Instagram Direct/Messenger antes de concluir o fluxo WhatsApp;
 - materialized views antes de medir gargalo real de consulta.
+
+## Importacao alternativa enquanto a Meta aguarda liberacao
+
+Enquanto o webhook de Lead Ads nao estiver liberado para producao, o CorreTop oferece **Importar leads** em `/leads`. O arquivo e validado no servidor, cada contato e deduplicado pelo telefone dentro da corretora, encaminhado para a unidade escolhida e distribuido pelo motor de capacidade existente.
+
+- **Arquivo:** CSV UTF-8 com `nome,telefone,email`; **Baixar modelo CSV** fornece um exemplo pronto.
+- **Limites:** 500 linhas e 2 MB por arquivo. Linhas invalidas sao reportadas sem interromper as demais; duplicados sao ignorados e contabilizados.
+- **Escopo:** Diretor e Marketing da matriz escolhem a unidade de destino; Gestor importa somente para sua propria unidade. Corretores nao possuem a acao.
+- **Protecao de dados:** a importacao exige confirmacao de base legal/consentimento, nao aceita `tenant_id` do cliente e grava auditoria por lead.
+- **Operacao:** leads com corretor disponivel entram como distribuidos; sem capacidade, entram na fila para o processamento resiliente existente.
+
+Esta e uma ponte operacional, nao substitui a atribuicao de campanhas da Meta. Para volumes maiores, a proxima evolucao deve usar staging assincrono, progresso e reprocessamento pelo Super-admin.
 ## Entrega inicial implementada
 
 - A rota `/marketing` é exclusiva para Diretor e Marketing da matriz e apresenta somente agregados tenant-scoped: volume de leads, funil, fontes e estado das conexões Meta.

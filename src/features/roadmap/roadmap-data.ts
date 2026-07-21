@@ -90,6 +90,7 @@ const rawRoadmapDays: RoadmapDay[] = [
 ];
 
 const dayFiveItems: RoadmapItem[] = [
+  item("N42", "Importacao em massa de leads", "P1", "partial", "Permitir que Diretor, Gestor e Marketing da matriz carreguem um CSV validado enquanto as integracoes Meta aguardam liberacao, preservando unidade, deduplicacao, distribuicao e auditoria.", "Entrega inicial em /leads: modelo CSV, ate 500 registros/2 MB, validacao de nome/telefone/e-mail, deduplicacao por telefone no tenant, distribuicao para corretor disponivel, consentimento explicito e audit log por lead. Falta fila assincrona para arquivos maiores e controle de capacidade pelo Super-admin."),
   item("5.1", "Catalogo global de operadoras/planos (upload manual de tabela)", "P0", "done", "Catalogo multi-tenant com operadoras, planos, faixas etarias e precos configurados manualmente."),
   item("5.2", "Catalogo proprio do tenant (planos exclusivos da corretora)", "P1", "done", "Planos exclusivos da corretora podem ser cadastrados e usados no fluxo de cotacao."),
   item("5.3", "Scraping automatico de tabelas de operadoras", "Risco externo", "external", "Cortado do MVP; atualizacao manual continua disponivel."),

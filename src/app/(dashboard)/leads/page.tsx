@@ -4,6 +4,7 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 import { ManualLeadSheet } from "./_components/manual-lead-sheet";
+import { BulkLeadImportDialog } from "./_components/bulk-lead-import-dialog";
 import { LeadsFilters } from "./_components/leads-filters";
 import { LeadsWorkspace } from "./leads-workspace";
 import { WifiHigh, Plus } from "@/components/huge-icons";
@@ -93,7 +94,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
             <h1 className="mt-1 text-2xl font-semibold tracking-tight">Leads</h1>
             <p className="mt-1 text-sm text-muted-foreground">Sua fila de oportunidades, contatos e próximos passos.</p>
           </div>
-          <ManualLeadSheet initiallyOpen={filters.new === "1"} plans={plans} />
+          <div className="flex flex-wrap items-center gap-2"><BulkLeadImportDialog branches={branches} role={context.role} jobTitle={context.jobTitle} branchId={context.branchId} /><ManualLeadSheet initiallyOpen={filters.new === "1"} plans={plans} /></div>
         </section>
 
         {/* Attention Note */}
