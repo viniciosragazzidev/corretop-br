@@ -28,6 +28,7 @@ type QuoteCardProps = {
 
 const STATUS_LABELS: Record<string, string> = {
   draft: "Rascunho",
+  shared: "Compartilhada",
   sent: "Enviada",
   viewed: "Visualizada",
   accepted: "Aceita",
@@ -44,7 +45,7 @@ export function QuoteCard({ quote, leadName, leadPhone, baseUrl }: QuoteCardProp
 
   useEffect(() => {
     if (shareState.error) toast.error(shareState.error);
-    if (shareState.success) toast.success("Proposta compartilhada!");
+    if (shareState.success) toast.success("Proposta compartilhada. Retorno criado para 48h.");
     if (deleteState.error) toast.error(deleteState.error);
     if (deleteState.success) {
       toast.success("Cotação excluída.");
@@ -110,7 +111,7 @@ export function QuoteCard({ quote, leadName, leadPhone, baseUrl }: QuoteCardProp
         <form action={share}>
           <input type="hidden" name="quoteId" value={quote.id} />
           <Button className="h-7 px-2 text-[10px]" disabled={sharePending} size="sm" type="submit" variant="outline">
-            Marcar como enviada
+            Compartilhar + retorno
           </Button>
         </form>
         <form action={del}>

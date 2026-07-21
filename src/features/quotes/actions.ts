@@ -138,24 +138,46 @@ export async function shareQuoteAction(_previous: QuoteActionState, formData: Fo
     const db = getDatabase();
 
     const [quote] = await db
-      .select({ id: schema.quotes.id, tenantId: schema.quotes.tenantId, leadId: schema.quotes.leadId })
+      .select({ id: schema.quotes.id, tenantId: schema.quotes.tenantId, leadId: schema.quotes.leadId, leadBranchId: schema.leads.branchId, leadCorretorId: schema.leads.corretorId })
       .from(schema.quotes)
-      .where(and(eq(schema.quotes.id, quoteId), eq(schema.quotes.tenantId, context.tenantId)))
+      .innerJoin(schema.leads, eq(schema.leads.id, schema.quotes.leadId))
+      .where(and(eq(schema.quotes.id, quoteId), eq(schema.quotes.tenantId, context.tenantId), eq(schema.leads.tenantId, context.tenantId)))
       .limit(1);
 
     if (!quote) return { error: "Cotação não encontrada." };
 
-    await db
-      .update(schema.quotes)
-      .set({ sharedAt: new Date() })
-      .where(eq(schema.quotes.id, quoteId));
+    if (context.role === "broker" && quote.leadCorretorId !== context.userId) return { error: "Voce so pode compartilhar cotacoes dos seus proprios leads." };
+    if (context.role === "manager" && (!context.branchId || quote.leadBranchId !== context.branchId)) return { error: "Esta cotacao nao pertence a sua filial." };
 
-    await db.insert(schema.leadInteractions).values({
-      id: randomUUID(),
-      leadId: quote.leadId,
-      userId: context.userId,
-      tipo: "quote_generated",
-      conteudo: "Proposta compartilhada com o cliente.",
+    const now = new Date();
+    const followUpDueAt = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+    const followUpTitle = `Retorno da proposta (${quoteId.slice(0, 8)})`;
+
+    await db.transaction(async (tx) => {
+      await tx.update(schema.quotes).set({ sharedAt: now, status: "shared", updatedAt: now }).where(and(eq(schema.quotes.id, quoteId), eq(schema.quotes.tenantId, context.tenantId)));
+      await tx.insert(schema.leadInteractions).values({
+        id: randomUUID(), leadId: quote.leadId, userId: context.userId, tipo: "quote_generated",
+        conteudo: "Proposta compartilhada com o cliente. Retorno programado em 48 horas.",
+        metadata: { quoteId, followUpDueAt: followUpDueAt.toISOString() },
+      });
+
+      const [existingTask] = await tx.select({ id: schema.leadTasks.id }).from(schema.leadTasks)
+        .where(and(eq(schema.leadTasks.tenantId, context.tenantId), eq(schema.leadTasks.leadId, quote.leadId), eq(schema.leadTasks.title, followUpTitle))).limit(1);
+      if (existingTask) {
+        await tx.update(schema.leadTasks).set({ dueAt: followUpDueAt, completedAt: null, assignedTo: quote.leadCorretorId, updatedAt: now })
+          .where(and(eq(schema.leadTasks.id, existingTask.id), eq(schema.leadTasks.tenantId, context.tenantId)));
+      } else {
+        const taskId = randomUUID();
+        await tx.insert(schema.leadTasks).values({
+          id: taskId, tenantId: context.tenantId, leadId: quote.leadId, assignedTo: quote.leadCorretorId,
+          createdBy: context.userId, title: followUpTitle,
+          description: "Confirme se o cliente recebeu a proposta, tire duvidas e registre o proximo passo.",
+          priority: "normal", dueAt: followUpDueAt, updatedAt: now,
+        });
+        if (quote.leadCorretorId) await tx.insert(schema.leadTaskAssignees).values({ id: randomUUID(), tenantId: context.tenantId, taskId, userId: quote.leadCorretorId });
+        await tx.insert(schema.auditLogs).values({ id: randomUUID(), userId: context.userId, entidade: "lead_task", entidadeId: taskId, acao: "criou" });
+      }
+      await tx.insert(schema.auditLogs).values({ id: randomUUID(), userId: context.userId, entidade: "quote", entidadeId: quoteId, acao: "compartilhou" });
     });
 
     revalidatePath(`/leads/${quote.leadId}`);

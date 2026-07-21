@@ -27,6 +27,7 @@ export default async function PublicQuotePage({ params }: Props) {
 
   const statusLabel: Record<string, string> = {
     draft: "Rascunho",
+    shared: "Compartilhada",
     sent: "Enviada",
     viewed: "Visualizada",
     accepted: "Aceita",
