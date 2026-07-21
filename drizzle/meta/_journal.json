@@ -141,6 +141,13 @@
       "when": 1784815300000,
       "tag": "0067_add_broker_profiles_invited_deactivated",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1784815400000,
+      "tag": "0068_secure_customer_documents",
+      "breakpoints": true
     }
   ]
 }
