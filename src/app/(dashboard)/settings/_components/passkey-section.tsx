@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { CheckCircle, Copy, LockKey, PencilSimple, Plus, Trash } from "@/components/huge-icons";
+import { CheckCircle, LockKey, PencilSimple, Plus, Trash } from "@/components/huge-icons";
 
 import { authClient } from "@/shared/auth/client";
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,7 @@ const DEVICE_LABELS: Record<string, string> = {
 export function PasskeySection() {
   const [passkeys, setPasskeys] = useState<Passkey[]>([]);
   const [name, setName] = useState("");
+  const [attachmentType, setAttachmentType] = useState<"platform" | "cross-platform" | "">("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const [busy, setBusy] = useState("");
@@ -62,6 +63,7 @@ export function PasskeySection() {
     try {
       const result = await authClient.passkey.addPasskey({
         name: name.trim() || undefined,
+        authenticatorAttachment: attachmentType || undefined,
       });
       if (result.error) throw new Error(result.error.message ?? "Não foi possível criar a chave.");
       toast.success("Passkey cadastrada com sucesso.");
@@ -124,6 +126,21 @@ export function PasskeySection() {
             placeholder="ex: Meu celular"
             className="w-60"
           />
+        </div>
+        <div className="grid gap-1.5">
+          <label className="text-xs font-medium text-muted-foreground" htmlFor="passkey-type">
+            Tipo de chave
+          </label>
+          <select
+            id="passkey-type"
+            value={attachmentType}
+            onChange={(e) => setAttachmentType(e.target.value as "platform" | "cross-platform" | "")}
+            className="h-10 rounded-lg border border-input bg-background px-3 text-sm text-foreground shadow-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="">Automático (recomendado)</option>
+            <option value="platform">Dispositivo (biometria / PIN)</option>
+            <option value="cross-platform">Chave de segurança / outro dispositivo</option>
+          </select>
         </div>
         <Button type="button" onClick={addPasskey} disabled={busy === "add"}>
           <Plus size={16} />
