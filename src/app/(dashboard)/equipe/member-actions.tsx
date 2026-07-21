@@ -86,6 +86,11 @@ function EditMemberDialog({
       ? (["manager", "broker"] as const)
       : (["broker"] as const);
 
+  const [jobTitle, setJobTitle] = useState<string>(member.jobTitle);
+  const [role, setRole] = useState<string>(
+    currentRole === "director" && member.role === "manager" ? "manager" : "broker"
+  );
+
   useEffect(() => {
     if (state.success) {
       toast.success("Membro atualizado com sucesso.");
@@ -97,8 +102,12 @@ function EditMemberDialog({
   }, [onOpenChange, router, state.error, state.success]);
 
   useEffect(() => {
-    if (!open) formRef.current?.reset();
-  }, [open]);
+    if (!open) {
+      formRef.current?.reset();
+      setJobTitle(member.jobTitle);
+      setRole(currentRole === "director" && member.role === "manager" ? "manager" : "broker");
+    }
+  }, [open, member.jobTitle, member.role, currentRole]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -132,31 +141,38 @@ function EditMemberDialog({
           </Field>
           <Field>
             <FieldLabel>Cargo</FieldLabel>
-            <Select defaultValue={member.jobTitle} disabled={pending} name="jobTitle">
+            <Select value={jobTitle} onValueChange={(val) => {
+              if (!val) return;
+              setJobTitle(val);
+              if (val === "manager") setRole("manager");
+              if (val === "broker") setRole("broker");
+            }} disabled={pending} name="jobTitle">
               <SelectTrigger className="w-full"><SelectValue placeholder="Selecione o cargo">{(value: string | null) => jobTitleLabel[value ?? ""] ?? "Selecione o cargo"}</SelectValue></SelectTrigger>
-              <SelectContent>{jobTitles.filter((role) => currentRole === "director" || role !== "manager").map((role) => <SelectItem key={role} value={role}>{jobTitleLabel[role]}</SelectItem>)}</SelectContent>
+              <SelectContent>{jobTitles.filter((r) => currentRole === "director" || r !== "manager").map((r) => <SelectItem key={r} value={r}>{jobTitleLabel[r]}</SelectItem>)}</SelectContent>
             </Select>
           </Field>
           <Field>
             <FieldLabel>Perfil de acesso</FieldLabel>
             <Select
-              defaultValue={
-                currentRole === "director" && member.role === "manager"
-                  ? "manager"
-                  : "broker"
-              }
-              disabled={pending || roleOptions.length === 1}
+              value={role}
+              onValueChange={(val) => {
+                if (!val) return;
+                setRole(val);
+                if (val === "manager") setJobTitle("manager");
+              }}
+              disabled={pending || roleOptions.length === 1 || jobTitle === "broker" || jobTitle === "manager"}
               name="role"
             >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Selecione o papel">{(value: string | null) => roleLabel[value as TeamMember["role"]] ?? "Selecione o papel"}</SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {roleOptions.map((role) => (
-                  <SelectItem key={role} value={role}>
-                    {roleLabel[role]}
-                  </SelectItem>
-                ))}
+                {currentRole === "director" && jobTitle !== "broker" ? (
+                  <SelectItem value="manager">{roleLabel["manager"]}</SelectItem>
+                ) : null}
+                {jobTitle !== "manager" ? (
+                  <SelectItem value="broker">{roleLabel["broker"]}</SelectItem>
+                ) : null}
               </SelectContent>
             </Select>
           </Field>

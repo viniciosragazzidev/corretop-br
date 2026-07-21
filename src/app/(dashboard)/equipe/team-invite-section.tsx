@@ -28,6 +28,8 @@ export function TeamInviteSection({ branches, canInviteManager }: Props) {
   const [pending, startTransition] = useTransition();
   const [createdLink, setCreatedLink] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'manual' | 'csv'>('manual');
+  const [jobTitle, setJobTitle] = useState("broker");
+  const [role, setRole] = useState(canInviteManager ? "manager" : "broker");
   const formRef = useRef<HTMLFormElement>(null);
   const csvFormRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
@@ -133,18 +135,27 @@ export function TeamInviteSection({ branches, canInviteManager }: Props) {
                 <Field><FieldLabel htmlFor="user-cpf">CPF</FieldLabel><Input id="user-cpf" name="cpf" placeholder="000.000.000-00" required disabled={pending} /></Field>
                 <Field>
                   <FieldLabel>Cargo</FieldLabel>
-                  <Select name="jobTitle" defaultValue="broker" disabled={pending} labels={Object.fromEntries(jobTitles.map((t) => [t.value, t.label]))}>
+                  <Select name="jobTitle" value={jobTitle} onValueChange={(val) => {
+                    if (!val) return;
+                    setJobTitle(val);
+                    if (val === "manager") setRole("manager");
+                    if (val === "broker") setRole("broker");
+                  }} disabled={pending} labels={Object.fromEntries(jobTitles.map((t) => [t.value, t.label]))}>
                     <SelectTrigger className="w-full"><SelectValue placeholder="Selecione o cargo" /></SelectTrigger>
                     <SelectContent>{jobTitles.filter((item) => canInviteManager || item.value !== "manager").map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}</SelectContent>
                   </Select>
                 </Field>
                 <Field>
                   <FieldLabel>Perfil de acesso</FieldLabel>
-                  <Select name="role" defaultValue={canInviteManager ? "manager" : "broker"} disabled={pending} labels={{ manager: "Gestão da unidade", broker: "Operação individual" }}>
+                  <Select name="role" value={role} onValueChange={(val) => {
+                    if (!val) return;
+                    setRole(val);
+                    if (val === "manager") setJobTitle("manager");
+                  }} disabled={pending || jobTitle === "broker" || jobTitle === "manager"} labels={{ manager: "Gestão da unidade", broker: "Operação individual" }}>
                     <SelectTrigger className="w-full"><SelectValue placeholder="Selecione o perfil" /></SelectTrigger>
                     <SelectContent>
-                      {canInviteManager ? <SelectItem value="manager">Gestão da unidade</SelectItem> : null}
-                      <SelectItem value="broker">Operação individual</SelectItem>
+                      {canInviteManager && jobTitle !== "broker" ? <SelectItem value="manager">Gestão da unidade</SelectItem> : null}
+                      {jobTitle !== "manager" ? <SelectItem value="broker">Operação individual</SelectItem> : null}
                     </SelectContent>
                   </Select>
                 </Field>
