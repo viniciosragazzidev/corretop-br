@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, useCallback, type FormEvent } from "react";
 import Link from "next/link";
 import { Eye, EyeSlash, LockKey } from "@/components/huge-icons";
 import { toast } from "sonner";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { LoginTransition } from "@/components/login-transition";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -18,6 +19,38 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [passkeyLoading, setPasskeyLoading] = useState(false);
+  const [showTransition, setShowTransition] = useState(false);
+  const [conditionalReady, setConditionalReady] = useState(false);
+
+  // Conditional UI: preload passkey autofill on mount if browser supports it
+  useEffect(() => {
+    if (
+      typeof PublicKeyCredential !== "undefined" &&
+      typeof PublicKeyCredential.isConditionalMediationAvailable === "function"
+    ) {
+      PublicKeyCredential.isConditionalMediationAvailable().then((available) => {
+        if (available) {
+          setConditionalReady(true);
+          authClient.signIn.passkey({
+            autoFill: true,
+            fetchOptions: {
+              onSuccess: () => {
+                toast.success("Login com passkey realizado. Abrindo seu painel...");
+                setShowTransition(true);
+              },
+              onError: () => {
+                // autofill cancelled or not available — no toast needed
+              },
+            },
+          });
+        }
+      });
+    }
+  }, []);
+
+  const handleTransitionComplete = useCallback(() => {
+    window.location.replace("/dashboard");
+  }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -35,10 +68,7 @@ export default function LoginPage() {
         return;
       }
       toast.success("Login realizado. Abrindo seu painel...");
-      // Navigate only after Better Auth has persisted the session cookie.
-      // A server action here can race that cookie store and return
-      // "Unexpected response" even though authentication succeeded.
-      window.location.replace("/dashboard");
+      setShowTransition(true);
     } catch (authError) { const message = authError instanceof Error ? authError.message : "Não foi possível concluir o login."; setError(message); toast.error(message); }
     finally { setLoading(false); }
   }
@@ -60,7 +90,7 @@ export default function LoginPage() {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="voce@corretora.com"
             required
-            autoComplete="email"
+            autoComplete={`email${conditionalReady ? " webauthn" : ""}`}
             disabled={loading}
           />
         </div>
@@ -75,7 +105,7 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Digite sua senha"
               required
-              autoComplete="current-password"
+              autoComplete={`current-password${conditionalReady ? " webauthn" : ""}`}
               className="pr-10"
               disabled={loading}
             />
@@ -142,13 +172,8 @@ export default function LoginPage() {
               autoFill: false,
               fetchOptions: {
                 onSuccess: () => {
-                  const redirectUri = "/dashboard";
-                  console.log("Redirect URI:", redirectUri);
                   toast.success("Login com passkey realizado. Abrindo seu painel...");
-                  // Navigate only after Better Auth has persisted the session cookie.
-                  // A server action here can race that cookie store and return
-                  // "Unexpected response" even though authentication succeeded.
-                  window.location.replace(redirectUri);
+                  setShowTransition(true);
                 },
                 onError: (ctx) => {
                   if (ctx.error.message === "AUTH_CANCELLED") return;
@@ -175,6 +200,8 @@ export default function LoginPage() {
         {" "}e{" "}
         <Link href="/termos#privacidade" className="underline hover:text-zinc-600 dark:hover:text-zinc-300">Política de Privacidade</Link>.
       </p>
+
+      <LoginTransition active={showTransition} onComplete={handleTransitionComplete} />
     </div>
   );
 }
