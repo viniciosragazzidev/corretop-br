@@ -145,6 +145,19 @@ export async function updateMetaCloudWhatsAppSettingsAction(formData: FormData) 
   revalidatePath("/settings/whatsapp");
 }
 
+export async function updateMetaLeadAdsSettingsAction(formData: FormData) {
+  const admin = await getRequiredPlatformAdmin();
+  const enabled = formData.get("metaLeadAdsEnabled") === "true" ? "true" : "false";
+  const now = new Date();
+  await setSystemSetting("feature_meta_lead_ads_enabled", enabled, now);
+  await getDatabase().insert(schema.platformAuditLogs).values({
+    id: crypto.randomUUID(), actorUserId: admin.userId, action: "meta_lead_ads_feature.updated",
+    targetType: "system_settings", targetId: "meta_lead_ads", metadata: { enabled, scope: "matrix_only" }, createdAt: now,
+  });
+  revalidatePath("/super-admin/settings");
+  revalidatePath("/settings");
+}
+
 export async function updateNotificationCapabilityAction(formData: FormData) {
   const admin = await getRequiredPlatformAdmin();
   const capabilityId = String(formData.get("capabilityId") ?? "");

@@ -16,6 +16,7 @@ export async function getRequiredTenantContext(): Promise<TenantContext> {
       tenantStatus: schema.tenants.status,
       membershipStatus: schema.tenantMemberships.status,
       role: schema.tenantMemberships.role,
+      jobTitle: schema.tenantMemberships.jobTitle,
       branchId: schema.tenantMemberships.branchId,
       branchStatus: schema.branches.status,
     })
@@ -52,7 +53,8 @@ export async function getRequiredTenantContext(): Promise<TenantContext> {
     throw new AuthorizationError("The tenant is not active.");
   }
 
-  if ((membership.role === "manager" || membership.role === "broker") && !membership.branchId) {
+  const isCentralMarketing = membership.jobTitle === "marketing" && !membership.branchId;
+  if ((membership.role === "manager" || membership.role === "broker") && !membership.branchId && !isCentralMarketing) {
     throw new AuthorizationError("O acesso operacional precisa estar vinculado a uma unidade.");
   }
 
@@ -64,6 +66,7 @@ export async function getRequiredTenantContext(): Promise<TenantContext> {
     userId: sessionUser.id,
     tenantId: membership.tenantId,
     role: membership.role,
+    jobTitle: membership.jobTitle,
     branchId: membership.branchId,
   };
 }

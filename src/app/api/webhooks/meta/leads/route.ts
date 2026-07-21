@@ -1,15 +1,16 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { randomUUID } from "node:crypto";
 
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 import { getDatabase, schema } from "@/shared/db";
 import { getSystemSetting } from "@/features/system-settings/queries";
+import { failMetaLeadEvent, processMetaLeadEvent } from "@/features/marketing/meta-lead-intake";
 
 const FEATURE = "feature_meta_lead_ads_enabled";
 
 function validSignature(rawBody: string, signature: string | null) {
-  const secret = process.env.META_WHATSAPP_APP_SECRET?.trim();
+  const secret = process.env.META_LEAD_ADS_APP_SECRET?.trim() || process.env.META_WHATSAPP_APP_SECRET?.trim();
   if (!secret || !signature?.startsWith("sha256=")) return false;
   const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
   const received = signature.slice("sha256=".length);
@@ -43,15 +44,26 @@ export async function POST(request: Request) {
   for (const entry of body.entry ?? []) {
     const pageId = entry.id;
     if (!pageId) continue;
-    const [connection] = await db.select({ id: schema.marketingConnections.id }).from(schema.marketingConnections).where(eq(schema.marketingConnections.externalPageId, pageId)).limit(1);
+    const [connection] = await db.select({ id: schema.marketingConnections.id }).from(schema.marketingConnections).where(and(
+      eq(schema.marketingConnections.externalPageId, pageId),
+      eq(schema.marketingConnections.status, "active"),
+      isNull(schema.marketingConnections.branchId),
+    )).limit(1);
     for (const change of entry.changes ?? []) {
       if (change.field !== "leadgen" || !change.value?.leadgen_id) continue;
       const externalEventId = `leadgen:${change.value.leadgen_id}`;
       const payloadHash = createHash("sha256").update(JSON.stringify(change.value)).digest("hex");
-      await db.insert(schema.marketingWebhookEvents).values({
+      const [storedEvent] = await db.insert(schema.marketingWebhookEvents).values({
         id: randomUUID(), connectionId: connection?.id ?? null, provider: "meta", eventType: "leadgen", externalEventId, payloadHash, payload: change.value, status: connection ? "received" : "failed", errorMessage: connection ? null : "Nenhuma conexão ativa vinculada à Página.", receivedAt: now,
-      }).onConflictDoNothing({ target: [schema.marketingWebhookEvents.provider, schema.marketingWebhookEvents.externalEventId] });
+      }).onConflictDoNothing({ target: [schema.marketingWebhookEvents.provider, schema.marketingWebhookEvents.externalEventId] }).returning({ id: schema.marketingWebhookEvents.id });
       stored += 1;
+      if (connection && storedEvent) {
+        try {
+          await processMetaLeadEvent({ eventId: storedEvent.id, connectionId: connection.id, event: { ...change.value, leadgen_id: change.value.leadgen_id } });
+        } catch (error) {
+          await failMetaLeadEvent({ eventId: storedEvent.id, connectionId: connection.id, error });
+        }
+      }
     }
     if (connection) await db.update(schema.marketingConnections).set({ lastWebhookAt: now, updatedAt: now }).where(eq(schema.marketingConnections.id, connection.id));
   }

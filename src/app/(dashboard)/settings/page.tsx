@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { WhatsappLogo } from "@/components/huge-icons";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
+import { canManageCentralMetaLeadAds } from "@/shared/auth/authorization";
 import { getDatabase, schema } from "@/shared/db";
 import { AccountTab } from "./_components/account-tab";
 import { EmpresaTab } from "./_components/empresa-tab";
@@ -31,8 +32,9 @@ export default async function SettingsPage() {
     feedbackRequiredEnabled: schema.tenants.feedbackRequiredEnabled,
   }).from(schema.tenants).where(eq(schema.tenants.id, context.tenantId)).limit(1);
 
-  const integrations = context.role === "director" ? await getIntegrationsData() : null;
-  const tabIds: TabId[] = context.role === "director" ? ["conta", "empresa", "unidade", "atendimento", "whatsapp", "integracoes", "seguranca"] : context.role === "manager" ? ["conta", "unidade", "atendimento", "whatsapp", "seguranca"] : ["conta", "whatsapp", "seguranca"];
+  const canManageMetaLeadAds = canManageCentralMetaLeadAds(context);
+  const integrations = canManageMetaLeadAds ? await getIntegrationsData() : null;
+  const tabIds: TabId[] = context.role === "director" ? ["conta", "empresa", "unidade", "atendimento", "whatsapp", "integracoes", "seguranca"] : canManageMetaLeadAds ? ["conta", "whatsapp", "integracoes", "seguranca"] : context.role === "manager" ? ["conta", "unidade", "atendimento", "whatsapp", "seguranca"] : ["conta", "whatsapp", "seguranca"];
 
   const canEditFeedback = context.role === "director" || context.role === "manager";
 
@@ -53,5 +55,5 @@ export default async function SettingsPage() {
 
   const branchData = membership[0] && context.branchId ? { ...membership[0], id: context.branchId } : null;
 
-  return <><DashboardHeader breadcrumb="Configurações" title="Configurações" /><div className="flex flex-1 flex-col gap-6 p-4 lg:p-6"><div><p className="text-xs font-medium text-primary">CONFIGURAÇÕES</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Configurações</h1><p className="mt-1 max-w-2xl text-sm text-muted-foreground">Cada perfil vê apenas o que pode administrar: conta, conexão própria, unidade ou identidade da corretora.</p></div><SettingsTabs account={account} company={context.role === "director" ? company : undefined} unit={<UnitTab branch={branchData} currentRole={context.role} />} atendimento={atendimento} whatsapp={whatsapp} integrations={integrations ? <IntegrationsTab branches={integrations.branches} integrations={integrations.integrations} marketingConnections={integrations.marketingConnections} /> : undefined} security={<SecurityTab enabled={user[0]?.twoFactorEnabled ?? false} email={user[0]?.email ?? "sua conta"} />} tabIds={tabIds} /></div></>;
+  return <><DashboardHeader breadcrumb="Configurações" title="Configurações" /><div className="flex flex-1 flex-col gap-6 p-4 lg:p-6"><div><p className="text-xs font-medium text-primary">CONFIGURAÇÕES</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Configurações</h1><p className="mt-1 max-w-2xl text-sm text-muted-foreground">Cada perfil vê apenas o que pode administrar: conta, conexão própria, unidade ou identidade da corretora.</p></div><SettingsTabs account={account} company={context.role === "director" ? company : undefined} unit={<UnitTab branch={branchData} currentRole={context.role} />} atendimento={atendimento} whatsapp={whatsapp} integrations={integrations ? <IntegrationsTab branches={integrations.branches} integrations={integrations.integrations} marketingConnections={integrations.marketingConnections} showGenericSources={context.role === "director"} /> : undefined} security={<SecurityTab enabled={user[0]?.twoFactorEnabled ?? false} email={user[0]?.email ?? "sua conta"} />} tabIds={tabIds} /></div></>;
 }

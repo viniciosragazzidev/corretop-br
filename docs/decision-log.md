@@ -1,5 +1,9 @@
 # Registro de Decisões de Produto e Arquitetura
 
+> **DEC-039 — Meta Lead Ads centralizada na matriz (aceita em 2026-07-20):** enquanto a integração plug-and-play por unidade não estiver pronta, Diretor e Marketing sem vínculo de filial podem administrar somente fontes gerais. As unidades ficam bloqueadas; o Super-admin controla `feature_meta_lead_ads_enabled` com auditoria.
+
+> **DEC-040 — Conexão oficial Meta Lead Ads para a fila central (aceita em 2026-07-20):** a matriz conecta páginas por OAuth no servidor; o token de Página é cifrado em repouso, nunca retornado ao navegador e cada Página autorizada é inscrita no campo `leadgen`. Cada evento assinado recupera o `leadgen_id` pela Graph API e cria um lead idempotente na fila central (`branch_id` nulo e `distribution_status = unassigned`). A atribuição de unidade continua sendo uma decisão operacional posterior, sem fallback implícito. Diretor e Marketing da matriz podem pausar/excluir fontes; o Super-admin pode desligar toda a capacidade.
+
 > **DEC-038 — Processamento resiliente da distribuição (aceita em 2026-07-20):** a distribuição automática usa fila persistente no PostgreSQL e executores idempotentes por rota interna protegida. Locks possuem lease recuperável, falhas transitórias usam backoff configurável e parâmetros iniciais conservadores (lote 25, lease 2 minutos, máximo 8 tentativas) são reversíveis e auditáveis pelo Super-admin. A regra comercial já existente de capacidade, round-robin e SLA não é alterada.
 
 Use este registro para decisões que alteram comportamento, escopo, custo, risco ou

@@ -1,6 +1,6 @@
 import { getSystemSettings } from "@/features/system-settings/queries";
 import { getNotificationCapabilityStates } from "@/features/notifications/queries";
-import { updateCentralAtencaoSettingsAction, updateGlobalSearchSettingsAction, updateInterfaceMotionSettingsAction, updateMetaCloudWhatsAppSettingsAction, updateNotificationCapabilityAction, updateAiSettingsAction, updateLeadDistributionJobsSettingsAction, runLeadDistributionJobsAction } from "@/app/(platform-admin)/super-admin/actions";
+import { updateCentralAtencaoSettingsAction, updateGlobalSearchSettingsAction, updateInterfaceMotionSettingsAction, updateMetaCloudWhatsAppSettingsAction, updateMetaLeadAdsSettingsAction, updateNotificationCapabilityAction, updateAiSettingsAction, updateLeadDistributionJobsSettingsAction, runLeadDistributionJobsAction } from "@/app/(platform-admin)/super-admin/actions";
 import { setRouteOnboardingGlobalAction } from "@/features/onboarding/actions/route-onboarding-actions";
 import { PlatformAdminHeader } from "@/components/platform-admin-header";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ export default async function SuperAdminSettingsPage() {
     "feature_interface_motion_enabled",
     "feature_route_onboarding_enabled",
     "feature_whatsapp_meta_cloud_enabled",
+    "feature_meta_lead_ads_enabled",
     "feature_lead_distribution_jobs_enabled",
     "lead_distribution_jobs_batch_size",
     "lead_distribution_jobs_max_attempts",
@@ -43,6 +44,7 @@ export default async function SuperAdminSettingsPage() {
   const interfaceMotionEnabled = settingMap.get("feature_interface_motion_enabled") !== "false";
   const routeOnboardingEnabled = settingMap.get("feature_route_onboarding_enabled") !== "false";
   const metaCloudWhatsAppEnabled = settingMap.get("feature_whatsapp_meta_cloud_enabled") === "true";
+  const metaLeadAdsEnabled = settingMap.get("feature_meta_lead_ads_enabled") !== "false";
   const distributionJobsEnabled = settingMap.get("feature_lead_distribution_jobs_enabled") !== "false";
   const distributionBatchSize = settingMap.get("lead_distribution_jobs_batch_size") ?? "25";
   const distributionMaxAttempts = settingMap.get("lead_distribution_jobs_max_attempts") ?? "8";
@@ -156,6 +158,11 @@ export default async function SuperAdminSettingsPage() {
         <Card className="border-border bg-card shadow-none">
           <CardHeader><CardTitle>WhatsApp oficial da Meta</CardTitle><CardDescription>Ativa o Embedded Signup, o webhook oficial e o envio pela Cloud API. A capacidade pode ser interrompida sem apagar canais ou histórico.</CardDescription></CardHeader>
           <CardContent><form action={updateMetaCloudWhatsAppSettingsAction} className="flex flex-wrap items-center justify-between gap-4"><label className="flex items-center gap-2 text-sm"><input type="checkbox" name="metaCloudWhatsAppEnabled" value="true" defaultChecked={metaCloudWhatsAppEnabled} className="size-4 warning-[var(--primary)]" /><span><span className="font-medium">Integração oficial habilitada</span><span className="block text-xs text-muted-foreground">Exige as credenciais privadas da Meta configuradas no ambiente da Vercel.</span></span></label><Button type="submit" variant="outline">Salvar integração</Button></form></CardContent>
+        </Card>
+
+        <Card className="border-border bg-card shadow-none">
+          <CardHeader><CardTitle>Captação Meta Lead Ads</CardTitle><CardDescription>Controla o webhook e a administração de fontes Meta. Nesta fase, somente Diretor e Marketing vinculados à matriz podem operar a captação geral; unidades permanecem bloqueadas.</CardDescription></CardHeader>
+          <CardContent><form action={updateMetaLeadAdsSettingsAction} className="flex flex-wrap items-center justify-between gap-4"><label className="flex items-center gap-2 text-sm"><input type="checkbox" name="metaLeadAdsEnabled" value="true" defaultChecked={metaLeadAdsEnabled} className="size-4 warning-[var(--primary)]" /><span><span className="font-medium">Captação geral habilitada</span><span className="block text-xs text-muted-foreground">Desativar interrompe novos eventos e novas conexões sem apagar histórico.</span></span></label><Button type="submit" variant="outline">Salvar captação Meta</Button></form></CardContent>
         </Card>
 
         <Card className="border-border bg-card shadow-none">

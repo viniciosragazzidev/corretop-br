@@ -12,6 +12,7 @@ import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
 import { generateWebhookToken } from "@/features/leads/webhooks/utils/lead-webhook.utils";
 import { getSystemSetting } from "@/features/system-settings/queries";
+import { getMetaLeadAdsAuthorizationUrl } from "@/features/marketing/meta-lead-ads";
 
 const sourceSchema = z.enum(["site_pixel", "meta_ads", "landing_page"]);
 const createSchema = z.object({
@@ -230,6 +231,17 @@ export async function createMarketingConnectionAction(formData: FormData) {
     revalidatePath("/settings");
     return { success: true, id };
   } catch (error) { return { success: false, error: error instanceof Error ? error.message : "Não foi possível conectar a fonte Meta." }; }
+}
+
+/** Starts the server-side OAuth flow. The returned URL contains no access token. */
+export async function beginMetaLeadAdsOAuthAction() {
+  try {
+    const context = await requireCentralMetaManager();
+    await requireMetaLeadAdsEnabled();
+    return { success: true, authorizationUrl: getMetaLeadAdsAuthorizationUrl(context) };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : "Não foi possível iniciar a conexão com a Meta." };
+  }
 }
 
 export async function toggleMarketingConnectionAction(formData: FormData) {
