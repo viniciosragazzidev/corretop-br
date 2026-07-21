@@ -16,6 +16,8 @@ import type { CatalogActionState, CatalogSource } from "./types";
 
 const carrierInput = z.object({
   name: z.string().trim().min(2, "Informe o nome da operadora.").max(160),
+  description: z.string().trim().max(500).optional(),
+  logoUrl: z.string().trim().max(500).optional(),
   ansCode: z.string().trim().max(30).optional(),
 });
 
@@ -123,6 +125,8 @@ export async function createGlobalCarrierAction(formData: FormData): Promise<Cat
     await getDatabase().insert(schema.globalCarriers).values({
       id,
       name: input.name,
+      description: input.description || null,
+      logoUrl: input.logoUrl || null,
       ansCode: input.ansCode || null,
       status: "draft",
       createdBy: admin.userId,

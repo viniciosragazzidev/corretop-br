@@ -18,6 +18,7 @@ import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
 import { StartServiceButton } from "./start-service-button";
 import { LeadManagementActions } from "./management-actions";
+import { SupervisionPanel } from "./supervision-panel";
 import { CotarButton } from "./cotar-button";
 import { QuoteBuilder } from "@/features/leads/components/quote-builder";
 import { QuoteCard } from "@/features/leads/components/quote-card";
@@ -41,13 +42,39 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
 
   const { id } = await params;
   const context = await getRequiredTenantContext();
-  const [lead] = await getDatabase()
+  const db = getDatabase();
+
+  let isMatrix = false;
+  if (context.branchId) {
+    const [userBranch] = await db
+      .select({ name: schema.branches.name })
+      .from(schema.branches)
+      .where(and(eq(schema.branches.id, context.branchId), eq(schema.branches.tenantId, context.tenantId)))
+      .limit(1);
+    isMatrix = userBranch?.name?.toLowerCase() === "matriz";
+  } else {
+    isMatrix = true;
+  }
+
+  const isMarketing = context.jobTitle === "marketing";
+
+  const scopeFilter = isMarketing
+    ? (isMatrix ? undefined : eq(schema.leads.branchId, context.branchId!))
+    : (context.role === "broker"
+        ? eq(schema.leads.corretorId, context.userId)
+        : context.role === "manager" && context.branchId
+          ? eq(schema.leads.branchId, context.branchId)
+          : undefined);
+
+  const [lead] = await db
     .select({
       id: schema.leads.id,
       nome: schema.leads.nome,
       telefone: schema.leads.telefone,
       email: schema.leads.email,
       origem: schema.leads.origem,
+      sourceCampaign: schema.leads.sourceCampaign,
+      tipo: schema.leads.tipo,
       status: schema.leads.status,
       corretorId: schema.leads.corretorId,
       branchId: schema.leads.branchId,
@@ -55,6 +82,8 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
       motivoPerda: schema.leads.motivoPerda,
       consentimentoLgpd: schema.leads.consentimentoLgpd,
       createdAt: schema.leads.createdAt,
+      assignedAt: schema.leads.assignedAt,
+      serviceStartedAt: schema.leads.serviceStartedAt,
       stageEnteredAt: schema.leads.stageEnteredAt,
       corretorNome: schema.user.name,
       branchNome: schema.branches.name,
@@ -65,11 +94,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
     .where(and(
       eq(schema.leads.id, id),
       eq(schema.leads.tenantId, context.tenantId),
-      context.role === "broker"
-        ? eq(schema.leads.corretorId, context.userId)
-        : context.role === "manager" && context.branchId
-          ? eq(schema.leads.branchId, context.branchId)
-          : undefined,
+      scopeFilter,
     ))
     .limit(1);
 
@@ -103,9 +128,20 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
       .where(and(eq(schema.tenantMemberships.tenantId, context.tenantId), eq(schema.tenantMemberships.branchId, lead.branchId!), eq(schema.tenantMemberships.role, "broker"), eq(schema.tenantMemberships.status, "active"), eq(schema.user.active, true)))
     : [];
 
-  const canSeePersonalData = context.role !== "broker" || lead.corretorId !== context.userId || lead.status !== "distributed";
+  const isManagement = context.role === "manager" || context.role === "director";
+  const shouldShowQuotes = isManagement
+    ? lead.status !== "distributed"
+    : (context.userId === lead.corretorId && lead.status !== "distributed" && lead.status !== "lost");
+
+  const shouldMask = isMarketing && lead.branchId !== context.branchId;
+
+  const canSeePersonalData = (context.role !== "broker" || lead.corretorId !== context.userId || lead.status !== "distributed") && !shouldMask;
   const maskedPhone = maskPhone(lead.telefone);
   const maskedEmail = lead.email ? maskEmail(lead.email) : "Não informado";
+
+  if (shouldMask) {
+    lead.nome = maskName(lead.nome);
+  }
 
   return (
     <>
@@ -126,7 +162,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0 space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="truncate text-xl font-semibold tracking-tight text-foreground sm:text-2xl">{lead.nome}</h1>
+                  <h1 className={`truncate text-xl font-semibold tracking-tight text-foreground sm:text-2xl ${shouldMask ? "blur-[3px] select-none" : ""}`}>{lead.nome}</h1>
                   <Badge variant={lead.status === "lost" ? "destructive" : "outline"} className="capitalize">
                     {lead.status === "in_contact" ? "Em atendimento" : (LEAD_STATUS_LABELS as Record<string, string>)[lead.status] ?? lead.status}
                   </Badge>
@@ -162,35 +198,59 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
 
         {/* Main operational area */}
         <div className="space-y-5">
-          {/* Lead Action Hub Recommendation (only for the broker owner) */}
-          <LeadActionHub
-            hasPendingDocuments={leadDocs.some((document) => document.status === "pending" || document.status === "rejected")}
-            hasQuotes={quotes.length > 0}
-            leadId={lead.id}
-            currentOwner={lead.corretorNome}
-            nextTask={(() => { const task = tasks.find((item) => !item.completedAt); return task ? { title: task.title, dueAt: task.dueAt?.toISOString() ?? null, priority: task.priority, assigneeName: task.assigneeName } : null; })()}
-            status={lead.status}
-            isOwner={context.userId === lead.corretorId}
-            phone={canSeePersonalData ? lead.telefone : null}
-            canSeePersonalData={canSeePersonalData}
-          />
+          {/* Supervision & Management Panel (only for managers and directors) */}
+          {isManagement && (
+            <SupervisionPanel
+              leadId={lead.id}
+              currentStatus={lead.status}
+              currentOwner={lead.corretorNome}
+              currentOwnerId={lead.corretorId}
+              assignedAt={lead.assignedAt}
+              stageEnteredAt={lead.stageEnteredAt}
+              serviceStartedAt={lead.serviceStartedAt}
+              brokers={brokers}
+              slaFirstContactMinutes={slaMinutes}
+              tasks={tasks}
+              isLost={lead.status === "lost"}
+              currentUserId={context.userId}
+            />
+          )}
 
-          {/* Quote Builder (only for broker owner) */}
-          {context.role === "broker" && context.userId === lead.corretorId && lead.status !== "distributed" && lead.status !== "lost" && (
+          {/* Lead Action Hub Recommendation (only for the broker owner) */}
+          {!isManagement && (
+            <LeadActionHub
+              hasPendingDocuments={leadDocs.some((document) => document.status === "pending" || document.status === "rejected")}
+              hasQuotes={quotes.length > 0}
+              leadId={lead.id}
+              currentOwner={lead.corretorNome}
+              nextTask={(() => { const task = tasks.find((item) => !item.completedAt); return task ? { title: task.title, dueAt: task.dueAt?.toISOString() ?? null, priority: task.priority, assigneeName: task.assigneeName } : null; })()}
+              status={lead.status}
+              isOwner={context.userId === lead.corretorId}
+              phone={canSeePersonalData ? lead.telefone : null}
+              canSeePersonalData={canSeePersonalData}
+            />
+          )}
+
+          {/* Quote Viewer / Builder */}
+          {shouldShowQuotes && (
             <Card className="border-border bg-card shadow-sm" id="cotacao">
               <CardHeader className="pb-3 border-b border-border/40">
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Cotação</CardTitle>
-                    <CardDescription className="text-xs">Monte propostas e compartilhe com o cliente.</CardDescription>
+                    <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Cotações</CardTitle>
+                    <CardDescription className="text-xs font-normal">
+                      {isManagement ? "Propostas montadas para o cliente (somente leitura)." : "Monte propostas e compartilhe com o cliente."}
+                    </CardDescription>
                   </div>
-                  <QuoteBuilder
-                    leadId={lead.id}
-                    leadName={lead.nome}
-                    leadPhone={canSeePersonalData ? lead.telefone : null}
-                    beneficiaries={beneficiaries.map((b) => ({ id: b.id, name: b.name }))}
-                    plans={plans.map((p) => ({ id: p.id, name: p.name }))}
-                  />
+                  {!isManagement && (
+                    <QuoteBuilder
+                      leadId={lead.id}
+                      leadName={lead.nome}
+                      leadPhone={canSeePersonalData ? lead.telefone : null}
+                      beneficiaries={beneficiaries.map((b) => ({ id: b.id, name: b.name }))}
+                      plans={plans.map((p) => ({ id: p.id, name: p.name }))}
+                    />
+                  )}
                 </div>
               </CardHeader>
               <CardContent className="pt-4 space-y-3">
@@ -271,7 +331,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                   </div>
                   <div>
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Telefone</p>
-                    <p className="mt-0.5 text-sm font-medium text-foreground">
+                    <p className={`mt-0.5 text-sm font-medium text-foreground ${shouldMask ? "blur-[3px] select-none" : ""}`}>
                       {canSeePersonalData ? (
                         <a className="text-primary hover:underline font-semibold" href={`tel:${lead.telefone.replace(/\D/g, "")}`}>{lead.telefone}</a>
                       ) : maskedPhone}
@@ -285,7 +345,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                   </div>
                   <div>
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">E-mail</p>
-                    <p className="mt-0.5 text-sm font-medium text-foreground">
+                    <p className={`mt-0.5 text-sm font-medium text-foreground ${shouldMask ? "blur-[3px] select-none" : ""}`}>
                       {canSeePersonalData && lead.email ? (
                         <a className="text-primary hover:underline font-semibold" href={`mailto:${lead.email}`}>{lead.email}</a>
                       ) : canSeePersonalData ? "Não informado" : maskedEmail}
@@ -299,7 +359,17 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                   </div>
                   <div>
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Origem do Lead</p>
-                    <p className="mt-0.5 text-sm font-medium text-foreground">{lead.origem ?? "Não informada"}</p>
+                    <p className="mt-0.5 text-sm font-medium text-foreground">{lead.sourceCampaign || (lead.origem === "manual" ? "Manual" : "Webhook")}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                    <UserPlus className="size-4" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Tipo de Lead</p>
+                    <p className="mt-0.5 text-sm font-medium text-foreground">{lead.tipo === "PME" ? "PME (Pessoa Jurídica)" : "PF (Pessoa Física)"}</p>
                   </div>
                 </div>
 
@@ -340,7 +410,9 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
 
             {/* Management Actions + Person Details */}
             <div className="space-y-4">
-              <LeadManagementActions leadId={lead.id} brokers={brokers} canManage={context.role === "manager" || context.role === "director"} isLost={lead.status === "lost"} currentStatus={lead.status} currentOwner={lead.corretorNome} />
+              {!isManagement && (
+                <LeadManagementActions leadId={lead.id} brokers={brokers} canManage={context.role === "manager" || context.role === "director"} isLost={lead.status === "lost"} currentStatus={lead.status} currentOwner={lead.corretorNome} />
+              )}
               <PersonRecordDetails kind="lead" createdAt={lead.createdAt} consentimentoLgpd={lead.consentimentoLgpd} dependents={beneficiaries} documentCount={leadDocs.length} />
             </div>
 
@@ -369,4 +441,14 @@ function maskEmail(email: string) {
   const [local, domain] = email.split("@");
   if (!local || !domain) return "••••";
   return `${local.slice(0, 1)}${"•".repeat(Math.max(2, local.length - 1))}@${domain}`;
+}
+
+function maskName(name: string) {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 0) return "";
+  const first = parts[0];
+  if (parts.length === 1) {
+    return first.slice(0, Math.ceil(first.length / 2)) + "*".repeat(Math.floor(first.length / 2));
+  }
+  return `${first} ${"*".repeat(Math.max(1, name.length - first.length - 1))}`;
 }

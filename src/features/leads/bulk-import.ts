@@ -10,6 +10,7 @@ import { hasPermission } from "@/shared/auth/permissions";
 import { AuthorizationError } from "@/shared/auth/errors";
 import { getDatabase, schema } from "@/shared/db";
 import { chooseAvailableBroker } from "@/features/leads/assignment";
+import { notifyNewLead, notifyLeadArrived } from "@/features/notifications/send-push-helper";
 
 const MAX_FILE_BYTES = 2_000_000;
 const MAX_ROWS = 500;
@@ -24,9 +25,21 @@ function parseCsv(text: string) {
   const nameIndex = headers.findIndex((header) => ["nome", "name", "full_name"].includes(header));
   const phoneIndex = headers.findIndex((header) => ["telefone", "phone", "phone_number", "celular"].includes(header));
   const emailIndex = headers.findIndex((header) => ["email", "e-mail", "email_address"].includes(header));
+  const campaignIndex = headers.findIndex((header) => ["campanha", "nome da campanha", "nome_da_campanha", "campaign", "campaign_name"].includes(header));
+  const tipoIndex = headers.findIndex((header) => ["tipo", "tipo do lead", "tipo_do_lead", "lead_type", "type"].includes(header));
   if (nameIndex < 0 || phoneIndex < 0) throw new Error("O cabeçalho precisa conter as colunas nome e telefone.");
   if (lines.length - 1 > MAX_ROWS) throw new Error(`Importe no máximo ${MAX_ROWS} leads por arquivo.`);
-  return lines.slice(1).map((line, index) => { const values = split(line); return { row: index + 2, nome: values[nameIndex] ?? "", telefone: values[phoneIndex] ?? "", email: emailIndex >= 0 ? values[emailIndex] ?? "" : "" }; });
+  return lines.slice(1).map((line, index) => {
+    const values = split(line);
+    return {
+      row: index + 2,
+      nome: values[nameIndex] ?? "",
+      telefone: values[phoneIndex] ?? "",
+      email: emailIndex >= 0 ? values[emailIndex] ?? "" : "",
+      campanha: campaignIndex >= 0 ? values[campaignIndex] ?? "" : "",
+      tipo: tipoIndex >= 0 ? values[tipoIndex] ?? "" : ""
+    };
+  });
 }
 
 function normalizePhone(value: string) { const digits = value.replace(/\D/g, ""); return digits.startsWith("55") ? digits : `55${digits}`; }
@@ -43,10 +56,13 @@ export async function importLeadsFromCsvAction(formData: FormData) {
     const [branch] = await db.select({ id: schema.branches.id }).from(schema.branches).where(and(eq(schema.branches.id, branchId), eq(schema.branches.tenantId, context.tenantId), eq(schema.branches.status, "active"))).limit(1);
     if (!branch) throw new Error("A unidade selecionada não pertence à corretora ativa.");
     const rows = parseCsv(await input.file.text());
+    const tipoImport = formData.get("tipo") === "PME" ? "PME" : "PF";
     let imported = 0; let duplicates = 0; const errors: Array<{ row: number; message: string }> = [];
     for (const row of rows) {
       try {
-        const nome = row.nome.trim(); const telefone = normalizePhone(row.telefone); const email = row.email.trim() || null;
+        const nome = row.nome.trim(); const telefone = normalizePhone(row.telefone); const email = row.email.trim() || null; const campanha = row.campanha.trim() || null;
+        const rowTipo = row.tipo.toUpperCase().trim();
+        const tipo = (rowTipo === "PME" || rowTipo === "PF") ? rowTipo : tipoImport;
         if (nome.length < 2) throw new Error("nome inválido");
         if (!/^(?:55)?(?:[1-9]{2})9\d{8}$/.test(telefone)) throw new Error("telefone inválido");
         if (email && !z.string().email().safeParse(email).success) throw new Error("e-mail inválido");
@@ -55,10 +71,12 @@ export async function importLeadsFromCsvAction(formData: FormData) {
         const brokerId = await chooseAvailableBroker(context.tenantId, branchId);
         const leadId = randomUUID(); const assigned = Boolean(brokerId);
         await db.transaction(async (tx) => {
-          await tx.insert(schema.leads).values({ id: leadId, tenantId: context.tenantId, branchId, corretorId: brokerId, nome, telefone, email, origem: "manual", sourceChannel: "bulk_import", sourceMetadata: { import: "csv" }, status: assigned ? "distributed" : "new", distributionStatus: assigned ? "assigned" : "queued", assignmentSource: assigned ? "automatic" : null, assignmentStrategy: assigned ? "capacity" : null, distributionUpdatedAt: new Date(), assignedAt: assigned ? new Date() : null, consentimentoLgpd: true });
+          await tx.insert(schema.leads).values({ id: leadId, tenantId: context.tenantId, branchId, corretorId: brokerId, nome, telefone, email, origem: "manual", tipo, sourceChannel: "bulk_import", sourceCampaign: campanha, sourceMetadata: { import: "csv" }, status: assigned ? "distributed" : "new", distributionStatus: assigned ? "assigned" : "queued", assignmentSource: assigned ? "automatic" : null, assignmentStrategy: assigned ? "capacity" : null, distributionUpdatedAt: new Date(), assignedAt: assigned ? new Date() : null, consentimentoLgpd: true });
           await tx.insert(schema.leadInteractions).values({ id: randomUUID(), leadId, userId: context.userId, tipo: assigned ? "system_alert" : "note", conteudo: "Lead importado por arquivo CSV." });
           await tx.insert(schema.auditLogs).values({ id: randomUUID(), userId: context.userId, entidade: "lead", entidadeId: leadId, acao: "lead.bulk_imported" });
         });
+        void notifyLeadArrived(leadId, context.tenantId, branchId, nome).catch(console.error);
+        void notifyNewLead(leadId, context.tenantId, branchId, brokerId, nome).catch(console.error);
         imported += 1;
       } catch (error) { errors.push({ row: row.row, message: error instanceof Error ? error.message : "linha inválida" }); }
     }

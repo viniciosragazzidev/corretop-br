@@ -187,7 +187,6 @@ export function PlatformAdminSidebar() {
             <SidebarMenu className="gap-1">
               <LockedPreviewItem icon={ChatCircleText} label="Chat interno" />
               <LockedPreviewItem icon={ChartLineUp} label="Renovações" />
-              <LockedPreviewItem icon={RocketLaunch} label="Meta Lead Ads" />
               <LockedPreviewItem icon={ShieldWarning} label="Integridade e conexões" />
               <LockedPreviewItem icon={RoadHorizon} label="Roadmap de desenvolvimento" />
             </SidebarMenu>

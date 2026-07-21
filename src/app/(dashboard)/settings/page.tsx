@@ -18,17 +18,20 @@ import { getIntegrationsData } from "./integrations-actions";
 export default async function SettingsPage() {
   const context = await getRequiredTenantContext();
   const db = getDatabase();
-  const [tenant, user, membership] = await Promise.all([
+  const [tenant, user] = await Promise.all([
     db.select({ name: schema.tenants.name, legalName: schema.tenants.legalName, cnpj: schema.tenants.cnpj, logoUrl: schema.tenants.logoUrl, brandColor: schema.tenants.brandColor }).from(schema.tenants).where(eq(schema.tenants.id, context.tenantId)).limit(1),
     db.select({ name: schema.user.name, email: schema.user.email, twoFactorEnabled: schema.user.twoFactorEnabled }).from(schema.user).where(eq(schema.user.id, context.userId)).limit(1),
-    context.branchId ? db.select({ name: schema.branches.name }).from(schema.branches).where(and(eq(schema.branches.id, context.branchId), eq(schema.branches.tenantId, context.tenantId))).limit(1) : Promise.resolve([]),
   ]);
+  const membership = context.branchId
+    ? await db.select({ id: schema.branches.id, name: schema.branches.name, status: schema.branches.status, acceptingLeads: schema.branches.acceptingLeads, autoDistribute: schema.branches.autoDistribute, createdAt: schema.branches.createdAt }).from(schema.branches).where(and(eq(schema.branches.id, context.branchId), eq(schema.branches.tenantId, context.tenantId))).limit(1)
+    : [];
   const [tenantData] = await db.select({
     feedbackReminderIntervalMinutes: schema.tenants.feedbackReminderIntervalMinutes,
     feedbackReminderMaxAttempts: schema.tenants.feedbackReminderMaxAttempts,
     feedbackPushEnabled: schema.tenants.feedbackPushEnabled,
     feedbackToastEnabled: schema.tenants.feedbackToastEnabled,
     feedbackRequiredEnabled: schema.tenants.feedbackRequiredEnabled,
+    maxActiveLeadsLimit: schema.tenants.maxActiveLeadsLimit,
   }).from(schema.tenants).where(eq(schema.tenants.id, context.tenantId)).limit(1);
 
   const integrations = context.role === "director" ? await getIntegrationsData() : null;
@@ -43,6 +46,7 @@ export default async function SettingsPage() {
       feedbackPushEnabled={tenantData?.feedbackPushEnabled ?? true}
       feedbackToastEnabled={tenantData?.feedbackToastEnabled ?? true}
       feedbackRequiredEnabled={tenantData?.feedbackRequiredEnabled ?? true}
+      maxActiveLeadsLimit={tenantData?.maxActiveLeadsLimit ?? 10}
       canEdit={context.role === "director"}
     />
   ) : undefined;
@@ -51,5 +55,5 @@ export default async function SettingsPage() {
   const account = <AccountTab name={user[0]?.name ?? "Usuário"} email={user[0]?.email ?? ""} role={context.role} />;
   const company = <EmpresaTab canEdit tenant={{ name: tenant[0]?.name ?? "", legalName: tenant[0]?.legalName ?? null, cnpj: tenant[0]?.cnpj ?? null, logoUrl: tenant[0]?.logoUrl ?? null, brandColor: tenant[0]?.brandColor ?? null }} />;
 
-  return <><DashboardHeader breadcrumb="Configurações" title="Configurações" /><div className="flex flex-1 flex-col gap-6 p-4 lg:p-6"><div><p className="text-xs font-medium text-primary">CONFIGURAÇÕES</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Configurações</h1><p className="mt-1 max-w-2xl text-sm text-muted-foreground">Cada perfil vê apenas o que pode administrar: conta, conexão própria, unidade ou identidade da corretora.</p></div><SettingsTabs account={account} company={context.role === "director" ? company : undefined} unit={<UnitTab branchName={membership[0]?.name ?? null} isDirector={context.role === "director"} />} atendimento={atendimento} whatsapp={whatsapp} integrations={integrations ? <IntegrationsTab branches={integrations.branches} integrations={integrations.integrations} /> : undefined} security={<SecurityTab enabled={user[0]?.twoFactorEnabled ?? false} email={user[0]?.email ?? "sua conta"} />} tabIds={tabIds} /></div></>;
+  return <><DashboardHeader breadcrumb="Configurações" title="Configurações" /><div className="flex flex-1 flex-col gap-6 p-4 lg:p-6"><div><p className="text-xs font-medium text-primary">CONFIGURAÇÕES</p><h1 className="mt-1 text-2xl font-semibold tracking-tight">Configurações</h1><p className="mt-1 max-w-2xl text-sm text-muted-foreground">Cada perfil vê apenas o que pode administrar: conta, conexão própria, unidade ou identidade da corretora.</p></div><SettingsTabs account={account} company={context.role === "director" ? company : undefined} unit={<UnitTab branch={membership[0] ? { id: membership[0].id, name: membership[0].name, status: membership[0].status, acceptingLeads: membership[0].acceptingLeads, autoDistribute: membership[0].autoDistribute, createdAt: membership[0].createdAt } : null} currentRole={context.role} />} atendimento={atendimento} whatsapp={whatsapp} integrations={integrations ? <IntegrationsTab branches={integrations.branches} integrations={integrations.integrations} /> : undefined} security={<SecurityTab enabled={user[0]?.twoFactorEnabled ?? false} email={user[0]?.email ?? "sua conta"} />} tabIds={tabIds} /></div></>;
 }

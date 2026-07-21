@@ -5,6 +5,7 @@ import { useMemo, useState, type ReactNode } from "react";
 
 import { ArrowUpRight, ChatCircleText, FileText, ListChecks, Phone, SquaresFour, UserList, WhatsappLogo } from "@/components/huge-icons";
 import { Badge } from "@/components/ui/badge";
+import { LeadDrawerManagementActions } from "./_components/lead-drawer-management-actions";
 import { LeadStatusBadge } from "@/components/status-badges";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -39,6 +40,8 @@ export type LeadWorkspaceItem = {
   telefone: string;
   status: string;
   origem: string;
+  sourceCampaign: string | null;
+  tipo: string;
   createdAt: string;
   assignedAt: string | null;
   stageEnteredAt: string | null;
@@ -46,6 +49,7 @@ export type LeadWorkspaceItem = {
   firstContactAt: string | null;
   corretorId: string | null;
   corretorNome: string | null;
+  branchId: string | null;
   branchName: string | null;
 };
 
@@ -77,15 +81,25 @@ const kanbanTone: Record<string, { warning: string; count: string }> = {
 export function LeadsWorkspace({
   leads,
   contextRole,
+  contextJobTitle,
+  contextBranchId,
   slaFirstContactMinutes = 15,
   slaStagnantDays = 3,
+  brokers = [],
 }: {
   leads: LeadWorkspaceItem[];
   contextRole: string;
+  contextJobTitle?: string | null;
+  contextBranchId?: string | null;
   slaFirstContactMinutes?: number;
   slaStagnantDays?: number;
+  brokers?: Array<{ id: string; name: string; branchId: string | null }>;
 }) {
   const [selectedLead, setSelectedLead] = useState<LeadWorkspaceItem | null>(null);
+  const isMarketing = contextJobTitle === "marketing";
+  const shouldMask = (lead: LeadWorkspaceItem) => {
+    return isMarketing && lead.branchId !== contextBranchId;
+  };
   const groupedLeads = useMemo(
     () =>
       Object.fromEntries(
@@ -93,6 +107,11 @@ export function LeadsWorkspace({
       ),
     [leads],
   );
+  const filteredBrokers = useMemo(() => {
+    if (!selectedLead || !brokers) return [];
+    return brokers.filter((b) => b.branchId === selectedLead.branchId);
+  }, [selectedLead, brokers]);
+
   const canCall =
     selectedLead && !(contextRole === "broker" && selectedLead.status === "distributed");
 
@@ -122,9 +141,11 @@ export function LeadsWorkspace({
                     className="flex min-h-20 w-full items-center gap-3 px-4 py-3 text-left transition-colors duration-[var(--duration-quick)] ease-out active:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                   >
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate font-medium">{lead.nome}</span>
-                      <span className="mt-1 block truncate text-xs text-muted-foreground">
-                        {contextRole === "broker" && lead.status === "distributed" ? maskPhone(lead.telefone) : lead.telefone}
+                      <span className={`block truncate font-medium ${shouldMask(lead) ? "blur-[3px] select-none" : ""}`}>
+                        {shouldMask(lead) ? maskName(lead.nome) : lead.nome}
+                      </span>
+                      <span className={`mt-1 block truncate text-xs text-muted-foreground ${shouldMask(lead) ? "blur-[3px] select-none" : ""}`}>
+                        {shouldMask(lead) ? "••••-••••" : (contextRole === "broker" && lead.status === "distributed" ? maskPhone(lead.telefone) : lead.telefone)}
                       </span>
                       <span className="mt-2 flex items-center gap-2">
                         <StatusBadge status={lead.status} />
@@ -157,11 +178,11 @@ export function LeadsWorkspace({
                       onClick={() => setSelectedLead(lead)}
                     >
                       <TableCell className="pl-5">
-                        <p className="font-medium">{lead.nome}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {contextRole === "broker" && lead.status === "distributed"
-                            ? maskPhone(lead.telefone)
-                            : lead.telefone}
+                        <p className={`font-medium ${shouldMask(lead) ? "blur-[3px] select-none" : ""}`}>
+                          {shouldMask(lead) ? maskName(lead.nome) : lead.nome}
+                        </p>
+                        <p className={`text-xs text-muted-foreground ${shouldMask(lead) ? "blur-[3px] select-none" : ""}`}>
+                          {shouldMask(lead) ? "••••-••••" : (contextRole === "broker" && lead.status === "distributed" ? maskPhone(lead.telefone) : lead.telefone)}
                         </p>
                       </TableCell>
                       <TableCell>
@@ -235,9 +256,11 @@ export function LeadsWorkspace({
                   <div className="space-y-4 p-4">
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0">
-                        <p className="truncate text-lg font-semibold tracking-tight">{selectedLead.nome}</p>
-                        <p className="mt-1 truncate text-sm text-muted-foreground">
-                          {contextRole === "broker" && selectedLead.status === "distributed" ? maskPhone(selectedLead.telefone) : selectedLead.telefone}
+                        <p className={`truncate text-lg font-semibold tracking-tight ${shouldMask(selectedLead) ? "blur-[3px] select-none" : ""}`}>
+                          {shouldMask(selectedLead) ? maskName(selectedLead.nome) : selectedLead.nome}
+                        </p>
+                        <p className={`mt-1 truncate text-sm text-muted-foreground ${shouldMask(selectedLead) ? "blur-[3px] select-none" : ""}`}>
+                          {shouldMask(selectedLead) ? "••••-••••" : (contextRole === "broker" && selectedLead.status === "distributed" ? maskPhone(selectedLead.telefone) : selectedLead.telefone)}
                         </p>
                       </div>
                       <div className="flex shrink-0 flex-col items-end gap-1.5">
@@ -252,7 +275,7 @@ export function LeadsWorkspace({
                 <Tabs defaultValue="summary" className="min-h-0">
                   <TabsList aria-label="Informações do lead no drawer" className="w-full justify-start" variant="line">
                     <TabsTrigger value="summary">Resumo</TabsTrigger>
-                    <TabsTrigger value="actions">Ações</TabsTrigger>
+                    {!shouldMask(selectedLead) && <TabsTrigger value="actions">Ações</TabsTrigger>}
                   </TabsList>
                   <TabsContent value="summary" className="mt-4 space-y-4">
                     <SheetSection className="p-4">
@@ -272,7 +295,8 @@ export function LeadsWorkspace({
                           }
                         />
                         <DetailRow label="Responsável" value={[selectedLead.corretorNome ?? "Aguardando distribuição", selectedLead.branchName ?? "Sem unidade"].join(" · ")} />
-                        <DetailRow label="Origem" value={selectedLead.origem === "manual" ? "Manual" : "Webhook"} />
+                        <DetailRow label="Tipo" value={selectedLead.tipo === "PME" ? "PME (Pessoa Jurídica)" : "PF (Pessoa Física)"} />
+                        <DetailRow label="Origem" value={selectedLead.sourceCampaign || (selectedLead.origem === "manual" ? "Manual" : "Webhook")} />
                         <DetailRow label="Entrada" value={formatDate(selectedLead.createdAt)} />
                       </dl>
                     </SheetSection>
@@ -282,50 +306,62 @@ export function LeadsWorkspace({
                     </Button>
                   </TabsContent>
                   <TabsContent value="actions" className="mt-4 space-y-3">
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button className="w-full" render={<Link href={`/leads/${selectedLead.id}`} />}>
-                        <ArrowUpRight />
-                        Abrir atendimento
-                      </Button>
-                      <Button className="w-full" render={<Link href={`/conversas?leadId=${selectedLead.id}`} />} variant="outline">
-                        <ChatCircleText />
-                        Conversas
-                      </Button>
-                    </div>
-                    <Button className="w-full" render={<a href="https://cotadorsimplificado.com.br/" rel="noreferrer" target="_blank" />}>
-                      <ArrowUpRight />
-                      Nova cotação
-                    </Button>
-                    {canCall ? (
-                      <div className="grid grid-cols-2 gap-2">
-                        <Button className="w-full" render={<a href={`tel:${selectedLead.telefone}`} />} variant="outline">
-                          <Phone />
-                          Ligar
-                        </Button>
-                        <Button className="w-full" render={<a href={`https://wa.me/${selectedLead.telefone.replace(/\D/g, "")}`} rel="noreferrer" target="_blank" />} variant="outline">
-                          <WhatsappLogo />
-                          WhatsApp
-                        </Button>
-                      </div>
+                    {contextRole === "manager" || contextRole === "director" ? (
+                      <LeadDrawerManagementActions
+                        leadId={selectedLead.id}
+                        brokers={filteredBrokers}
+                        currentStatus={selectedLead.status}
+                        currentOwner={selectedLead.corretorNome}
+                        onSuccess={() => setSelectedLead(null)}
+                      />
                     ) : (
-                      <p className="rounded-lg border border-amber-300/30 bg-amber-300/10 p-3 text-sm text-muted-foreground">
-                        Os dados de contato serão liberados quando você iniciar este atendimento.
-                      </p>
+                      <>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button className="w-full" render={<Link href={`/leads/${selectedLead.id}`} />}>
+                            <ArrowUpRight />
+                            Abrir atendimento
+                          </Button>
+                          <Button className="w-full" render={<Link href={`/conversas?leadId=${selectedLead.id}`} />} variant="outline">
+                            <ChatCircleText />
+                            Conversas
+                          </Button>
+                        </div>
+                        <Button className="w-full" render={<a href="https://cotadorsimplificado.com.br/" rel="noreferrer" target="_blank" />}>
+                          <ArrowUpRight />
+                          Nova cotação
+                        </Button>
+                        {canCall ? (
+                          <div className="grid grid-cols-2 gap-2">
+                            <Button className="w-full" render={<a href={`tel:${selectedLead.telefone}`} />} variant="outline">
+                              <Phone />
+                              Ligar
+                            </Button>
+                            <Button className="w-full" render={<a href={`https://wa.me/${selectedLead.telefone.replace(/\D/g, "")}`} rel="noreferrer" target="_blank" />} variant="outline">
+                              <WhatsappLogo />
+                              WhatsApp
+                            </Button>
+                          </div>
+                        ) : (
+                          <p className="rounded-lg border border-amber-300/30 bg-amber-300/10 p-3 text-sm text-muted-foreground">
+                            Os dados de contato serão liberados quando você iniciar este atendimento.
+                          </p>
+                        )}
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button className="w-full" render={<Link href={`/tarefas?leadId=${selectedLead.id}`} />} variant="outline">
+                            <ListChecks />
+                            Tarefas
+                          </Button>
+                          <Button className="w-full" render={<Link href="#documentos" />} variant="outline">
+                            <FileText />
+                            Documentos
+                          </Button>
+                        </div>
+                        <div className="flex flex-wrap gap-2 border-t border-border pt-3">
+                          <LeadQuickNote leadId={selectedLead.id} />
+                          <LeadReminder leadId={selectedLead.id} />
+                        </div>
+                      </>
                     )}
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button className="w-full" render={<Link href={`/tarefas?leadId=${selectedLead.id}`} />} variant="outline">
-                        <ListChecks />
-                        Tarefas
-                      </Button>
-                      <Button className="w-full" render={<Link href="#documentos" />} variant="outline">
-                        <FileText />
-                        Documentos
-                      </Button>
-                    </div>
-                    <div className="flex flex-wrap gap-2 border-t border-border pt-3">
-                      <LeadQuickNote leadId={selectedLead.id} />
-                      <LeadReminder leadId={selectedLead.id} />
-                    </div>
                   </TabsContent>
                 </Tabs>
               </div>
@@ -409,8 +445,11 @@ function KanbanLeadCard({
         </div>
         <ArrowUpRight className="mt-0.5 size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
       </div>                    <div className="mt-4 flex items-center justify-between gap-3 border-t border-border/60 pt-3">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <StatusBadge status={lead.status} />
+                          <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold ring-1 ring-inset ${lead.tipo === "PME" ? "bg-indigo-400/10 text-indigo-400 ring-indigo-400/20" : "bg-sky-400/10 text-sky-400 ring-sky-400/20"}`}>
+                            {lead.tipo}
+                          </span>
                           <LeadHealthBadge health={computeLeadHealth(lead, slaFirstContactMinutes, slaStagnantDays)} />
                         </div>
                         <span className="shrink-0 text-xs text-muted-foreground">{formatDate(lead.createdAt)}</span>
@@ -449,4 +488,14 @@ function maskPhone(phone: string) {
   return digits.length > 4
     ? `${"•".repeat(Math.max(0, digits.length - 4))}${digits.slice(-4)}`
     : "••••";
+}
+
+function maskName(name: string) {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 0) return "";
+  const first = parts[0];
+  if (parts.length === 1) {
+    return first.slice(0, Math.ceil(first.length / 2)) + "*".repeat(Math.floor(first.length / 2));
+  }
+  return `${first} ${"*".repeat(Math.max(1, name.length - first.length - 1))}`;
 }

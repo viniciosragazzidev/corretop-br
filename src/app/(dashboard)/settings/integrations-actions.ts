@@ -12,7 +12,7 @@ import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
 import { generateWebhookToken } from "@/features/leads/webhooks/utils/lead-webhook.utils";
 
-const sourceSchema = z.enum(["site_pixel", "meta_ads", "landing_page"]);
+const sourceSchema = z.enum(["site_pixel", "landing_page"]);
 const createSchema = z.object({
   name: z.string().trim().min(2).max(120),
   source: sourceSchema,

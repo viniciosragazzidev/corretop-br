@@ -627,6 +627,7 @@ export function NotificationPopover() {
                 "fixed inset-x-0 bottom-0 z-[80] w-full rounded-t-2xl border border-border",
                 "ct-notification-popover",
                 "sm:inset-x-auto sm:bottom-auto sm:right-[var(--notification-popover-right)] sm:top-[var(--notification-popover-top)] sm:w-[400px] sm:rounded-2xl",
+                "flex flex-col overflow-hidden",
                 "max-h-[70vh] sm:max-h-[min(30rem,calc(100vh-6rem))]",
               )}
             >
@@ -682,7 +683,7 @@ export function NotificationPopover() {
               <PushNotificationManager variant="compact" />
 
               {/* Content */}
-              <ScrollArea className="max-h-[320px] sm:max-h-[360px]">
+              <ScrollArea className="flex-1 min-h-0">
                 {error && !data ? (
                   <div className="flex flex-col items-center gap-2 px-4 py-8 text-center">
                     <p className="text-sm text-muted-foreground">

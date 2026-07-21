@@ -1,6 +1,6 @@
 import { getSystemSettings } from "@/features/system-settings/queries";
 import { getNotificationCapabilityStates } from "@/features/notifications/queries";
-import { updateCentralAtencaoSettingsAction, updateGlobalSearchSettingsAction, updateInterfaceMotionSettingsAction, updateMetaCloudWhatsAppSettingsAction, updateNotificationCapabilityAction, updateAiSettingsAction, updateLeadDistributionJobsSettingsAction, runLeadDistributionJobsAction } from "@/app/(platform-admin)/super-admin/actions";
+import { updateCentralAtencaoSettingsAction, updateGlobalSearchSettingsAction, updateInterfaceMotionSettingsAction, updateMetaCloudWhatsAppSettingsAction, updateNotificationCapabilityAction, updateAiSettingsAction, updateLeadDistributionJobsSettingsAction, runLeadDistributionJobsAction, updateLeadManagementActionsSettingsAction } from "@/app/(platform-admin)/super-admin/actions";
 import { setRouteOnboardingGlobalAction } from "@/features/onboarding/actions/route-onboarding-actions";
 import { PlatformAdminHeader } from "@/components/platform-admin-header";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ export default async function SuperAdminSettingsPage() {
     "lead_distribution_jobs_retry_base_seconds",
     "lead_distribution_jobs_lease_seconds",
     "lead_distribution_jobs_recovery_minutes",
+    "feature_lead_management_actions_enabled",
     "ai_enabled",
     "ai_primary_provider",
     "ai_primary_model",
@@ -44,6 +45,7 @@ export default async function SuperAdminSettingsPage() {
   const routeOnboardingEnabled = settingMap.get("feature_route_onboarding_enabled") !== "false";
   const metaCloudWhatsAppEnabled = settingMap.get("feature_whatsapp_meta_cloud_enabled") === "true";
   const distributionJobsEnabled = settingMap.get("feature_lead_distribution_jobs_enabled") !== "false";
+  const leadManagementActionsEnabled = settingMap.get("feature_lead_management_actions_enabled") !== "false";
   const distributionBatchSize = settingMap.get("lead_distribution_jobs_batch_size") ?? "25";
   const distributionMaxAttempts = settingMap.get("lead_distribution_jobs_max_attempts") ?? "8";
   const distributionRetryBaseSeconds = settingMap.get("lead_distribution_jobs_retry_base_seconds") ?? "60";
@@ -183,6 +185,25 @@ export default async function SuperAdminSettingsPage() {
         <Card className="border-border bg-card shadow-none">
           <CardHeader><CardTitle>Movimento da interface</CardTitle><CardDescription>Controla transições curtas de rota, títulos e superfícies. Não altera a preferência de acessibilidade de cada pessoa.</CardDescription></CardHeader>
           <CardContent><form action={updateInterfaceMotionSettingsAction} className="flex flex-wrap items-center justify-between gap-4"><label className="flex items-center gap-2 text-sm"><input type="checkbox" name="interfaceMotionEnabled" value="true" defaultChecked={interfaceMotionEnabled} className="size-4 warning-[var(--primary)]" /><span><span className="font-medium">Motion da interface habilitado</span><span className="block text-xs text-muted-foreground">Desative para trocar rotas e estados instantaneamente em toda a plataforma.</span></span></label><Button type="submit" variant="outline">Salvar motion</Button></form></CardContent>
+        </Card>
+
+        <Card className="border-border bg-card shadow-none">
+          <CardHeader>
+            <CardTitle>Painel e Ações Administrativas no Lead</CardTitle>
+            <CardDescription>Customiza a tela de detalhes e o drawer rápido de leads para Diretores e Gestores com foco em supervisão, auditoria de propostas e reatribuição.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form action={updateLeadManagementActionsSettingsAction} className="flex flex-wrap items-center justify-between gap-4">
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" name="leadManagementActionsEnabled" value="true" defaultChecked={leadManagementActionsEnabled} className="size-4 warning-[var(--primary)]" />
+                <span>
+                  <span className="font-medium">Personalização para diretores e gestores habilitada</span>
+                  <span className="block text-xs text-muted-foreground">Desative para retornar à mesma visualização padrão (Corretor) para todos os cargos.</span>
+                </span>
+              </label>
+              <Button type="submit" variant="outline">Salvar personalização</Button>
+            </form>
+          </CardContent>
         </Card>
 
         <Card className="border-border bg-card shadow-none">

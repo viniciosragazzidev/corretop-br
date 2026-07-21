@@ -16,6 +16,7 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const requestId = request.headers.get("x-request-id") ?? randomUUID();
   request.headers.set("x-request-id", requestId);
+  request.headers.set("x-pathname", pathname);
   const supabaseResponse = await updateSession(request);
   const session = request.cookies.get("better-auth.session_token")
     ?? request.cookies.get("__Secure-better-auth.session_token")

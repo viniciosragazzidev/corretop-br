@@ -60,15 +60,22 @@ function NavigationGroup({
   label,
   items,
   role,
+  jobTitle,
   badges,
 }: {
   label: string;
   items: BrokerSidebarItem[];
   role: UserDisplayInfo["roleKey"];
+  jobTitle: UserDisplayInfo["jobTitle"];
   badges?: Record<string, number>;
 }) {
   const pathname = usePathname();
-  const visibleItems = items.filter((item) => hasPermission(role, item.permission));
+  const visibleItems = items.filter((item) => {
+    if (jobTitle === "marketing" && ["/conversas", "/tarefas", "/documentos", "/clientes", "/vendas", "/checklist", "/minha-fila", "/corretor/resumo", "/minha-meta"].some(path => item.url === path || item.url.startsWith(path + "/"))) {
+      return false;
+    }
+    return hasPermission(role, item.permission);
+  });
   return (
     <SidebarGroup>
       <SidebarGroupLabel>{label}</SidebarGroupLabel>
@@ -111,22 +118,18 @@ export function CorretorSidebar() {
   const [pendingFeedback, setPendingFeedback] = useState(0);
 
   useEffect(() => {
-    getUserDisplayInfo().then(setUser);
-  }, []);
-
-  useEffect(() => {
     let cancelled = false;
-    const fetchCount = async () => {
-      try {
-        const { count } = await getPendingFeedbackCountAction();
-        if (!cancelled) setPendingFeedback(count);
-      } catch {
-        // Silent fail — badge just won't show
-      }
-    };
-    fetchCount();
-    // Poll every 60 seconds to keep badge fresh
-    const interval = setInterval(fetchCount, 60_000);
+    getUserDisplayInfo().then(setUser);
+    getPendingFeedbackCountAction().then((result) => {
+      if (!cancelled) setPendingFeedback(result.count);
+    });
+
+    const interval = setInterval(() => {
+      getPendingFeedbackCountAction().then((result) => {
+        if (!cancelled) setPendingFeedback(result.count);
+      });
+    }, 30000);
+
     return () => {
       cancelled = true;
       clearInterval(interval);
@@ -161,9 +164,9 @@ export function CorretorSidebar() {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavigationGroup items={workItems} label="Atendimento" role={user?.roleKey ?? null} badges={{ "Minha fila": pendingFeedback }} />
-        <NavigationGroup items={performanceItems} label="Desempenho" role={user?.roleKey ?? null} />
-        <NavigationGroup items={systemItems} label="Sistema" role={user?.roleKey ?? null} />
+        <NavigationGroup items={workItems} label="Atendimento" role={user?.roleKey ?? null} jobTitle={user?.jobTitle ?? null} badges={{ "Minha fila": pendingFeedback }} />
+        <NavigationGroup items={performanceItems} label="Desempenho" role={user?.roleKey ?? null} jobTitle={user?.jobTitle ?? null} />
+        <NavigationGroup items={systemItems} label="Sistema" role={user?.roleKey ?? null} jobTitle={user?.jobTitle ?? null} />
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>

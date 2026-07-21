@@ -49,6 +49,14 @@ export async function chooseAvailableBroker(tenantId: string, branchId: string |
   if (!branch[0] || !branch[0].autoDistribute) return null;
   if (!brokers.length) return null;
 
+  // ── Fetch max active leads limit for priority logic ────────────────
+  const [tenantSettings] = await db
+    .select({ maxActiveLeadsLimit: schema.tenants.maxActiveLeadsLimit })
+    .from(schema.tenants)
+    .where(eq(schema.tenants.id, tenantId))
+    .limit(1);
+  const limit = tenantSettings?.maxActiveLeadsLimit ?? 10;
+
   // ── Plantão credential filter ──────────────────────────────────────
   const local = getLocalDutyParts(new Date());
   const activeSchedules = await db.select({ id: schema.unitDutySchedules.id, webhookCredentialId: schema.unitDutySchedules.webhookCredentialId })
@@ -88,7 +96,12 @@ export async function chooseAvailableBroker(tenantId: string, branchId: string |
       const ids = filtered.map((b) => b.id);
       const workloads = await db.select({ brokerId: schema.leads.corretorId, total: count(schema.leads.id) }).from(schema.leads).where(and(eq(schema.leads.tenantId, tenantId), inArray(schema.leads.corretorId, ids), inArray(schema.leads.status, activeStatuses))).groupBy(schema.leads.corretorId);
       const loadByBroker = new Map(workloads.map((item) => [item.brokerId, Number(item.total)]));
-      return [...filtered].sort((a, b) => (loadByBroker.get(a.id) ?? 0) - (loadByBroker.get(b.id) ?? 0))[0]?.id ?? null;
+
+      // Limit Priority Grouping
+      const brokersBelowLimit = filtered.filter(b => (loadByBroker.get(b.id) ?? 0) < limit);
+      const targetBrokers = brokersBelowLimit.length > 0 ? brokersBelowLimit : filtered;
+
+      return [...targetBrokers].sort((a, b) => (loadByBroker.get(a.id) ?? 0) - (loadByBroker.get(b.id) ?? 0))[0]?.id ?? null;
     }
   }
 
@@ -100,5 +113,10 @@ export async function chooseAvailableBroker(tenantId: string, branchId: string |
     .where(and(eq(schema.leads.tenantId, tenantId), inArray(schema.leads.corretorId, ids), inArray(schema.leads.status, activeStatuses)))
     .groupBy(schema.leads.corretorId);
   const loadByBroker = new Map(workloads.map((item) => [item.brokerId, Number(item.total)]));
-  return [...brokers].sort((a, b) => (loadByBroker.get(a.id) ?? 0) - (loadByBroker.get(b.id) ?? 0))[0]?.id ?? null;
+
+  // Limit Priority Grouping
+  const brokersBelowLimit = brokers.filter(b => (loadByBroker.get(b.id) ?? 0) < limit);
+  const targetBrokers = brokersBelowLimit.length > 0 ? brokersBelowLimit : brokers;
+
+  return [...targetBrokers].sort((a, b) => (loadByBroker.get(a.id) ?? 0) - (loadByBroker.get(b.id) ?? 0))[0]?.id ?? null;
 }

@@ -19,6 +19,7 @@ export async function updateFeedbackSettingsAction(
 
     const interval = Number.parseInt(String(formData.get("feedbackReminderInterval") ?? "30"), 10);
     const maxAttempts = Number.parseInt(String(formData.get("feedbackReminderMaxAttempts") ?? "5"), 10);
+    const maxActiveLeadsLimit = Number.parseInt(String(formData.get("maxActiveLeadsLimit") ?? "10"), 10);
     const pushEnabled = formData.get("feedbackPushEnabled") === "true";
     const toastEnabled = formData.get("feedbackToastEnabled") === "true";
     const feedbackRequiredEnabled = formData.get("feedbackRequiredEnabled") === "true";
@@ -28,6 +29,9 @@ export async function updateFeedbackSettingsAction(
     }
     if (Number.isNaN(maxAttempts) || maxAttempts < 1 || maxAttempts > 50) {
       return { success: false, error: "Máximo de tentativas deve ser entre 1 e 50." };
+    }
+    if (Number.isNaN(maxActiveLeadsLimit) || maxActiveLeadsLimit < 1 || maxActiveLeadsLimit > 100) {
+      return { success: false, error: "Limite máximo de leads deve ser entre 1 e 100." };
     }
 
     const db = getDatabase();
@@ -39,6 +43,7 @@ export async function updateFeedbackSettingsAction(
           feedbackPushEnabled: pushEnabled,
           feedbackToastEnabled: toastEnabled,
           feedbackRequiredEnabled,
+          maxActiveLeadsLimit,
           updatedAt: new Date(),
         })
         .where(eq(schema.tenants.id, context.tenantId));

@@ -171,31 +171,41 @@ export function PushNotificationManager({
   const isSupported = availability !== "unsupported";
 
   if (variant === "compact") {
-    if (checking || !isSupported || isSubscribed) return null;
+    if (checking) return null;
 
     const isBlocked = availability === "blocked";
+    const showBanner = isSupported && !isSubscribed;
+
     return (
-      <div className="mx-4 my-3 flex items-center gap-3 rounded-xl border border-primary/15 bg-primary/[0.035] px-3 py-3">
-        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
-          <BellRinging className="size-4" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold text-foreground">
-            {isBlocked ? "Alertas bloqueados neste navegador" : "Não perca o próximo alerta"}
-          </p>
-          <p className="mt-0.5 text-[11px] leading-4 text-muted-foreground">
-            {isBlocked
-              ? "Libere as notificações nas configurações do navegador para receber novos leads e tarefas."
-              : "Ative agora para receber novos leads e tarefas mesmo com o sistema fechado."}
-          </p>
-        </div>
-        {!isBlocked && (
-          <Button size="xs" onClick={() => void subscribe()} disabled={loading} className="shrink-0 gap-1.5">
-            <BellRinging className="size-3" />
-            {loading ? "Ativando" : "Ativar"}
-          </Button>
+      <motion.div
+        layout
+        className="overflow-hidden"
+        transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+      >
+        {showBanner && (
+          <div className="mx-4 my-3 flex items-center gap-3 rounded-xl border border-primary/15 bg-primary/[0.035] px-3 py-3">
+            <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+              <BellRinging className="size-4" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold text-foreground">
+                {isBlocked ? "Alertas bloqueados neste navegador" : "Não perca o próximo alerta"}
+              </p>
+              <p className="mt-0.5 text-[11px] leading-4 text-muted-foreground">
+                {isBlocked
+                  ? "Libere as notificações nas configurações do navegador para receber novos leads e tarefas."
+                  : "Ative agora para receber novos leads e tarefas mesmo com o sistema fechado."}
+              </p>
+            </div>
+            {!isBlocked && (
+              <Button size="xs" onClick={() => void subscribe()} disabled={loading} className="shrink-0 gap-1.5">
+                <BellRinging className="size-3" />
+                {loading ? "Ativando" : "Ativar"}
+              </Button>
+            )}
+          </div>
         )}
-      </div>
+      </motion.div>
     );
   }
 
@@ -265,7 +275,44 @@ export function PushNotificationManager({
             <>
               <div className="flex gap-2 rounded-lg border border-success/20 bg-success/[0.03] px-3 py-2"><CheckCircle className="mt-0.5 size-4 shrink-0 text-success" weight="fill" /><p className="text-xs leading-5 text-muted-foreground">Novos leads, tarefas e mensagens podem chegar mesmo fora do sistema.</p></div>
               <Button size="sm" variant="outline" onClick={() => setShowControls((current) => !current)} className="w-full">{showControls ? "Ocultar opções" : "Gerenciar notificações"}</Button>
-              {showControls && <div className="space-y-2 border-t border-border/70 pt-3"><div className="flex gap-2"><Input placeholder="Mensagem para teste" value={message} onChange={(event) => setMessage(event.target.value)} className="h-9 flex-1 text-xs" onKeyDown={(event) => { if (event.key === "Enter") void sendTestNotification(); }} /><Button size="sm" variant="outline" onClick={() => void sendTestNotification()} disabled={loading || !message.trim()}>{loading ? "Enviando..." : "Testar"}</Button></div><Button size="sm" variant="destructive" onClick={() => void unsubscribe()} disabled={loading} className="w-full">{loading ? "Desativando..." : "Desativar notificações"}</Button></div>}
+              <motion.div
+                layout
+                className="overflow-hidden"
+                transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+              >
+                {showControls && (
+                  <div className="space-y-2 border-t border-border/70 pt-3">
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Mensagem para teste"
+                        value={message}
+                        onChange={(event) => setMessage(event.target.value)}
+                        className="h-9 flex-1 text-xs"
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") void sendTestNotification();
+                        }}
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => void sendTestNotification()}
+                        disabled={loading || !message.trim()}
+                      >
+                        {loading ? "Enviando..." : "Testar"}
+                      </Button>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => void unsubscribe()}
+                      disabled={loading}
+                      className="w-full"
+                    >
+                      {loading ? "Desativando..." : "Desativar notificações"}
+                    </Button>
+                  </div>
+                )}
+              </motion.div>
             </>
           ) : (
             <><p className="text-xs leading-5 text-muted-foreground">Ative para receber avisos de novos leads, tarefas urgentes e atualizações importantes em tempo real.</p><Button size="sm" onClick={() => void subscribe()} disabled={loading} className="w-full gap-1.5">{loading ? "Ativando..." : <><BellRinging className="size-3.5" />Ativar notificações</>}</Button></>

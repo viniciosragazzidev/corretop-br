@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Copy, HelpCircle, LinkSimple, Plus, ShieldCheck, Trash, WifiHigh, X } from "@/components/huge-icons";
+import { Check, Copy, HelpCircle, LinkSimple, Plus, ShieldCheck, Trash } from "@/components/huge-icons";
 import { FlaskConical } from "lucide-react";
 import { toast } from "sonner";
 
@@ -21,7 +21,7 @@ type Branch = { id: string; name: string };
 type Props = { integrations: IntegrationRecord[]; branches: Branch[] };
 type QueryData = { integrations: IntegrationRecord[]; branches: Branch[] };
 
-const sourceLabel: Record<string, string> = { site_pixel: "Pixel / Site", meta_ads: "Meta Lead Ads", landing_page: "Landing page" };
+const sourceLabel: Record<string, string> = { site_pixel: "Pixel / Site", landing_page: "Landing page" };
 
 export function IntegrationsTab({ integrations, branches }: Props) {
   const queryClient = useQueryClient();
@@ -141,7 +141,6 @@ export function IntegrationsTab({ integrations, branches }: Props) {
   return <Tabs className="gap-5" defaultValue="sources">
     <TabsList variant="line" className="w-full justify-start border-b border-border">
       <TabsTrigger value="sources"><LinkSimple /> Webhooks & Pixels</TabsTrigger>
-      <TabsTrigger value="meta"><WifiHigh /> Meta Lead Ads</TabsTrigger>
     </TabsList>
     <TabsContent value="sources" className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
       <Card className="border-border bg-card shadow-none">
@@ -214,14 +213,13 @@ export function IntegrationsTab({ integrations, branches }: Props) {
 
         <Button className="w-full" onClick={() => revokeMutation.mutate(selected.id)} variant="destructive"><Trash /> Revogar integração</Button></CardContent></Card> : null}
     </TabsContent>
-    <TabsContent value="meta"><Card className="border-border bg-card shadow-none"><CardHeader><CardTitle>Meta Lead Ads</CardTitle><CardDescription>Conecte a conta administrativa para receber leads de campanhas.</CardDescription></CardHeader><CardContent><div className="flex items-center gap-3 rounded-lg border border-amber-300/20 bg-amber-300/5 p-4"><X className="text-amber-300" /><div><p className="text-sm font-medium">Não conectado</p><p className="mt-1 text-xs text-muted-foreground">A verificação da Meta Business ainda é uma dependência externa.</p></div><Button className="ml-auto" disabled variant="outline">Conectar em breve</Button></div></CardContent></Card></TabsContent>
     <CreateIntegrationDialog branches={branches} open={createOpen} onOpenChange={setCreateOpen} onSubmit={(formData) => createMutation.mutate(formData)} pending={createMutation.isPending} />
     <HelpIntegrationDialog open={helpOpen} onOpenChange={setHelpOpen} />
   </Tabs>;
 }
 
 function CreateIntegrationDialog({ branches, open, onOpenChange, onSubmit, pending }: { branches: Branch[]; open: boolean; onOpenChange: (open: boolean) => void; onSubmit: (formData: FormData) => void; pending: boolean }) {
-  return <Dialog open={open} onOpenChange={onOpenChange}><DialogPopup className="sm:max-w-md"><DialogTitle>Nova fonte de captura</DialogTitle><DialogDescription>Gere um token seguro vinculado à corretora e, opcionalmente, a uma filial.</DialogDescription><form action={onSubmit} className="grid gap-4"><Field><FieldLabel htmlFor="integration-name">Nome da fonte</FieldLabel><Input id="integration-name" name="name" placeholder="Meta Ads - Filial Centro" required /></Field><Field><FieldLabel>Origem padrão</FieldLabel><Select defaultValue="site_pixel" name="source" labels={{ site_pixel: "Pixel / Site", meta_ads: "Meta Lead Ads", landing_page: "Landing page" }}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="site_pixel">Pixel / Site</SelectItem><SelectItem value="meta_ads">Meta Lead Ads</SelectItem><SelectItem value="landing_page">Landing page</SelectItem></SelectContent></Select></Field><Field><FieldLabel>Filial de destino</FieldLabel><Select name="branchId"><SelectTrigger className="w-full"><SelectValue placeholder="Primeira filial ativa" /></SelectTrigger><SelectContent>{branches.map((branch) => <SelectItem key={branch.id} value={branch.id}>{branch.name}</SelectItem>)}</SelectContent></Select></Field><div className="flex gap-2"><Button className="flex-1" disabled={pending} type="submit">{pending ? "Gerando token..." : "Gerar token"}</Button><DialogClose render={<Button disabled={pending} type="button" variant="ghost">Cancelar</Button>} /></div></form></DialogPopup></Dialog>;
+  return <Dialog open={open} onOpenChange={onOpenChange}><DialogPopup className="sm:max-w-md"><DialogTitle>Nova fonte de captura</DialogTitle><DialogDescription>Gere um token seguro vinculado à corretora e, opcionalmente, a uma filial.</DialogDescription><form action={onSubmit} className="grid gap-4"><Field><FieldLabel htmlFor="integration-name">Nome da fonte</FieldLabel><Input id="integration-name" name="name" placeholder="Landing page - Filial Centro" required /></Field><Field><FieldLabel>Origem padrão</FieldLabel><Select defaultValue="site_pixel" name="source" labels={{ site_pixel: "Pixel / Site", landing_page: "Landing page" }}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="site_pixel">Pixel / Site</SelectItem><SelectItem value="landing_page">Landing page</SelectItem></SelectContent></Select></Field><Field><FieldLabel>Filial de destino</FieldLabel><Select name="branchId"><SelectTrigger className="w-full"><SelectValue placeholder="Primeira filial ativa" /></SelectTrigger><SelectContent>{branches.map((branch) => <SelectItem key={branch.id} value={branch.id}>{branch.name}</SelectItem>)}</SelectContent></Select></Field><div className="flex gap-2"><Button className="flex-1" disabled={pending} type="submit">{pending ? "Gerando token..." : "Gerar token"}</Button><DialogClose render={<Button disabled={pending} type="button" variant="ghost">Cancelar</Button>} /></div></form></DialogPopup></Dialog>;
 }
 
 function HelpIntegrationDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {

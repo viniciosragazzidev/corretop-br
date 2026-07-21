@@ -19,7 +19,7 @@ Gere um token por fonte/filial com `scripts/generate-webhook-credential.ts`, def
 ```powershell
 $env:WEBHOOK_TENANT_ID="..."
 $env:WEBHOOK_BRANCH_ID="..."
-$env:WEBHOOK_CREDENTIAL_NAME="Meta Lead Ads - Filial Centro"
+$env:WEBHOOK_CREDENTIAL_NAME="Landing page - Filial Centro"
 $env:WEBHOOK_CREATED_BY_USER_ID="..."
 npx tsx scripts/generate-webhook-credential.ts
 ```
@@ -31,8 +31,8 @@ Envie os leads para `POST /api/webhooks/leads` com `Authorization: Bearer <token
   "name": "Mariana Costa",
   "phone": "+55 (21) 99999-9999",
   "email": "mariana@example.com",
-  "source": "meta_ads",
-  "externalId": "meta-lead-123",
+  "source": "landing_page",
+  "externalId": "landing-page-lead-123",
   "planInterest": "Plano empresarial"
 }
 ```

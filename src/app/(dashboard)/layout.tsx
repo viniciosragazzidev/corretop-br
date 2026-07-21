@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { eq } from "drizzle-orm";
 import { AuthorizationError, AuthenticationError } from "@/shared/auth/errors";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
@@ -19,6 +20,16 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
     if (error instanceof AuthenticationError) redirect("/login");
     if (error instanceof AuthorizationError) redirect("/access-denied");
     throw error;
+  }
+
+  if (context.jobTitle === "marketing") {
+    const headersList = await headers();
+    const pathname = headersList.get("x-pathname") || "";
+    const restrictedPrefixes = ["/conversas", "/tarefas", "/documentos", "/clientes", "/vendas", "/checklist", "/minha-fila", "/dashboard", "/corretor", "/metas", "/relatorios", "/noc", "/integridade", "/assinatura", "/filiais", "/unidades", "/gestor", "/diretor"];
+    const isRestricted = restrictedPrefixes.some(prefix => pathname === prefix || pathname.startsWith(prefix + "/"));
+    if (isRestricted) {
+      redirect("/access-denied");
+    }
   }
 
   const [tenant] = await getDatabase()

@@ -18,6 +18,7 @@ type Props = {
   feedbackPushEnabled: boolean;
   feedbackToastEnabled: boolean;
   feedbackRequiredEnabled: boolean;
+  maxActiveLeadsLimit: number;
   canEdit: boolean;
 };
 
@@ -27,6 +28,7 @@ export function FeedbackTab({
   feedbackPushEnabled,
   feedbackToastEnabled,
   feedbackRequiredEnabled,
+  maxActiveLeadsLimit,
   canEdit,
 }: Props) {
   const [state, formAction, isPending] = useActionState(
@@ -48,9 +50,9 @@ export function FeedbackTab({
         <CardHeader>
           <div className="flex items-start justify-between gap-4">
             <div>
-              <CardTitle>Lembretes de feedback</CardTitle>
+              <CardTitle>Configurações de Atendimento e Distribuição</CardTitle>
               <CardDescription className="mt-1">
-                Configure como e com que frequência os corretores são lembrados de registrar feedback sobre os leads em atendimento.
+                Configure os lembretes de feedback dos leads e o limite de prioridade para a distribuição automática.
               </CardDescription>
             </div>
           </div>
@@ -143,6 +145,30 @@ export function FeedbackTab({
                 </p>
               </div>
             </label>
+
+            <div className="h-px bg-border" />
+
+            <div className="space-y-4">
+              <p className="text-sm font-semibold text-foreground">Distribuição automática de leads</p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field>
+                  <FieldLabel>Limite máximo de leads pendentes ou ativos</FieldLabel>
+                  <Input
+                    type="number"
+                    name="maxActiveLeadsLimit"
+                    defaultValue={maxActiveLeadsLimit}
+                    min={1}
+                    max={100}
+                    disabled={!canEdit}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Corretores que tenham menos leads ativos ou pendentes do que este limite recebem prioridade na distribuição automática. Se todos estiverem acima do limite, o sistema distribui entre todos normalmente.
+                  </p>
+                </Field>
+              </div>
+            </div>
+
+            <div className="h-px bg-border" />
 
             <div className="flex items-center justify-between">
               <Link

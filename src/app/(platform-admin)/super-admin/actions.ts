@@ -363,3 +363,26 @@ export async function updateAiSettingsAction(formData: FormData) {
 
   revalidatePath("/super-admin/settings");
 }
+
+export async function updateLeadManagementActionsSettingsAction(formData: FormData) {
+  const admin = await getRequiredPlatformAdmin();
+  const db = getDatabase();
+  const enabled = formData.get("leadManagementActionsEnabled") === "true" ? "true" : "false";
+  const now = new Date();
+
+  await setSystemSetting("feature_lead_management_actions_enabled", enabled, now);
+
+  await db.insert(schema.platformAuditLogs).values({
+    id: crypto.randomUUID(),
+    actorUserId: admin.userId,
+    action: "update_lead_management_actions_settings",
+    targetType: "system_settings",
+    targetId: "lead_management_actions",
+    metadata: { enabled },
+    createdAt: now,
+  });
+
+  revalidatePath("/super-admin/settings");
+  revalidatePath("/leads");
+}
+

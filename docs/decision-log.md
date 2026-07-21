@@ -64,7 +64,6 @@ O CorreTop usa `services/whatsapp-api` como fronteira Fastify separada para cham
 | ID | Decisão necessária | Observação |
 |---|---|---|
 | DEC-020 | Provedor de banco, storage e autenticação. | Avaliar e instalar somente quando a fundação técnica for iniciada. |
-| DEC-021 | Integração de Meta Lead Ads. | Pode começar pelo webhook genérico. |
 | DEC-022 | Estratégia de PWA e push. | Requer escopo de browser e políticas de permissão. |
 
 ## DecisÃµes registradas durante a implementaÃ§Ã£o

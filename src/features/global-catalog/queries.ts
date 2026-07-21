@@ -116,34 +116,23 @@ export async function listAvailableCatalogPlans(
 
 export async function getGlobalCatalogAdminData() {
   const db = getDatabase();
-  const [enabled, privateEnabled, carriers, plans, tenants] = await Promise.all([
+  const [enabled, privateEnabled, carriers] = await Promise.all([
     isGlobalCatalogEnabled(),
     isTenantPrivateCatalogEnabled(),
     db
       .select({
         id: schema.globalCarriers.id,
         name: schema.globalCarriers.name,
+        description: schema.globalCarriers.description,
+        logoUrl: schema.globalCarriers.logoUrl,
         ansCode: schema.globalCarriers.ansCode,
         status: schema.globalCarriers.status,
       })
       .from(schema.globalCarriers)
       .orderBy(asc(schema.globalCarriers.name)),
-    db
-      .select({
-        id: schema.globalPlans.id,
-        carrierId: schema.globalPlans.carrierId,
-        carrierName: schema.globalCarriers.name,
-        name: schema.globalPlans.name,
-        type: schema.globalPlans.type,
-        status: schema.globalPlans.status,
-      })
-      .from(schema.globalPlans)
-      .innerJoin(schema.globalCarriers, eq(schema.globalPlans.carrierId, schema.globalCarriers.id))
-      .orderBy(asc(schema.globalCarriers.name), asc(schema.globalPlans.name)),
-    db.select({ id: schema.tenants.id, name: schema.tenants.name }).from(schema.tenants).orderBy(asc(schema.tenants.name)),
   ]);
 
-  return { enabled, privateEnabled, carriers, plans, tenants };
+  return { enabled, privateEnabled, carriers };
 }
 
 export async function getTenantPrivateCatalogData(context?: TenantContext) {

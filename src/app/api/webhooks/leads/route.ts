@@ -22,7 +22,7 @@ export async function OPTIONS() {
 
 /**
  * Unified webhook endpoint — Bearer token in Authorization header.
- * Used by server-to-server integrations (Meta Lead Ads, n8n, Make, etc.)
+ * Used by server-to-server integrations (n8n, Make, and other approved sources).
  * For landing page embeds, use /api/webhooks/leads/[token] instead.
  */
 export async function POST(request: NextRequest) {

@@ -98,7 +98,7 @@ A jornada do lead progride sequencialmente pelas etapas abaixo:
           "name": "Mariana Costa",
           "phone": "+55 (21) 99999-9999",
           "email": "mariana@example.com",
-          "source": "meta_ads",
+          "source": "landing_page",
           "externalId": "lead-unique-12345",
           "planInterest": "Plano empresarial PME"
         }

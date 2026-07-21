@@ -22,6 +22,7 @@ export type UserDisplayInfo = {
   name: string;
   role: string | null;
   roleKey: TenantRole | null;
+  jobTitle: string | null;
   redirectLogout: string;
 };
 
@@ -33,12 +34,16 @@ export async function getRoleRedirect(): Promise<string> {
   if (!session) return "/login";
 
   const [membership] = await getDatabase()
-    .select({ role: schema.tenantMemberships.role })
+    .select({ role: schema.tenantMemberships.role, jobTitle: schema.tenantMemberships.jobTitle })
     .from(schema.tenantMemberships)
     .where(eq(schema.tenantMemberships.userId, session.user.id))
     .limit(1);
 
   if (!membership) return "/login";
+
+  if (membership.jobTitle === "marketing") {
+    return "/leads";
+  }
 
   return ROLE_REDIRECT[membership.role] ?? "/corretor/resumo";
 }
@@ -49,11 +54,11 @@ export async function getUserDisplayInfo(): Promise<UserDisplayInfo> {
   });
 
   if (!session) {
-    return { name: "Usuário", role: null, roleKey: null, redirectLogout: "/login" };
+    return { name: "Usuário", role: null, roleKey: null, jobTitle: null, redirectLogout: "/login" };
   }
 
   const [membership] = await getDatabase()
-    .select({ role: schema.tenantMemberships.role })
+    .select({ role: schema.tenantMemberships.role, jobTitle: schema.tenantMemberships.jobTitle })
     .from(schema.tenantMemberships)
     .where(eq(schema.tenantMemberships.userId, session.user.id))
     .limit(1);
@@ -65,6 +70,7 @@ export async function getUserDisplayInfo(): Promise<UserDisplayInfo> {
     name: session.user.name,
     role: role ? ROLE_LABELS[role] ?? role : null,
     roleKey: role,
+    jobTitle: membership?.jobTitle ?? null,
     redirectLogout,
   };
 }
