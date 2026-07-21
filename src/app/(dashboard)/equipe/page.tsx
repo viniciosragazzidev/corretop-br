@@ -21,7 +21,7 @@ export default async function TeamPage() {
     ? context.branchId ? eq(schema.leads.branchId, context.branchId) : sql`false`
     : undefined;
 
-  const [tenant, branches, members, unassignedLeads, salesTotal] = await Promise.all([
+  const [tenant, branches, brokers, nonBrokers, unassignedLeads, salesTotal] = await Promise.all([
     getDatabase()
       .select({ name: schema.tenants.name })
       .from(schema.tenants)
@@ -32,6 +32,30 @@ export default async function TeamPage() {
       .from(schema.branches)
       .where(and(eq(schema.branches.tenantId, context.tenantId), eq(schema.branches.status, "active"), branchEntityScope))
       .orderBy(asc(schema.branches.name)),
+    getDatabase()
+      .select({
+        id: schema.brokerProfiles.id,
+        userId: schema.brokerProfiles.userId,
+        name: schema.brokerProfiles.professionalName,
+        email: schema.brokerProfiles.invitedEmail,
+        role: sql<"broker">`'broker'`,
+        jobTitle: sql<string>`'broker'`,
+        status: sql<"pending" | "active" | "disabled">`
+          case 
+            when ${schema.brokerProfiles.lifecycleStatus} = 'ACTIVE' then 'active'::user_status
+            when ${schema.brokerProfiles.lifecycleStatus} = 'INVITED' then 'pending'::user_status
+            else 'disabled'::user_status
+          end
+        `,
+        branchId: schema.brokerProfiles.branchId,
+        branchName: schema.branches.name,
+      })
+      .from(schema.brokerProfiles)
+      .leftJoin(schema.branches, eq(schema.brokerProfiles.branchId, schema.branches.id))
+      .where(and(
+        eq(schema.brokerProfiles.tenantId, context.tenantId),
+        context.role === "manager" && context.branchId ? eq(schema.brokerProfiles.branchId, context.branchId) : undefined
+      )),
     getDatabase()
       .select({
         id: schema.tenantMemberships.id,
@@ -47,8 +71,12 @@ export default async function TeamPage() {
       .from(schema.tenantMemberships)
       .innerJoin(schema.user, eq(schema.tenantMemberships.userId, schema.user.id))
       .leftJoin(schema.branches, eq(schema.tenantMemberships.branchId, schema.branches.id))
-      .where(and(eq(schema.tenantMemberships.tenantId, context.tenantId), branchScope))
-      .orderBy(asc(schema.user.name)),
+      .leftJoin(schema.brokerProfiles, eq(schema.tenantMemberships.userId, schema.brokerProfiles.userId))
+      .where(and(
+        eq(schema.tenantMemberships.tenantId, context.tenantId),
+        branchScope,
+        sql`(${schema.tenantMemberships.role} <> 'broker' or ${schema.brokerProfiles.id} is null)`
+      )),
     getDatabase()
       .select({ count: sql<number>`count(*)::int` })
       .from(schema.leads)
@@ -60,6 +88,7 @@ export default async function TeamPage() {
       .where(and(eq(schema.sales.tenantId, context.tenantId), eq(schema.leads.tenantId, context.tenantId), leadBranchScope)),
   ]);
 
+  const members = [...brokers, ...nonBrokers].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
   const activeMembers = members.filter((member) => member.status === "active").length;
   const unassignedCount = unassignedLeads[0]?.count ?? 0;
   const totalVolume = salesTotal[0]?.sum ?? 0;

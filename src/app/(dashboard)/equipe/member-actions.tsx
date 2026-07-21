@@ -17,7 +17,7 @@ import { deleteTeamMemberAction, toggleTeamMemberStatusAction, updateTeamMemberA
 type BranchOption = { id: string; name: string };
 type TeamMember = {
   id: string;
-  userId: string;
+  userId: string | null;
   name: string | null;
   email: string;
   role: "director" | "manager" | "broker";
@@ -430,8 +430,8 @@ function TransferLeadsDialog({
   const formRef = useRef<HTMLFormElement>(null);
 
   const brokers = allMembers.filter(
-    (item) => item.role === "broker" && item.status === "active" && item.userId !== member.userId
-  );
+    (item) => item.role === "broker" && item.status === "active" && item.userId && item.userId !== member.userId
+  ) as (TeamMember & { userId: string })[];
 
   useEffect(() => {
     if (state.success) {
@@ -451,7 +451,7 @@ function TransferLeadsDialog({
           Mova todos os leads sob responsabilidade de <strong>{member.name ?? member.email}</strong> para outro corretor ativo.
         </DialogDescription>
         <form ref={formRef} action={action} className="grid gap-4 mt-2">
-          <input name="fromUserId" type="hidden" value={member.userId} />
+          <input name="fromUserId" type="hidden" value={member.userId ?? ""} />
           
           <Field>
             <FieldLabel>Corretor de Destino</FieldLabel>

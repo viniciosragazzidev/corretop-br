@@ -1,22 +1,20 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
-import { hashPassword } from "better-auth/crypto";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { requireCanCreateRole } from "@/shared/auth/team-permissions";
 import { getDatabase, schema } from "@/shared/db";
-
-const jobTitleInput = z.enum(schema.teamJobTitleValues);
+import { generateNextInternalCode, createBrokerInvitation } from "./onboarding-helpers";
 
 const createUserInput = z.object({
   name: z.string().trim().min(2).max(120),
   email: z.string().trim().email().max(254).transform((v) => v.toLowerCase()),
-  password: z.string().min(8).max(128),
+  phone: z.string().trim().min(8).max(30),
+  cpf: z.string().trim().min(11).max(20),
   role: z.enum(["manager", "broker"]),
-  jobTitle: jobTitleInput,
   branchId: z.string().uuid(),
 });
 
@@ -42,40 +40,61 @@ export async function createTeamUser(rawInput: unknown) {
     .limit(1);
   if (!branch) throw new Error("A filial selecionada não pertence ao tenant ativo ou está inativa.");
 
-  const [existing] = await db
+  const [existingEmail] = await db
+    .select({ id: schema.brokerProfiles.id })
+    .from(schema.brokerProfiles)
+    .where(and(eq(schema.brokerProfiles.invitedEmail, input.email), eq(schema.brokerProfiles.tenantId, context.tenantId)))
+    .limit(1);
+  if (existingEmail) throw new Error("Já existe um corretor com este e-mail.");
+
+  const [existingCpf] = await db
+    .select({ id: schema.brokerProfiles.id })
+    .from(schema.brokerProfiles)
+    .where(and(eq(schema.brokerProfiles.cpf, input.cpf), eq(schema.brokerProfiles.tenantId, context.tenantId)))
+    .limit(1);
+  if (existingCpf) throw new Error("Já existe um corretor com este CPF.");
+
+  const [existingUser] = await db
     .select({ id: schema.user.id })
     .from(schema.user)
     .where(eq(schema.user.email, input.email))
     .limit(1);
-  if (existing) throw new Error("Já existe uma identidade com este e-mail.");
+  if (existingUser) throw new Error("Já existe uma identidade com este e-mail.");
 
-  const userId = randomUUID();
-  const membershipId = randomUUID();
+  const brokerProfileId = randomUUID();
+  let inviteToken = "";
+
   await db.transaction(async (tx) => {
-    await tx.insert(schema.user).values({
-      id: userId,
-      name: input.name,
-      email: input.email,
-      emailVerified: true,
-      active: true,
-      status: "active",
-    });
-    await tx.insert(schema.account).values({
-      id: randomUUID(),
-      userId,
-      providerId: "credential",
-      accountId: userId,
-      password: await hashPassword(input.password),
-    });
-    await tx.insert(schema.tenantMemberships).values({
-      id: membershipId,
+    const internalCode = await generateNextInternalCode(tx, context.tenantId);
+
+    await tx.insert(schema.brokerProfiles).values({
+      id: brokerProfileId,
       tenantId: context.tenantId,
-      userId,
       branchId: input.branchId,
-      role: input.role,
-      jobTitle: input.jobTitle,
-      status: "active",
+      userId: null,
+      internalCode,
+      professionalName: input.name,
+      phone: input.phone,
+      invitedEmail: input.email,
+      cpf: input.cpf,
+      lifecycleStatus: "INVITED",
+      managerId: context.userId,
+      invitedAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
-    await tx.insert(schema.auditLogs).values({ id: randomUUID(), userId: context.userId, entidade: "tenant_membership", entidadeId: membershipId, acao: "criou_membro" });
+
+    const { token } = await createBrokerInvitation(tx, context.tenantId, input.branchId, brokerProfileId, input.email);
+    inviteToken = token;
+
+    await tx.insert(schema.auditLogs).values({
+      id: randomUUID(),
+      userId: context.userId,
+      entidade: "broker_profile",
+      entidadeId: brokerProfileId,
+      acao: "criou_corretor_onboarding",
+    });
   });
+
+  return { token: inviteToken };
 }

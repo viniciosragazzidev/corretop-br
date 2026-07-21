@@ -1996,5 +1996,129 @@ export const importedSpreadsheets = pgTable(
   ],
 );
 
+export const brokerLifecycleStatusValues = [
+  "DRAFT",
+  "INVITED",
+  "INVITATION_EXPIRED",
+  "ONBOARDING",
+  "ACTIVE",
+  "SUSPENDED",
+  "INACTIVE",
+  "ARCHIVED",
+] as const;
+
+export const brokerLifecycleStatus = pgEnum("broker_lifecycle_status", brokerLifecycleStatusValues);
+
+export const brokerProfiles = pgTable(
+  "broker_profiles",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id")
+      .notNull()
+      .references(() => tenants.id),
+    branchId: text("branch_id")
+      .notNull()
+      .references(() => branches.id),
+    userId: text("user_id")
+      .references(() => user.id),
+    internalCode: text("internal_code").notNull(),
+    professionalName: text("professional_name").notNull(),
+    phone: text("phone").notNull(),
+    invitedEmail: text("invited_email").notNull(),
+    cpf: text("cpf").notNull(),
+    lifecycleStatus: brokerLifecycleStatus("lifecycle_status").notNull().default("DRAFT"),
+    managerId: text("manager_id")
+      .references(() => user.id),
+    invitedAt: timestamp("invited_at", { withTimezone: true }),
+    activatedAt: timestamp("activated_at", { withTimezone: true }),
+    deactivatedAt: timestamp("deactivated_at", { withTimezone: true }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("broker_profiles_tenant_id_idx").on(table.tenantId),
+    index("broker_profiles_user_id_idx").on(table.userId),
+    index("broker_profiles_branch_id_idx").on(table.branchId),
+    uniqueIndex("broker_profiles_tenant_internal_code_unique").on(table.tenantId, table.internalCode),
+    uniqueIndex("broker_profiles_tenant_email_unique").on(table.tenantId, table.invitedEmail),
+    uniqueIndex("broker_profiles_tenant_cpf_unique").on(table.tenantId, table.cpf),
+  ],
+);
+
+export const brokerInvitations = pgTable(
+  "broker_invitations",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id")
+      .notNull()
+      .references(() => tenants.id),
+    branchId: text("branch_id")
+      .notNull()
+      .references(() => branches.id),
+    brokerProfileId: text("broker_profile_id")
+      .notNull()
+      .references(() => brokerProfiles.id, { onDelete: "cascade" }),
+    email: text("email").notNull(),
+    tokenHash: text("token_hash").notNull().unique(),
+    status: text("status", { enum: ["PENDING", "ACCEPTED", "EXPIRED", "REVOKED", "REPLACED"] })
+      .notNull()
+      .default("PENDING"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt,
+  },
+  (table) => [
+    index("broker_invitations_tenant_idx").on(table.tenantId),
+    index("broker_invitations_profile_idx").on(table.brokerProfileId),
+  ],
+);
+
+export const userOnboarding = pgTable(
+  "user_onboarding",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    tenantId: text("tenant_id")
+      .notNull()
+      .references(() => tenants.id),
+    status: text("status", { enum: ["NOT_STARTED", "IN_PROGRESS", "COMPLETED", "BLOCKED"] })
+      .notNull()
+      .default("NOT_STARTED"),
+    currentStep: text("current_step"),
+    emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
+    passwordCreatedAt: timestamp("password_created_at", { withTimezone: true }),
+    personalDataCompletedAt: timestamp("personal_data_completed_at", { withTimezone: true }),
+    termsAcceptedAt: timestamp("terms_accepted_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    updatedAt,
+  },
+  (table) => [
+    uniqueIndex("user_onboarding_user_tenant_unique").on(table.userId, table.tenantId),
+  ],
+);
+
+export const termsAcceptances = pgTable(
+  "terms_acceptances",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id")
+      .notNull()
+      .references(() => tenants.id),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    termsVersion: text("terms_version").notNull(),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("terms_acceptances_user_idx").on(table.userId),
+  ],
+);
+
 export type TenantRole = (typeof tenantRoleValues)[number];
 export type TenantStatus = (typeof tenantStatusValues)[number];

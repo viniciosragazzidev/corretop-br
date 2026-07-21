@@ -14,7 +14,7 @@ import { TeamMemberActions } from "./member-actions";
 type BranchOption = { id: string; name: string };
 type TeamMember = {
   id: string;
-  userId: string;
+  userId: string | null;
   name: string | null;
   email: string;
   role: "director" | "manager" | "broker";
