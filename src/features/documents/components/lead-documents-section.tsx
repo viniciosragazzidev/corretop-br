@@ -63,6 +63,7 @@ export function LeadDocumentsSection({
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [category, setCategory] = useState("outros");
   const [description, setDescription] = useState("");
+  const [selectedAvulsoBeneficiaryId, setSelectedAvulsoBeneficiaryId] = useState<string>(beneficiaries?.[0]?.id ?? "");
   const [, startTransition] = useTransition();
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, reqId: string | null, beneficiaryId: string | null = null) => {
@@ -87,8 +88,8 @@ export function LeadDocumentsSection({
       });
 
       if (!uploadRes.ok) {
-        const errorData = await uploadRes.json();
-        throw new Error(errorData.error || "Erro no upload.");
+        const errorData = await uploadRes.json().catch(() => null) as { error?: string } | null;
+        throw new Error(errorData?.error || "Erro no upload.");
       }
 
       const data = await uploadRes.json();
@@ -113,6 +114,7 @@ export function LeadDocumentsSection({
           toast.error(res.error);
         } else {
           toast.success("Documento enviado com sucesso!");
+          setDescription("");
           // Reload page/state
           window.location.reload();
         }
@@ -168,6 +170,7 @@ export function LeadDocumentsSection({
   const progress = requiredRequirements.length ? Math.round((completedRequired / requiredRequirements.length) * 100) : 100;
   const pendingReview = documents.filter((document) => document.status === "pending").length;
   const rejected = documents.filter((document) => document.status === "rejected").length;
+  const beneficiaryName = (beneficiaryId: string | null) => beneficiaries?.find((beneficiary) => beneficiary.id === beneficiaryId)?.name ?? "Atendimento";
 
   return (
     <div className="space-y-4">
@@ -267,10 +270,15 @@ export function LeadDocumentsSection({
         ))}
       </div>
 
-      <div className="pt-4 border-t">
+      <div className="space-y-3 rounded-xl border border-border/70 bg-card p-4">
         <div className="flex items-center justify-between mb-3">
           <h4 className="font-heading text-xs font-semibold">Documentos Adicionais (Avulsos)</h4>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+          <label className="grid gap-1 text-[11px] font-medium text-muted-foreground">Pessoa
+            <select aria-label="Pessoa do documento adicional" className="h-7 rounded-md border border-input bg-background px-2 text-xs text-foreground" value={selectedAvulsoBeneficiaryId} onChange={(event) => setSelectedAvulsoBeneficiaryId(event.target.value)} disabled={!beneficiaries?.length}>
+              {beneficiaries?.length ? beneficiaries.map((beneficiary) => <option key={beneficiary.id} value={beneficiary.id}>{beneficiary.name}{beneficiary.isHolder ? " (Titular)" : " (Dependente)"}</option>) : <option value="">Cadastre o titular primeiro</option>}
+            </select>
+          </label>
           <select aria-label="Categoria do documento" className="h-7 rounded-md border border-input bg-background px-2 text-xs" value={category} onChange={(event) => setCategory(event.target.value)}>
             <option value="outros">Outros</option><option value="identificacao">Identificação</option><option value="proposta">Proposta</option><option value="contratacao">Contratação</option><option value="pos_venda">Pós-venda</option>
           </select>
@@ -279,8 +287,8 @@ export function LeadDocumentsSection({
               type="file"
               accept=".pdf,.jpg,.png,.jpeg"
               className="sr-only"
-              disabled={uploadingId !== null}
-              onChange={(e) => handleUpload(e, null)}
+              disabled={uploadingId !== null || !beneficiaries?.length}
+              onChange={(e) => handleUpload(e, null, selectedAvulsoBeneficiaryId || null)}
             />
             <Plus className="size-3.5" />
             {uploadingId === "avulso" ? "Enviando..." : "Adicionar outro"}
@@ -306,6 +314,7 @@ export function LeadDocumentsSection({
                   {doc.filename} <Eye className="size-3" />
                 </a>
                 <div className="flex items-center gap-2">
+                  <span className="hidden text-[10px] text-muted-foreground sm:inline">{beneficiaryName(doc.beneficiaryId)}</span>
                   {getStatusBadge(doc.status)}
                 </div>
               </div>

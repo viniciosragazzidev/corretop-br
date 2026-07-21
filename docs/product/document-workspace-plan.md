@@ -9,10 +9,12 @@ Documentos são opcionais. O checklist orienta o corretor, mas não bloqueia ate
 - Exclusão lógica e auditoria de upload, revisão e remoção.
 - Detalhe do lead sempre acessível, inclusive após distribuição.
 - Atalho contextual na lateral de Conversas para anexar documentos.
+- Interface separa documentos por titular e dependentes, inclusive para documentos avulsos.
+- Armazenamento de produÃ§Ã£o em bucket privado; o disco efÃªmero do deploy nÃ£o Ã© usado.
 
 ## Próxima camada de produção
 
-1. Migrar o armazenamento local para bucket privado.
+1. Configurar o bucket privado e a chave de servidor em cada ambiente.
 2. Gerar URLs assinadas de curta duração.
 3. Executar verificação antivírus antes da publicação.
 4. Implementar upload múltiplo com retry e versionamento visual.

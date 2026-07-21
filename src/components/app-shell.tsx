@@ -91,7 +91,7 @@ export function AppShell({
       ) : (
         <CorreTopSidebar logoUrl={branding?.logoUrl ?? null} />
       )}
-      <SidebarInset className="bg-background overflow-hidden max-[559px]:pb-[calc(4.5rem+env(safe-area-inset-bottom))]">
+      <SidebarInset className="bg-background overflow-y-auto overflow-x-hidden max-[559px]:pb-[calc(4.5rem+env(safe-area-inset-bottom))]" style={{ scrollPaddingTop: "var(--header-height)" }}>
         <div className="flex min-h-0 flex-1 flex-col">{children}</div>
       </SidebarInset>
       <MobileBottomNav />

@@ -135,3 +135,13 @@ O funil de leads não tinha transições formalizadas. O seletor de status permi
 - A enum `lead_interaction_type` ganhou o valor `service_started` para representar início de atendimento (antes usava `whatsapp_msg`).
 - A tabela `leads` ganhou coluna `updatedAt` para rastrear modificações.
 - `assumeLeadForInvestigation` continua saltando o pipeline para status `under_analysis` — é uma ação de gestão legítima.
+## DEC-043 â€” Armazenamento privado dos documentos de atendimento
+
+**Estado:** Aceita
+**Data:** 2026-07-21
+
+Documentos de leads e clientes nÃ£o serÃ£o gravados no sistema de arquivos local do deploy.
+O upload usarÃ¡ bucket privado do Supabase Storage, acessado somente no servidor com
+`SUPABASE_SERVICE_ROLE_KEY` e `SUPABASE_DOCUMENTS_BUCKET`. Downloads continuam passando
+pela rota autenticada e escopada. Se a configuraÃ§Ã£o estiver ausente, o upload retorna
+503 com orientaÃ§Ã£o clara e nÃ£o cria registro incompleto.

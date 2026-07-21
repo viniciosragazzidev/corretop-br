@@ -1,11 +1,11 @@
-import { readFile } from "node:fs/promises";
-import { join, normalize } from "node:path";
+import { normalize } from "node:path";
 
 import { and, eq, isNull } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
+import { downloadDocumentObject } from "@/shared/storage/document-storage";
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
     const fileUrl = `/api/documents/download?key=${encodeURIComponent(key)}`;
     const [document] = await getDatabase()
-      .select({ filename: schema.leadDocuments.filename, fileUrl: schema.leadDocuments.fileUrl })
+      .select({ filename: schema.leadDocuments.filename, fileUrl: schema.leadDocuments.fileUrl, mimeType: schema.leadDocuments.mimeType, storageKey: schema.leadDocuments.storageKey })
       .from(schema.leadDocuments)
       .innerJoin(schema.leads, eq(schema.leadDocuments.leadId, schema.leads.id))
       .where(and(
@@ -30,12 +30,13 @@ export async function GET(request: NextRequest) {
       .limit(1);
     if (!document) return NextResponse.json({ error: "Documento não encontrado." }, { status: 404 });
 
-    const file = await readFile(join(process.cwd(), ".data", "uploads", safeKey));
+    const storageKey = document.storageKey === safeKey ? document.storageKey : safeKey;
+    const file = await downloadDocumentObject(storageKey);
     return new NextResponse(file, {
       headers: {
         "Content-Disposition": `inline; filename="${document.filename.replaceAll('"', "")}"`,
         "Cache-Control": "private, no-store",
-        "Content-Type": "application/octet-stream",
+        "Content-Type": document.mimeType ?? "application/octet-stream",
       },
     });
   } catch {

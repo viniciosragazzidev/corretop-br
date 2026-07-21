@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
-import { writeFile, mkdir } from "node:fs/promises";
-import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { and, eq } from "drizzle-orm";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
+import { DocumentStorageConfigurationError, uploadDocumentObject } from "@/shared/storage/document-storage";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const allowedMimeTypes = new Set([
@@ -63,23 +62,20 @@ export async function POST(req: NextRequest) {
     const safeFilename = file.name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
     const uniqueFilename = `${uuid}-${safeFilename}`;
 
-    // Keep documents outside the public directory. Access is mediated by the download route.
-    const uploadDir = join(process.cwd(), ".data", "uploads", context.tenantId);
-    await mkdir(uploadDir, { recursive: true });
-
-    const filePath = join(uploadDir, uniqueFilename);
-    await writeFile(filePath, buffer);
-
     const checksumSha256 = createHash("sha256").update(buffer).digest("hex");
     const storageKey = `${context.tenantId}/${uniqueFilename}`;
+    await uploadDocumentObject(storageKey, buffer, file.type);
     const fileUrl = `/api/documents/download?key=${encodeURIComponent(storageKey)}`;
 
     return NextResponse.json({ fileUrl, storageKey, filename: file.name, mimeType: file.type, sizeBytes: file.size, checksumSha256 });
   } catch (error) {
-    console.error("Document upload failed", { error: error instanceof Error ? error.name : "unknown" });
+    if (error instanceof DocumentStorageConfigurationError) {
+      return NextResponse.json({ error: error.message }, { status: 503 });
+    }
+    console.error("Document upload failed", { error: error instanceof Error ? error.message : "unknown" });
     return NextResponse.json(
       { error: "Não foi possível concluir o upload. Tente novamente." },
-      { status: 500 }
+      { status: 502 }
     );
   }
 }
