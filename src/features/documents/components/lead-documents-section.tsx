@@ -32,6 +32,18 @@ type UserDoc = {
   version?: number;
 };
 
+type ChecklistItem = {
+  id: string;
+  requirementId: string;
+  requirementName: string;
+  required: boolean;
+  appliesPerBeneficiary: boolean;
+  beneficiaryId: string | null;
+  beneficiaryName: string | null;
+  documentId: string | null;
+  status: string;
+};
+
 type Beneficiary = { id: string; name: string; isHolder: boolean };
 
 const documentFolderOrder = ["Identificação", "Dependentes", "Proposta e contratação", "Pós-venda", "Outros"] as const;
@@ -50,12 +62,14 @@ export function LeadDocumentsSection({
   clientId,
   requirements,
   documents: initialDocs,
+  checklist,
   beneficiaries,
 }: {
   leadId: string;
   clientId?: string | null;
   requirements: Requirement[];
   documents: UserDoc[];
+  checklist?: ChecklistItem[];
   beneficiaries?: Beneficiary[];
 }) {
   const [documents] = useState<UserDoc[]>(initialDocs);
@@ -151,6 +165,14 @@ export function LeadDocumentsSection({
     .filter(([, folderRequirements]) => folderRequirements.length > 0);
 
   const isRequirementApproved = (requirement: Requirement) => {
+    const persisted = checklist?.filter((item) => item.requirementId === requirement.id) ?? [];
+    if (persisted.length > 0) {
+      if (!requirement.appliesPerBeneficiary) return persisted.some((item) => item.status === "approved");
+      return (beneficiaries ?? []).length > 0 && (beneficiaries ?? []).every((beneficiary) =>
+        persisted.some((item) => item.beneficiaryId === beneficiary.id && item.status === "approved"),
+      );
+    }
+
     const approvedDocuments = documents.filter(
       (document) => document.requirementId === requirement.id && document.status === "approved",
     );
@@ -196,7 +218,11 @@ export function LeadDocumentsSection({
         {folderRequirements.map((req) => {
           const relevantDocuments = documents.filter((d) => d.requirementId === req.id);
           const selectedBeneficiaryId = selectedBeneficiaryByRequirement[req.id] ?? beneficiaries?.[0]?.id ?? null;
-          const doc = relevantDocuments.find((d) => (req.appliesPerBeneficiary ? d.beneficiaryId === selectedBeneficiaryId : true));
+          const persisted = checklist?.filter((item) => item.requirementId === req.id) ?? [];
+          const selectedChecklist = persisted.find((item) => (req.appliesPerBeneficiary ? item.beneficiaryId === selectedBeneficiaryId : true));
+          const doc = selectedChecklist?.documentId
+            ? relevantDocuments.find((item) => item.id === selectedChecklist.documentId)
+            : relevantDocuments.find((d) => (req.appliesPerBeneficiary ? d.beneficiaryId === selectedBeneficiaryId : true));
           const needsBeneficiary = Boolean(req.appliesPerBeneficiary && !beneficiaries?.length);
 
           return (
@@ -212,6 +238,15 @@ export function LeadDocumentsSection({
                 </div>
                 {req.description && <p className="text-muted-foreground">{req.description}</p>}
                 {req.appliesPerBeneficiary && beneficiaries?.length ? <select aria-label={`Beneficiário do requisito ${req.name}`} className="mt-2 h-8 rounded-md border border-input bg-background px-2 text-xs" value={selectedBeneficiaryId ?? ""} onChange={(event) => setSelectedBeneficiaryByRequirement((current) => ({ ...current, [req.id]: event.target.value }))}>{beneficiaries.map((beneficiary) => <option key={beneficiary.id} value={beneficiary.id}>{beneficiary.name}{beneficiary.isHolder ? " (Titular)" : ""}</option>)}</select> : null}
+                {req.appliesPerBeneficiary && beneficiaries?.length && persisted.length ? (
+                  <div className="mt-2 flex flex-wrap gap-1.5" aria-label={`Andamento de ${req.name} por beneficiário`}>
+                    {beneficiaries.map((beneficiary) => {
+                      const item = persisted.find((entry) => entry.beneficiaryId === beneficiary.id);
+                      const label = item?.status === "approved" ? "Aprovado" : item?.status === "rejected" ? "Recusado" : "Pendente";
+                      return <Badge key={beneficiary.id} variant={item?.status === "approved" ? "default" : item?.status === "rejected" ? "destructive" : "outline"} className="text-[10px]">{beneficiary.name}: {label}</Badge>;
+                    })}
+                  </div>
+                ) : null}
                 {needsBeneficiary ? <p className="text-xs text-muted-foreground">Cadastre o titular ou beneficiário antes de enviar este documento.</p> : null}
               </div>
 

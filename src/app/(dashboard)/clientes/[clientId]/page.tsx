@@ -13,7 +13,7 @@ import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
 import { Phone, Clock, Buildings, CalendarCheck, ShieldCheck, FileText, CurrencyCircleDollar, ArrowRight } from "@/components/huge-icons";
 import { LeadDocumentsSection } from "@/features/documents/components/lead-documents-section";
-import { getRequirementsForLead, getLeadDocuments } from "@/features/documents/actions";
+import { getRequirementsForLead, getLeadDocuments, getLeadDocumentChecklist } from "@/features/documents/actions";
 import { getLeadBeneficiaries } from "@/features/post-sale/queries";
 import { PersonRecordDetails } from "@/features/customer-record/components/person-record-details";
 
@@ -58,7 +58,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ c
   if (!client) notFound();
 
   // Fetch related data in parallel
-  const [lead, sales, activeCustomer, interactions, requirements, leadDocs, beneficiaries] = await Promise.all([
+  const [lead, sales, activeCustomer, interactions, requirements, leadDocs, checklist, beneficiaries] = await Promise.all([
     // Lead info
     db
       .select({
@@ -129,6 +129,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ c
     // Documents
     getRequirementsForLead(client.leadId),
     getLeadDocuments(client.leadId),
+    getLeadDocumentChecklist(client.leadId),
 
     // Beneficiaries
     getLeadBeneficiaries(client.leadId),
@@ -444,6 +445,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ c
                       clientId={client.id}
                       requirements={requirements}
                       documents={leadDocs}
+                      checklist={checklist}
                       beneficiaries={beneficiaries.map((b) => ({ id: b.id, name: b.name, isHolder: b.isHolder }))}
                     />
                   </CardContent>

@@ -205,11 +205,17 @@ export async function confirmDocumentUploadAction({
     }
     if (requirementId) {
       const [requirement] = await db
-        .select({ id: schema.documentRequirements.id })
+        .select({ id: schema.documentRequirements.id, appliesPerBeneficiary: schema.documentRequirements.appliesPerBeneficiary })
         .from(schema.documentRequirements)
         .where(and(eq(schema.documentRequirements.id, requirementId), eq(schema.documentRequirements.tenantId, context.tenantId)))
         .limit(1);
       if (!requirement) return { error: "Requisito de documento inválido." };
+    }
+
+    if (requirementId && !beneficiaryId) {
+      const [requirement] = await db.select({ appliesPerBeneficiary: schema.documentRequirements.appliesPerBeneficiary }).from(schema.documentRequirements)
+        .where(and(eq(schema.documentRequirements.id, requirementId), eq(schema.documentRequirements.tenantId, context.tenantId))).limit(1);
+      if (requirement?.appliesPerBeneficiary) return { error: "Selecione o beneficiario deste documento." };
     }
 
     if (beneficiaryId) {
@@ -222,6 +228,7 @@ export async function confirmDocumentUploadAction({
       : await db.select({ id: schema.clients.id, leadId: schema.clients.leadId }).from(schema.clients).where(and(eq(schema.clients.leadId, leadId), eq(schema.clients.tenantId, context.tenantId))).limit(1);
     if (clientId && !client) return { error: "Cliente inválido para este lead." };
 
+    await getLeadDocumentChecklist(leadId);
     const docId = randomUUID();
     await db.transaction(async (tx) => {
       await tx.insert(schema.leadDocuments).values({
@@ -243,6 +250,15 @@ export async function confirmDocumentUploadAction({
         status: "pending",
         uploadedBy: context.userId,
       });
+
+      if (requirementId) {
+        await tx.update(schema.leadDocumentChecklist).set({ documentId: docId, status: "pending", updatedAt: new Date() }).where(and(
+          eq(schema.leadDocumentChecklist.tenantId, context.tenantId),
+          eq(schema.leadDocumentChecklist.leadId, leadId),
+          eq(schema.leadDocumentChecklist.requirementId, requirementId),
+          beneficiaryId ? eq(schema.leadDocumentChecklist.beneficiaryId, beneficiaryId) : isNull(schema.leadDocumentChecklist.beneficiaryId),
+        ));
+      }
 
       await tx.insert(schema.leadInteractions).values({
         id: randomUUID(),
@@ -305,10 +321,19 @@ export async function reviewDocumentAction({
             eq(schema.leadDocuments.leadId, leadId)
           )
         )
-        .returning({ filename: schema.leadDocuments.filename });
+        .returning({ filename: schema.leadDocuments.filename, requirementId: schema.leadDocuments.requirementId, beneficiaryId: schema.leadDocuments.beneficiaryId });
 
       if (!doc) throw new Error("Documento não encontrado.");
       reviewedFileName = doc.filename;
+
+      if (doc.requirementId) {
+        await tx.update(schema.leadDocumentChecklist).set({ documentId, status, updatedAt: new Date() }).where(and(
+          eq(schema.leadDocumentChecklist.tenantId, context.tenantId),
+          eq(schema.leadDocumentChecklist.leadId, leadId),
+          eq(schema.leadDocumentChecklist.requirementId, doc.requirementId),
+          doc.beneficiaryId ? eq(schema.leadDocumentChecklist.beneficiaryId, doc.beneficiaryId) : isNull(schema.leadDocumentChecklist.beneficiaryId),
+        ));
+      }
 
       await tx.insert(schema.leadInteractions).values({
         id: randomUUID(),
@@ -357,7 +382,7 @@ export async function deleteDocumentAction(documentId: string): Promise<Document
   const db = getDatabase();
   try {
     const [document] = await db
-      .select({ id: schema.leadDocuments.id, leadId: schema.leadDocuments.leadId, filename: schema.leadDocuments.filename, corretorId: schema.leads.corretorId, branchId: schema.leads.branchId })
+      .select({ id: schema.leadDocuments.id, leadId: schema.leadDocuments.leadId, filename: schema.leadDocuments.filename, requirementId: schema.leadDocuments.requirementId, beneficiaryId: schema.leadDocuments.beneficiaryId, corretorId: schema.leads.corretorId, branchId: schema.leads.branchId })
       .from(schema.leadDocuments)
       .innerJoin(schema.leads, eq(schema.leadDocuments.leadId, schema.leads.id))
       .where(and(eq(schema.leadDocuments.id, documentId), eq(schema.leadDocuments.tenantId, context.tenantId), isNull(schema.leadDocuments.deletedAt)))
@@ -368,6 +393,14 @@ export async function deleteDocumentAction(documentId: string): Promise<Document
 
     await db.transaction(async (tx) => {
       await tx.update(schema.leadDocuments).set({ deletedAt: new Date(), deletedBy: context.userId }).where(and(eq(schema.leadDocuments.id, document.id), eq(schema.leadDocuments.tenantId, context.tenantId)));
+      if (document.requirementId) {
+        await tx.update(schema.leadDocumentChecklist).set({ documentId: null, status: "pending", updatedAt: new Date() }).where(and(
+          eq(schema.leadDocumentChecklist.tenantId, context.tenantId),
+          eq(schema.leadDocumentChecklist.leadId, document.leadId),
+          eq(schema.leadDocumentChecklist.requirementId, document.requirementId),
+          document.beneficiaryId ? eq(schema.leadDocumentChecklist.beneficiaryId, document.beneficiaryId) : isNull(schema.leadDocumentChecklist.beneficiaryId),
+        ));
+      }
       await tx.insert(schema.leadInteractions).values({ id: randomUUID(), leadId: document.leadId, userId: context.userId, tipo: "document_upload", conteudo: `Documento "${document.filename}" removido.`, metadata: { documentId } });
       await tx.insert(schema.auditLogs).values({ id: randomUUID(), userId: context.userId, entidade: "lead_document", entidadeId: document.id, acao: "document.deleted" });
     });
@@ -439,7 +472,7 @@ export async function bulkReviewDocumentsAction(
     await db.transaction(async (tx) => {
       // Find all target documents to verify context
       const docs = await tx
-        .select({ id: schema.leadDocuments.id, leadId: schema.leadDocuments.leadId, filename: schema.leadDocuments.filename, branchId: schema.leads.branchId })
+        .select({ id: schema.leadDocuments.id, leadId: schema.leadDocuments.leadId, filename: schema.leadDocuments.filename, requirementId: schema.leadDocuments.requirementId, beneficiaryId: schema.leadDocuments.beneficiaryId, branchId: schema.leads.branchId })
         .from(schema.leadDocuments)
         .innerJoin(schema.leads, eq(schema.leadDocuments.leadId, schema.leads.id))
         .where(
@@ -466,6 +499,16 @@ export async function bulkReviewDocumentsAction(
           reviewedAt: new Date(),
         })
         .where(inArray(schema.leadDocuments.id, allowedIds));
+
+      for (const doc of allowedDocs) {
+        if (!doc.requirementId) continue;
+        await tx.update(schema.leadDocumentChecklist).set({ documentId: doc.id, status, updatedAt: new Date() }).where(and(
+          eq(schema.leadDocumentChecklist.tenantId, context.tenantId),
+          eq(schema.leadDocumentChecklist.leadId, doc.leadId),
+          eq(schema.leadDocumentChecklist.requirementId, doc.requirementId),
+          doc.beneficiaryId ? eq(schema.leadDocumentChecklist.beneficiaryId, doc.beneficiaryId) : isNull(schema.leadDocumentChecklist.beneficiaryId),
+        ));
+      }
 
       // Audit logs and timeline interactions
       for (const doc of allowedDocs) {
@@ -525,4 +568,87 @@ export async function getRequirementsForLead(leadId: string) {
     }
     return true;
   });
+}
+
+/**
+ * Materializa, de forma idempotente, o checklist documental vigente do lead.
+ * Cada requisito individual gera uma linha por beneficiário; requisitos
+ * familiares geram uma única linha vinculada ao lead.
+ */
+export async function getLeadDocumentChecklist(leadId: string) {
+  const context = await getRequiredTenantContext();
+  const db = getDatabase();
+  const requirements = await getRequirementsForLead(leadId);
+  if (requirements.length === 0) return [];
+
+  const beneficiaries = await db
+    .select({ id: schema.leadBeneficiaries.id })
+    .from(schema.leadBeneficiaries)
+    .where(and(eq(schema.leadBeneficiaries.leadId, leadId), eq(schema.leadBeneficiaries.tenantId, context.tenantId)));
+
+  const scopes = requirements.flatMap((requirement) => {
+    const targets = requirement.appliesPerBeneficiary ? beneficiaries.map((beneficiary) => beneficiary.id) : [null];
+    return targets.map((beneficiaryId) => ({
+      id: randomUUID(),
+      tenantId: context.tenantId,
+      leadId,
+      requirementId: requirement.id,
+      beneficiaryId,
+      scopeKey: `${context.tenantId}:${leadId}:${requirement.id}:${beneficiaryId ?? "lead"}`,
+    }));
+  });
+
+  await db.transaction(async (tx) => {
+    if (scopes.length > 0) {
+      await tx.insert(schema.leadDocumentChecklist).values(scopes).onConflictDoNothing({ target: schema.leadDocumentChecklist.scopeKey });
+    }
+
+    const documents = await tx
+      .select({
+        id: schema.leadDocuments.id,
+        requirementId: schema.leadDocuments.requirementId,
+        beneficiaryId: schema.leadDocuments.beneficiaryId,
+        status: schema.leadDocuments.status,
+      })
+      .from(schema.leadDocuments)
+      .where(and(eq(schema.leadDocuments.tenantId, context.tenantId), eq(schema.leadDocuments.leadId, leadId), isNull(schema.leadDocuments.deletedAt)))
+      .orderBy(schema.leadDocuments.createdAt);
+
+    const latestByScope = new Map<string, (typeof documents)[number]>();
+    for (const document of documents) {
+      if (!document.requirementId) continue;
+      latestByScope.set(`${document.requirementId}:${document.beneficiaryId ?? "lead"}`, document);
+    }
+
+    for (const scope of scopes) {
+      const document = latestByScope.get(`${scope.requirementId}:${scope.beneficiaryId ?? "lead"}`);
+      await tx.update(schema.leadDocumentChecklist).set({
+        documentId: document?.id ?? null,
+        status: document?.status ?? "pending",
+        updatedAt: new Date(),
+      }).where(and(eq(schema.leadDocumentChecklist.tenantId, context.tenantId), eq(schema.leadDocumentChecklist.scopeKey, scope.scopeKey)));
+    }
+  });
+
+  return db
+    .select({
+      id: schema.leadDocumentChecklist.id,
+      requirementId: schema.leadDocumentChecklist.requirementId,
+      requirementName: schema.documentRequirements.name,
+      required: schema.documentRequirements.required,
+      appliesPerBeneficiary: schema.documentRequirements.appliesPerBeneficiary,
+      beneficiaryId: schema.leadDocumentChecklist.beneficiaryId,
+      beneficiaryName: schema.leadBeneficiaries.name,
+      documentId: schema.leadDocumentChecklist.documentId,
+      status: schema.leadDocumentChecklist.status,
+    })
+    .from(schema.leadDocumentChecklist)
+    .innerJoin(schema.documentRequirements, eq(schema.leadDocumentChecklist.requirementId, schema.documentRequirements.id))
+    .leftJoin(schema.leadBeneficiaries, eq(schema.leadDocumentChecklist.beneficiaryId, schema.leadBeneficiaries.id))
+    .innerJoin(schema.leads, eq(schema.leadDocumentChecklist.leadId, schema.leads.id))
+    .where(and(
+      eq(schema.leadDocumentChecklist.tenantId, context.tenantId),
+      eq(schema.leadDocumentChecklist.leadId, leadId),
+      context.role === "broker" ? eq(schema.leads.corretorId, context.userId) : context.role === "manager" && context.branchId ? eq(schema.leads.branchId, context.branchId) : undefined,
+    ));
 }

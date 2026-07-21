@@ -22,7 +22,7 @@ import { CotarButton } from "./cotar-button";
 import { QuoteBuilder } from "@/features/leads/components/quote-builder";
 import { QuoteCard } from "@/features/leads/components/quote-card";
 
-import { getRequirementsForLead, getLeadDocuments } from "@/features/documents/actions";
+import { getRequirementsForLead, getLeadDocuments, getLeadDocumentChecklist } from "@/features/documents/actions";
 import { LeadDocumentsSection } from "@/features/documents/components/lead-documents-section";
 import { LeadActionHub } from "@/features/leads/components/lead-action-hub";
 
@@ -102,13 +102,14 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
   const remainingMinutes = Math.max(0, slaMinutes - elapsedMinutes);
   const slaUrgent = remainingMinutes <= Math.max(5, Math.round(slaMinutes * 0.25));
 
-  const [interactions, tasks, requirements, leadDocs, beneficiaries, quotes, plans, carriers] = await Promise.all([
+  const [interactions, tasks, requirements, leadDocs, checklist, beneficiaries, quotes, plans, carriers] = await Promise.all([
     getLeadTimeline(id),
     getDatabase().select({ id: schema.leadTasks.id, title: schema.leadTasks.title, description: schema.leadTasks.description, priority: schema.leadTasks.priority, dueAt: schema.leadTasks.dueAt, completedAt: schema.leadTasks.completedAt, createdAt: schema.leadTasks.createdAt, assignedTo: schema.leadTasks.assignedTo, assigneeName: schema.user.name })
       .from(schema.leadTasks).leftJoin(schema.user, eq(schema.leadTasks.assignedTo, schema.user.id)).where(and(eq(schema.leadTasks.tenantId, context.tenantId), eq(schema.leadTasks.leadId, id)))
       .orderBy(schema.leadTasks.completedAt, schema.leadTasks.dueAt, schema.leadTasks.createdAt),
     getRequirementsForLead(id),
     getLeadDocuments(id),
+    getLeadDocumentChecklist(id),
     getLeadBeneficiaries(id),
     getQuotesByLead(id),
     getDatabase().select({ id: schema.globalPlans.id, name: schema.globalPlans.name })
@@ -291,7 +292,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                     <CardDescription className="text-xs">Anexe documentos opcionais por titular ou beneficiário. A aprovação é acompanhada pela fila central de Documentos.</CardDescription>
                   </CardHeader>
                   <CardContent className="pt-4">
-                    <LeadDocumentsSection leadId={lead.id} requirements={requirements} documents={leadDocs} beneficiaries={beneficiaries.map((beneficiary) => ({ id: beneficiary.id, name: beneficiary.name, isHolder: beneficiary.isHolder }))} />
+                    <LeadDocumentsSection leadId={lead.id} requirements={requirements} documents={leadDocs} checklist={checklist} beneficiaries={beneficiaries.map((beneficiary) => ({ id: beneficiary.id, name: beneficiary.name, isHolder: beneficiary.isHolder }))} />
                   </CardContent>
                 </Card>
 

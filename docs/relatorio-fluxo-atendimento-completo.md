@@ -180,3 +180,7 @@ do gestor/diretor.
 | P1 | G4, G5, G6, G7 | 4-5 dias |
 | P2 | G8, G9, G10, G11 | 3-4 dias |
 | **Total** | **11 gaps** | **~10-12 dias** |
+
+### Atualizacao de implementacao — 21/07/2026
+
+O checklist documental por beneficiario foi persistido no nucleo do atendimento pela migration `0069_persist_lead_document_checklist.sql`. Cada requisito individual possui uma linha por titular/dependente; requisitos familiares possuem uma linha por lead. Upload, aprovacao, rejeicao e exclusao sincronizam o estado persistido, e o detalhe do lead exibe o andamento por pessoa. O item deixa de ser uma lacuna funcional; permanecem apenas os itens de infraestrutura e cobertura E2E listados no roadmap.

@@ -22,7 +22,6 @@ O atendimento não termina no envio do link: o próximo contato aparece em Taref
 Estas melhorias ainda dependem de decisões de produto ou de infraestrutura e não foram mascaradas como concluídas:
 
 - cálculo automático de preço por faixa etária na cotação;
-- materialização persistente de checklist por beneficiário;
 - fila financeira para cancelamentos;
 - testes ponta a ponta do fluxo completo;
 - executor de jobs em intervalo de dois minutos (o Vercel Hobby mantém apenas a contingência diária atual).

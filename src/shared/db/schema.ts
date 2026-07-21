@@ -1572,6 +1572,27 @@ export const leadDocuments = pgTable(
 
 /* ─── Sales / Commission ─── */
 
+export const leadDocumentChecklist = pgTable(
+  "lead_document_checklist",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    leadId: text("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+    requirementId: text("requirement_id").notNull().references(() => documentRequirements.id, { onDelete: "cascade" }),
+    beneficiaryId: text("beneficiary_id").references(() => leadBeneficiaries.id, { onDelete: "cascade" }),
+    documentId: text("document_id").references(() => leadDocuments.id, { onDelete: "set null" }),
+    scopeKey: text("scope_key").notNull(),
+    status: documentStatus("status").notNull().default("pending"),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    uniqueIndex("lead_document_checklist_scope_unique").on(table.scopeKey),
+    index("lead_document_checklist_tenant_lead_idx").on(table.tenantId, table.leadId),
+    index("lead_document_checklist_beneficiary_idx").on(table.tenantId, table.beneficiaryId),
+  ],
+);
+
 export const commissionRules = pgTable(
   "commission_rules",
   {

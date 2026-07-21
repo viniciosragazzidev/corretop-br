@@ -148,6 +148,13 @@
       "when": 1784815400000,
       "tag": "0068_secure_customer_documents",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1784815500000,
+      "tag": "0069_persist_lead_document_checklist",
+      "breakpoints": true
     }
   ]
 }
