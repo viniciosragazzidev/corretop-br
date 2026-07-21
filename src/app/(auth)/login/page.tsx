@@ -2,10 +2,10 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
-import { Eye, EyeSlash } from "@/components/huge-icons";
+import { Eye, EyeSlash, LockKey } from "@/components/huge-icons";
 import { toast } from "sonner";
 
-import { signIn } from "@/shared/auth/client";
+import { authClient, signIn } from "@/shared/auth/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +17,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [passkeyLoading, setPasskeyLoading] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -119,6 +120,54 @@ export default function LoginPage() {
           {loading ? "Entrando..." : "Entrar no painel"}
         </Button>
       </form>
+
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t border-border" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-card px-2 text-muted-foreground">ou</span>
+        </div>
+      </div>
+
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full justify-center gap-2 h-10"
+        disabled={passkeyLoading}
+        onClick={async () => {
+          setPasskeyLoading(true);
+          try {
+            await authClient.signIn.passkey({
+              autoFill: false,
+              fetchOptions: {
+                onSuccess: () => {
+                  const redirectUri = "/dashboard";
+                  console.log("Redirect URI:", redirectUri);
+                  toast.success("Login com passkey realizado. Abrindo seu painel...");
+                  // Navigate only after Better Auth has persisted the session cookie.
+                  // A server action here can race that cookie store and return
+                  // "Unexpected response" even though authentication succeeded.
+                  window.location.replace(redirectUri);
+                },
+                onError: (ctx) => {
+                  if (ctx.error.message === "AUTH_CANCELLED") return;
+                  toast.error(ctx.error.message || "Falha na autenticação com passkey.");
+                },
+              },
+            });
+          } catch (error) {
+            if (error instanceof Error && error.message !== "AUTH_CANCELLED") {
+              toast.error("Não foi possível usar a passkey.");
+            }
+          } finally {
+            setPasskeyLoading(false);
+          }
+        }}
+      >
+        <LockKey size={16} />
+        {passkeyLoading ? "Autenticando..." : "Entrar com passkey"}
+      </Button>
 
       <p className="text-center text-[10px] leading-relaxed text-zinc-400 dark:text-zinc-500">
         Ao acessar a plataforma, você concorda com os nossos{" "}

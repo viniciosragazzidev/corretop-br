@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 
 import { ArrowUpRight, ChatCircleText, FileText, ListChecks, Phone, SquaresFour, UserList, WhatsappLogo } from "@/components/huge-icons";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/table";
 import { LEAD_STATUS_LABELS } from "@/features/leads/lead-status-constants";
 import { OwnershipContext } from "@/components/ownership-context";
+import { LeadHealthBadge, computeLeadHealth } from "@/features/leads/components/lead-health-badge";
 import { LeadQuickNote } from "@/features/leads/components/lead-quick-note";
 import { LeadReminder } from "@/features/leads/components/lead-reminder";
 
@@ -39,6 +40,11 @@ export type LeadWorkspaceItem = {
   status: string;
   origem: string;
   createdAt: string;
+  assignedAt: string | null;
+  stageEnteredAt: string | null;
+  serviceStartedAt: string | null;
+  firstContactAt: string | null;
+  corretorId: string | null;
   corretorNome: string | null;
   branchName: string | null;
 };
@@ -71,9 +77,13 @@ const kanbanTone: Record<string, { warning: string; count: string }> = {
 export function LeadsWorkspace({
   leads,
   contextRole,
+  slaFirstContactMinutes = 15,
+  slaStagnantDays = 3,
 }: {
   leads: LeadWorkspaceItem[];
   contextRole: string;
+  slaFirstContactMinutes?: number;
+  slaStagnantDays?: number;
 }) {
   const [selectedLead, setSelectedLead] = useState<LeadWorkspaceItem | null>(null);
   const groupedLeads = useMemo(
@@ -118,6 +128,9 @@ export function LeadsWorkspace({
                       </span>
                       <span className="mt-2 flex items-center gap-2">
                         <StatusBadge status={lead.status} />
+                        <LeadHealthBadge health={computeLeadHealth(lead, slaFirstContactMinutes, slaStagnantDays)} />
+                      </span>
+                      <span className="mt-1 flex items-center gap-2">
                         <OwnershipContext brokerName={lead.corretorNome} branchName={lead.branchName} className="truncate text-xs" />
                       </span>
                     </span>
@@ -130,6 +143,7 @@ export function LeadsWorkspace({
                   <TableRow>
                     <TableHead className="pl-5">Lead</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead className="hidden md:table-cell">Saúde</TableHead>
                     <TableHead className="hidden md:table-cell">Responsável</TableHead>
                     <TableHead className="hidden lg:table-cell">Entrada</TableHead>
                     <TableHead className="pr-5 text-right">Ações</TableHead>
@@ -152,6 +166,11 @@ export function LeadsWorkspace({
                       </TableCell>
                       <TableCell>
                         <StatusBadge status={lead.status} />
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        <LeadHealthBadge
+                          health={computeLeadHealth(lead, slaFirstContactMinutes, slaStagnantDays)}
+                        />
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
                         <OwnershipContext brokerName={lead.corretorNome} branchName={lead.branchName} className="text-sm" />
@@ -188,6 +207,8 @@ export function LeadsWorkspace({
                   leads={groupedLeads[status] ?? []}
                   onOpen={setSelectedLead}
                   status={status}
+                  slaFirstContactMinutes={slaFirstContactMinutes}
+                  slaStagnantDays={slaStagnantDays}
                 />
               ))}
             </div>
@@ -219,7 +240,12 @@ export function LeadsWorkspace({
                           {contextRole === "broker" && selectedLead.status === "distributed" ? maskPhone(selectedLead.telefone) : selectedLead.telefone}
                         </p>
                       </div>
-                      <StatusBadge status={selectedLead.status} />
+                      <div className="flex shrink-0 flex-col items-end gap-1.5">
+                        <StatusBadge status={selectedLead.status} />
+                        <LeadHealthBadge
+                          health={computeLeadHealth(selectedLead, slaFirstContactMinutes, slaStagnantDays)}
+                        />
+                      </div>
                     </div>
                   </div>
                 </SheetSection>
@@ -237,6 +263,14 @@ export function LeadsWorkspace({
                         </div>
                       </div>
                       <dl className="mt-4 space-y-3">
+                        <DetailRow
+                          label="Saúde"
+                          value={
+                            <LeadHealthBadge
+                              health={computeLeadHealth(selectedLead, slaFirstContactMinutes, slaStagnantDays)}
+                            />
+                          }
+                        />
                         <DetailRow label="Responsável" value={[selectedLead.corretorNome ?? "Aguardando distribuição", selectedLead.branchName ?? "Sem unidade"].join(" · ")} />
                         <DetailRow label="Origem" value={selectedLead.origem === "manual" ? "Manual" : "Webhook"} />
                         <DetailRow label="Entrada" value={formatDate(selectedLead.createdAt)} />
@@ -307,10 +341,14 @@ function KanbanColumn({
   leads,
   onOpen,
   status,
+  slaFirstContactMinutes = 15,
+  slaStagnantDays = 3,
 }: {
   leads: LeadWorkspaceItem[];
   onOpen: (lead: LeadWorkspaceItem) => void;
   status: string;
+  slaFirstContactMinutes?: number;
+  slaStagnantDays?: number;
 }) {
   const tone = kanbanTone[status] ?? kanbanTone.new;
 
@@ -331,7 +369,7 @@ function KanbanColumn({
 
       <div className="mt-3 space-y-3">
         {leads.map((lead) => (
-          <KanbanLeadCard key={lead.id} lead={lead} onOpen={onOpen} />
+          <KanbanLeadCard key={lead.id} lead={lead} onOpen={onOpen} slaFirstContactMinutes={slaFirstContactMinutes} slaStagnantDays={slaStagnantDays} />
         ))}
         {!leads.length ? (
           <div className="rounded-lg border border-dashed border-border bg-background/40 px-4 py-8 text-center">
@@ -346,9 +384,13 @@ function KanbanColumn({
 function KanbanLeadCard({
   lead,
   onOpen,
+  slaFirstContactMinutes = 15,
+  slaStagnantDays = 3,
 }: {
   lead: LeadWorkspaceItem;
   onOpen: (lead: LeadWorkspaceItem) => void;
+  slaFirstContactMinutes?: number;
+  slaStagnantDays?: number;
 }) {
   return (
     <button
@@ -366,20 +408,24 @@ function KanbanLeadCard({
           </p>
         </div>
         <ArrowUpRight className="mt-0.5 size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
-      </div>
-      <div className="mt-4 flex items-center justify-between gap-3 border-t border-border/60 pt-3">
-        <StatusBadge status={lead.status} />
-        <span className="shrink-0 text-xs text-muted-foreground">{formatDate(lead.createdAt)}</span>
-      </div>
+      </div>                    <div className="mt-4 flex items-center justify-between gap-3 border-t border-border/60 pt-3">
+                        <div className="flex items-center gap-1.5">
+                          <StatusBadge status={lead.status} />
+                          <LeadHealthBadge health={computeLeadHealth(lead, slaFirstContactMinutes, slaStagnantDays)} />
+                        </div>
+                        <span className="shrink-0 text-xs text-muted-foreground">{formatDate(lead.createdAt)}</span>
+                      </div>
     </button>
   );
 }
 
-function DetailRow({ label, value }: { label: string; value: string }) {
+function DetailRow({ label, value }: { label: string; value: string | ReactNode }) {
   return (
-    <div className="flex min-w-0 justify-between gap-4">
+    <div className="flex min-w-0 items-center justify-between gap-4">
       <span className="shrink-0 text-muted-foreground">{label}</span>
-      <span className="min-w-0 text-right font-medium break-words">{value}</span>
+      <div className="min-w-0 text-right font-medium break-words">
+        {value}
+      </div>
     </div>
   );
 }

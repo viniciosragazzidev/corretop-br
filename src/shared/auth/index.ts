@@ -4,6 +4,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { twoFactor } from "better-auth/plugins";
+import { passkey } from "@better-auth/passkey";
 import { getDatabase, schema } from "@/shared/db";
 
 let authInstance: ReturnType<typeof createAuth> | undefined;
@@ -22,6 +23,7 @@ function createAuth() {
         account: schema.account,
         verification: schema.verification,
         twoFactor: schema.twoFactor,
+        passkey: schema.passkey,
       },
     }),
     emailAndPassword: {
@@ -34,6 +36,7 @@ function createAuth() {
         issuer: "CorreTop",
         backupCodeOptions: { amount: 10, storeBackupCodes: "encrypted" },
       }),
+      passkey(),
       nextCookies(),
     ],
     session: {

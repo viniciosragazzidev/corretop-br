@@ -42,12 +42,27 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
   const branchFilter = context.role === "manager" && context.branchId ? eq(schema.leads.branchId, context.branchId) : context.role === "broker" ? eq(schema.leads.corretorId, context.userId) : filters.branch ? eq(schema.leads.branchId, filters.branch) : null;
   const where = and(eq(schema.leads.tenantId, context.tenantId), ...(statusFilter ? [statusFilter] : []), ...(searchFilter ? [searchFilter] : []), ...(branchFilter ? [branchFilter] : []), ...(expiredUnworkedBrokerFilter ? [expiredUnworkedBrokerFilter] : []));
   const isDirector = context.role === "director";
-  const [availablePlans, leads, legacyPlans, branches, pausedBranchCount] = await Promise.all([
+  const [availablePlans, leads, legacyPlans, branches, pausedBranchCount, slaSettings] = await Promise.all([
     listAvailableCatalogPlans(context),
-    db.select({ id: schema.leads.id, nome: schema.leads.nome, telefone: schema.leads.telefone, status: schema.leads.status, origem: schema.leads.origem, createdAt: schema.leads.createdAt, corretorNome: schema.user.name, branchName: schema.branches.name }).from(schema.leads).leftJoin(schema.user, eq(schema.leads.corretorId, schema.user.id)).leftJoin(schema.branches, eq(schema.leads.branchId, schema.branches.id)).innerJoin(schema.tenants, eq(schema.leads.tenantId, schema.tenants.id)).where(where),
+    db.select({
+      id: schema.leads.id,
+      nome: schema.leads.nome,
+      telefone: schema.leads.telefone,
+      status: schema.leads.status,
+      origem: schema.leads.origem,
+      createdAt: schema.leads.createdAt,
+      assignedAt: schema.leads.assignedAt,
+      stageEnteredAt: schema.leads.stageEnteredAt,
+      serviceStartedAt: schema.leads.serviceStartedAt,
+      firstContactAt: schema.leads.firstContactAt,
+      corretorId: schema.leads.corretorId,
+      corretorNome: schema.user.name,
+      branchName: schema.branches.name,
+    }).from(schema.leads).leftJoin(schema.user, eq(schema.leads.corretorId, schema.user.id)).leftJoin(schema.branches, eq(schema.leads.branchId, schema.branches.id)).innerJoin(schema.tenants, eq(schema.leads.tenantId, schema.tenants.id)).where(where),
     db.select({ id: schema.carrierPlans.id, name: schema.carrierPlans.name, carrierName: schema.carriers.name }).from(schema.carrierPlans).innerJoin(schema.carriers, eq(schema.carrierPlans.carrierId, schema.carriers.id)).where(and(eq(schema.carrierPlans.tenantId, context.tenantId), eq(schema.carrierPlans.active, true), eq(schema.carriers.status, "active"))).orderBy(schema.carriers.name, schema.carrierPlans.name),
     db.select({ id: schema.branches.id, name: schema.branches.name }).from(schema.branches).where(eq(schema.branches.tenantId, context.tenantId)),
     isDirector ? db.select({ count: count() }).from(schema.branches).where(and(eq(schema.branches.tenantId, context.tenantId), eq(schema.branches.acceptingLeads, false))).then((r) => Number(r[0]?.count ?? 0)) : Promise.resolve(0),
+    db.select({ slaFirstContactMinutes: schema.tenants.slaFirstContactMinutes, slaStagnantDays: schema.tenants.slaStagnantDays }).from(schema.tenants).where(eq(schema.tenants.id, context.tenantId)).then((r) => r[0] ?? { slaFirstContactMinutes: "15", slaStagnantDays: "3" }),
   ]);
 
   // Merge legacy carrier plans with global + private catalog plans
@@ -62,6 +77,9 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
       plans.push({ id: p.planId, name: p.planName, carrierName: p.carrierName });
     }
   }
+
+  const slaFirstContactMinutes = Number(slaSettings.slaFirstContactMinutes);
+  const slaStagnantDays = Number(slaSettings.slaStagnantDays);
 
   return (
     <>
@@ -111,7 +129,19 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
 
         {/* Workspace or Empty State with CTA */}
         {leads.length ? (
-          <LeadsWorkspace leads={leads.map((lead) => ({ ...lead, createdAt: lead.createdAt.toISOString() }))} contextRole={context.role} />
+          <LeadsWorkspace
+            leads={leads.map((lead) => ({
+              ...lead,
+              createdAt: lead.createdAt.toISOString(),
+              assignedAt: lead.assignedAt?.toISOString() ?? null,
+              stageEnteredAt: lead.stageEnteredAt?.toISOString() ?? null,
+              serviceStartedAt: lead.serviceStartedAt?.toISOString() ?? null,
+              firstContactAt: lead.firstContactAt?.toISOString() ?? null,
+            }))}
+            contextRole={context.role}
+            slaFirstContactMinutes={slaFirstContactMinutes}
+            slaStagnantDays={slaStagnantDays}
+          />
         ) : (
           <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border p-12 text-center bg-card/40">
             <p className="text-sm font-semibold text-foreground">Nenhum lead por enquanto</p>
