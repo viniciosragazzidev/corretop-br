@@ -145,3 +145,13 @@ O upload usarÃ¡ bucket privado do Supabase Storage, acessado somente no servid
 `SUPABASE_SERVICE_ROLE_KEY` e `SUPABASE_DOCUMENTS_BUCKET`. Downloads continuam passando
 pela rota autenticada e escopada. Se a configuraÃ§Ã£o estiver ausente, o upload retorna
 503 com orientaÃ§Ã£o clara e nÃ£o cria registro incompleto.
+## DEC-044 - Conversao condicionada a confirmacao de venda
+
+**Estado:** Aceita
+**Data:** 2026-07-21
+
+O status `converted` nao sera alterado por um seletor de status nem por uma acao parcial.
+Ao solicitar a conversao, o CRM abre um dialogo com os dados da venda. A conversao so
+ocorre quando a acao de servidor valida apolice, vigencia, valor, titular/beneficiarios,
+documento aprovado da operadora e permissoes do usuario. Em caso de falha, o lead
+permanece no status anterior e o formulario informa a pendencia.

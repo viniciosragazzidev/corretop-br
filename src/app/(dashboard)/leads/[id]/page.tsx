@@ -26,7 +26,6 @@ import { getRequirementsForLead, getLeadDocuments } from "@/features/documents/a
 import { LeadDocumentsSection } from "@/features/documents/components/lead-documents-section";
 import { LeadActionHub } from "@/features/leads/components/lead-action-hub";
 
-import { RegisterSalePanel } from "./register-sale-panel";
 import { BeneficiariesSection } from "./beneficiaries-section";
 import { getLeadBeneficiaries } from "@/features/post-sale/queries";
 import { Phone, Clock, Share, Buildings, UserPlus } from "@/components/huge-icons";
@@ -192,7 +191,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                 {(lead.corretorId
                   ? (context.userId === lead.corretorId && lead.status !== "distributed")
                   : (context.role !== "broker")) ? (
-                  <LeadStatusSelector leadId={lead.id} currentStatus={lead.status} role={context.role} isOwner={context.userId === lead.corretorId} isSameBranch={context.branchId === lead.branchId} />
+                  <LeadStatusSelector leadId={lead.id} currentStatus={lead.status} role={context.role} isOwner={context.userId === lead.corretorId} isSameBranch={context.branchId === lead.branchId} documents={leadDocs.map((document) => ({ id: document.id, filename: document.filename, status: document.status }))} carriers={carriers} />
                 ) : null}
               </div>
             </div>
@@ -412,10 +411,9 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
               <PersonRecordDetails kind="lead" createdAt={lead.createdAt} consentimentoLgpd={lead.consentimentoLgpd} dependents={beneficiaries} documentCount={leadDocs.length} />
             </div>
 
-            {/* Beneficiaries + Sale Registration */}
+            {/* Beneficiaries */}
             <div className="space-y-4">
               <BeneficiariesSection leadId={lead.id} contactName={lead.nome} initialBeneficiaries={beneficiaries} />
-              {lead.status === "under_analysis" || lead.status === "documentation_pending" ? <RegisterSalePanel leadId={lead.id} documents={leadDocs.map((document) => ({ id: document.id, filename: document.filename, status: document.status }))} carriers={carriers} /> : null}
             </div>
           </div>
 

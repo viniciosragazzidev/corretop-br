@@ -33,6 +33,10 @@ import {
   VALID_TRANSITIONS,
 } from "@/features/leads/lead-status-constants";
 import { LeadFeedbackDialog } from "./lead-feedback-dialog";
+import { RegisterSalePanel } from "@/app/(dashboard)/leads/[id]/register-sale-panel";
+
+type ConfirmationDocument = { id: string; filename: string; status: string };
+type CarrierOption = { id: string; name: string };
 
 type LeadStatusSelectorProps = {
   leadId: string;
@@ -40,6 +44,8 @@ type LeadStatusSelectorProps = {
   role: string;
   isOwner: boolean;
   isSameBranch: boolean;
+  documents?: ConfirmationDocument[];
+  carriers?: CarrierOption[];
 };
 
 function statusLabel(status: string): string {
@@ -52,11 +58,14 @@ export function LeadStatusSelector({
   role,
   isOwner,
   isSameBranch,
+  documents = [],
+  carriers = [],
 }: LeadStatusSelectorProps) {
   const router = useRouter();
   const [showLostConfirm, setShowLostConfirm] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackAfterStatus, setFeedbackAfterStatus] = useState(false);
+  const [showSaleConfirm, setShowSaleConfirm] = useState(false);
   const [motivoPerda, setMotivoPerda] = useState("");
   const [state, dispatch, pending] = useActionState<StatusChangeState, FormData>(
     changeLeadStatusAction,
@@ -107,6 +116,11 @@ export function LeadStatusSelector({
 
     if (value === "lost") {
       setShowLostConfirm(true);
+      return;
+    }
+
+    if (value === "converted") {
+      setShowSaleConfirm(true);
       return;
     }
 
@@ -231,6 +245,7 @@ export function LeadStatusSelector({
         </DialogPopup>
       </Dialog>
       <LeadFeedbackDialog leadId={leadId} open={showFeedback} onOpenChange={setShowFeedback} />
+      <RegisterSalePanel leadId={leadId} documents={documents} carriers={carriers} open={showSaleConfirm} onOpenChange={setShowSaleConfirm} />
     </>
   );
 }
