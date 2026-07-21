@@ -207,6 +207,7 @@ export async function deleteIntegrationAction(formData: FormData) {
     const [integration] = await db.select({ id: schema.leadWebhookCredentials.id }).from(schema.leadWebhookCredentials).where(and(eq(schema.leadWebhookCredentials.id, id), eq(schema.leadWebhookCredentials.tenantId, context.tenantId))).limit(1);
     if (!integration) return { success: false, error: "Fonte não encontrada." };
     await db.transaction(async (tx) => {
+      await tx.delete(schema.webhookDeliveries).where(eq(schema.webhookDeliveries.credentialId, id));
       await tx.delete(schema.leadWebhookCredentials).where(and(eq(schema.leadWebhookCredentials.id, id), eq(schema.leadWebhookCredentials.tenantId, context.tenantId)));
       await tx.insert(schema.auditLogs).values({ id: randomUUID(), userId: context.userId, entidade: "lead_webhook_credential", entidadeId: id, acao: "lead_source.deleted" });
     });
