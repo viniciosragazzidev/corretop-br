@@ -15,14 +15,10 @@ describe("buildBrokerInvitationFallbackMessage", () => {
     });
     expect(message).toContain("✨ *Olá, Ana!*");
     expect(message).toContain("https://crm.example.com/onboarding?token=token-seguro");
-    expect(message).toContain("*Perfil:* Corretor(a)");
+    expect(message).toContain("*Corretor(a)*");
     expect(message).toContain("🚀");
-    expect(message).toContain("💙");
     expect(message).toContain("*Ancora*");
-    expect(message).toContain("72h");
-    expect(message).toContain("⚠️");
-    expect(message).toContain("📞");
-    expect(message).toContain("*CorreTop*");
+    expect(message).toContain("👇");
   });
 
   it("usa o cargo original para funções não mapeadas", () => {
@@ -33,7 +29,7 @@ describe("buildBrokerInvitationFallbackMessage", () => {
       role: "admin",
       token: "abc123",
     });
-    expect(message).toContain("*Perfil:* admin");
+    expect(message).toContain("*admin*");
   });
 
   it("usa 'Gestor(a)' para o papel manager", () => {
@@ -44,7 +40,7 @@ describe("buildBrokerInvitationFallbackMessage", () => {
       role: "manager",
       token: "token-maria",
     });
-    expect(message).toContain("*Perfil:* Gestor(a)");
+    expect(message).toContain("*Gestor(a)*");
   });
 
   it("funciona sem nome (fallback)", () => {
@@ -54,7 +50,7 @@ describe("buildBrokerInvitationFallbackMessage", () => {
     });
     expect(message).toContain("✨ *Olá!*");
     expect(message).toContain("sua corretora");
-    expect(message).toContain("*Perfil:* Colaborador(a)");
-    expect(message).toContain("72h");
+    expect(message).toContain("*Colaborador(a)*");
+    expect(message).toContain("👇");
   });
 });

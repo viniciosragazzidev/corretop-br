@@ -1,48 +1,24 @@
 import "server-only";
 
 import { createHash, randomUUID } from "node:crypto";
-import { and, desc, eq, isNull, or } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
-import { getSystemSetting } from "@/features/system-settings/queries";
 import { getDatabase, schema } from "@/shared/db";
-import { decryptChannelSecret } from "./secret-crypto";
-import { sendMetaCloudText } from "./meta-cloud-client";
-import { getMetaCloudServerConfig, META_WHATSAPP_FEATURE_SETTING } from "./meta-cloud-config";
-import { META_CLOUD_PROVIDER, type MetaWebhookPayload } from "./types";
+import { handleLeadOfferWebhookResponse } from "@/features/lead-distribution/offers";
+import { META_CLOUD_PROVIDER } from "./types";
+import type { MetaWebhookPayload } from "./types";
 
 export async function isMetaCloudWhatsAppEnabled() {
-  return (await getSystemSetting(META_WHATSAPP_FEATURE_SETTING)) === "true";
+  const [row] = await getDatabase()
+    .select({ disabled: schema.systemSettings.disabled })
+    .from(schema.systemSettings)
+    .where(eq(schema.systemSettings.key, "feature_whatsapp_meta_cloud_enabled"))
+    .limit(1);
+  return row ? !row.disabled : true;
 }
 
-export async function getPreferredMetaCloudChannel(input: { tenantId: string; branchId: string | null; userId: string }) {
-  if (!(await isMetaCloudWhatsAppEnabled())) return null;
-  const db = getDatabase();
-  const base = [
-    eq(schema.communicationChannels.tenantId, input.tenantId),
-    eq(schema.communicationChannels.provider, META_CLOUD_PROVIDER),
-    eq(schema.communicationChannels.status, "active"),
-  ];
-  const ownedScope = or(isNull(schema.communicationChannels.ownerUserId), eq(schema.communicationChannels.ownerUserId, input.userId));
-  const tenantChannel = await db.select().from(schema.communicationChannels).where(and(...base, isNull(schema.communicationChannels.branchId), ownedScope)).orderBy(desc(schema.communicationChannels.isDefault), desc(schema.communicationChannels.activatedAt)).limit(1);
-  if (tenantChannel[0]) return tenantChannel[0];
-  // Compatibility fallback for legacy branch channels; new connections are company-wide.
-  if (!input.branchId) return null;
-  const branchChannel = await db.select().from(schema.communicationChannels).where(and(...base, eq(schema.communicationChannels.branchId, input.branchId), ownedScope)).orderBy(desc(schema.communicationChannels.isDefault), desc(schema.communicationChannels.activatedAt)).limit(1);
-  return branchChannel[0] ?? null;
-}
-
-export async function sendMetaCloudChannelText(input: { channel: NonNullable<Awaited<ReturnType<typeof getPreferredMetaCloudChannel>>>; to: string; body: string }) {
-  if (!input.channel.phoneNumberId || !input.channel.accessTokenCiphertext) throw new Error("O canal oficial está incompleto. Reconecte-o nas configurações.");
-  const config = getMetaCloudServerConfig();
-  const accessToken = decryptChannelSecret(input.channel.accessTokenCiphertext, config.tokenEncryptionKey);
-  const response = await sendMetaCloudText({ phoneNumberId: input.channel.phoneNumberId, accessToken, to: input.to, body: input.body });
-  const messageId = response.messages?.[0]?.id;
-  if (!messageId) throw new Error("A Meta não retornou o identificador da mensagem.");
-  return { messageId };
-}
-
-function normalizePhone(value: string) {
-  return value.replace(/\D/g, "");
+function normalizePhone(phone: string) {
+  return phone.replace(/\D/g, "");
 }
 
 function samePhone(left: string, right: string) {
@@ -85,7 +61,39 @@ export async function ingestMetaCloudWebhook(payload: MetaWebhookPayload, rawPay
       for (const message of change.value?.messages ?? []) {
         const eventId = await registerWebhookEvent({ channelId: channel.id, externalEventId: message.id, eventType: `message.${message.type ?? "unknown"}`, payloadHash });
         if (!eventId) continue;
-        const text = message.type === "text" ? message.text?.body?.trim() : "";
+
+        // Extract button response text/payload or standard text body
+        let text = message.type === "text" ? message.text?.body?.trim() ?? "" : "";
+        let buttonText: string | undefined;
+        let buttonPayload: string | undefined;
+
+        if (message.type === "button") {
+          buttonText = message.button?.text?.trim();
+          buttonPayload = message.button?.payload?.trim();
+          text = buttonText || buttonPayload || text;
+        } else if (message.type === "interactive") {
+          buttonText = message.interactive?.button_reply?.title?.trim();
+          buttonPayload = message.interactive?.button_reply?.id?.trim();
+          text = buttonText || buttonPayload || text;
+        }
+
+        // Check if message is a response to a lead offer
+        if (text) {
+          const offerResponse = await handleLeadOfferWebhookResponse({
+            tenantId: channel.tenantId,
+            phone: message.from,
+            buttonText: buttonText || text,
+            buttonPayload: buttonPayload,
+            providerMessageId: message.context?.id,
+          });
+
+          if (offerResponse.processed) {
+            await setWebhookEventResult(eventId, "processed");
+            processed += 1;
+            continue;
+          }
+        }
+
         if (!text) { await setWebhookEventResult(eventId, "discarded", "unsupported_message_type"); ignored += 1; continue; }
         const phone = normalizePhone(message.from);
         const [leads, clients] = await Promise.all([
@@ -116,9 +124,13 @@ export async function ingestMetaCloudWebhook(payload: MetaWebhookPayload, rawPay
         if (status.status === "read") outboundUpdate.readAt = new Date();
         if (status.status === "failed" || status.status === "deleted") outboundUpdate.failedAt = new Date();
         const [outbound] = await db.update(schema.whatsappOutboundMessages).set(outboundUpdate).where(and(eq(schema.whatsappOutboundMessages.tenantId, channel.tenantId), eq(schema.whatsappOutboundMessages.providerMessageId, status.id))).returning({ id: schema.whatsappOutboundMessages.id, recipientId: schema.whatsappOutboundMessages.recipientId, purpose: schema.whatsappOutboundMessages.purpose });
+
         if (outbound?.purpose === "brokerInvitation" && outbound.recipientId && ["delivered", "read"].includes(status.status)) {
           await db.update(schema.brokerInvitations).set({ deliveryStatus: "sent", deliveryMessageId: status.id, deliveredAt: new Date() }).where(and(eq(schema.brokerInvitations.id, outbound.recipientId), eq(schema.brokerInvitations.tenantId, channel.tenantId)));
+        } else if (outbound?.purpose === "newLeadAssignment" && ["delivered", "read"].includes(status.status)) {
+          await db.update(schema.leadOffers).set({ status: status.status.toUpperCase() as "DELIVERED" | "READ", updatedAt: new Date() }).where(and(eq(schema.leadOffers.outboundMessageId, outbound.id), eq(schema.leadOffers.tenantId, channel.tenantId)));
         }
+
         await setWebhookEventResult(eventId, "processed");
         processed += 1;
       }

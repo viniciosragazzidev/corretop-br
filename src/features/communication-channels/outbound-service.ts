@@ -25,17 +25,87 @@ export function buildBrokerInvitationFallbackMessage(input: { name?: string; com
   return [
     greeting,
     "",
-    `Seu acesso à *${company}* foi criado com sucesso! 🚀`,
+    `Seu acesso à *${company}* foi criado como *${roleLabel}* 🚀`,
     "",
-    `📋 *Perfil:* ${roleLabel}`,
-    `🔗 *Link de acesso (válido por 72h):*`,
+    `👇 *Ative seu acesso pelo link abaixo:*`,
     url,
     "",
-    `⚠️ *Não foi você?* Se não esperava este convite, ignore esta mensagem`,
+    `⚠️ Ignore se não esperava este convite.`,
+  ].join("\n");
+}
+
+export function buildNewLeadAssignmentFallbackMessage(variables: string[]) {
+  const brokerName = variables[0] || "Corretor";
+  const company = variables[1] || "Empresa";
+  const leadType = variables[2] || "Pessoa Física";
+  const branch = variables[3] || "Unidade";
+  const timeout = variables[4] || "3";
+
+  return [
+    `🔔 *Novo lead disponível*`,
     "",
-    `📞 *Precisa de ajuda?* Fale com o suporte da ${company}`,
+    `Olá, ${brokerName}.`,
     "",
-    `— *CorreTop* 💙`,
+    `Um novo lead está disponível para atendimento.`,
+    "",
+    `*Empresa:* ${company}`,
+    `*Tipo de lead:* ${leadType}`,
+    `*Unidade:* ${branch}`,
+    "",
+    `⏱️ Você tem *${timeout} minutos* para aceitar este atendimento.`,
+    "",
+    `Responda *"Aceitar lead"* para confirmar ou *"Recusar"* para declinar.`,
+  ].join("\n");
+}
+
+export function buildLeadAssignmentConfirmedFallbackMessage(variables: string[]) {
+  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || process.env.BETTER_AUTH_URL || "https://corretop.vercel.app").replace(/\/$/, "");
+  const brokerName = variables[0] || "Corretor";
+  const clientName = variables[1] || "Cliente";
+  const phone = variables[2] || "";
+  const leadType = variables[3] || "Pessoa Física";
+  const leadId = variables[4] || "";
+  const url = `${baseUrl}/leads/${leadId}`;
+
+  return [
+    `✅ *Lead atribuído a você*`,
+    "",
+    `Olá, ${brokerName}.`,
+    "",
+    `O lead foi atribuído com sucesso ao seu atendimento.`,
+    "",
+    `*Cliente:* ${clientName}`,
+    `*Telefone:* ${phone}`,
+    `*Tipo de lead:* ${leadType}`,
+    "",
+    `👇 *Acesse o CorreTop para iniciar o atendimento:*`,
+    url,
+  ].join("\n");
+}
+
+export function buildLeadAssignmentUnavailableFallbackMessage(variables: string[]) {
+  const brokerName = variables[0] || "Corretor";
+  return [
+    `ℹ️ *Lead não disponível*`,
+    "",
+    `Olá, ${brokerName}.`,
+    "",
+    `Este lead já foi atribuído a outro corretor ou não está mais disponível.`,
+    "",
+    `Nenhuma ação adicional é necessária.`,
+  ].join("\n");
+}
+
+export function buildLeadAssignmentExpiredFallbackMessage(variables: string[]) {
+  const brokerName = variables[0] || "Corretor";
+  return [
+    `⏰ *Oferta expirada*`,
+    "",
+    `Olá, ${brokerName}.`,
+    "",
+    `O prazo para aceitar o lead expirou e ele voltou para a fila de distribuição.`,
+    "",
+    `Fique atento às próximas oportunidades!`,
   ].join("\n");
 }
 
@@ -78,30 +148,27 @@ export async function enqueueMetaTemplateMessage(input: {
   return { id, status: "queued" as const, duplicate: false };
 }
 
-async function enqueueBrokerInvitationTextFallback(input: {
+async function enqueueTextFallbackMessage(input: {
   tenantId: string;
   channelId: string;
-  recipientId: string;
+  recipientType: "lead" | "client" | "user";
+  recipientId?: string;
   destinationPhone: string;
+  purpose: MetaWhatsAppTemplatePurpose;
   variables: string[];
   requestedBy: string;
 }) {
   const db = getDatabase();
-  const idempotencyKey = `team-invitation-text:${input.recipientId}`;
-  const [existing] = await db.select().from(schema.whatsappOutboundMessages).where(and(
-    eq(schema.whatsappOutboundMessages.tenantId, input.tenantId),
-    eq(schema.whatsappOutboundMessages.idempotencyKey, idempotencyKey),
-  )).limit(1);
-  if (existing) return { id: existing.id, duplicate: true };
+  const idempotencyKey = `text-fallback:${input.purpose}:${input.recipientId || input.destinationPhone}:${Date.now()}`;
   const now = new Date();
   const id = randomUUID();
   await db.insert(schema.whatsappOutboundMessages).values({
-    id, tenantId: input.tenantId, channelId: input.channelId, recipientType: "user", recipientId: input.recipientId,
-    destinationPhone: phoneSchema.parse(input.destinationPhone), purpose: "brokerInvitation", messageType: "text",
+    id, tenantId: input.tenantId, channelId: input.channelId, recipientType: input.recipientType, recipientId: input.recipientId ?? null,
+    destinationPhone: phoneSchema.parse(input.destinationPhone), purpose: input.purpose, messageType: "text",
     templateName: "__text_fallback__", templateLanguage: "pt_BR", variables: variablesSchema.parse(input.variables),
     status: "queued", idempotencyKey, queuedAt: now, requestedBy: input.requestedBy, createdAt: now, updatedAt: now,
   });
-  await db.insert(schema.auditLogs).values({ id: randomUUID(), userId: input.requestedBy, entidade: "whatsapp_outbound_message", entidadeId: id, acao: "whatsapp_invite_text_fallback_queued" });
+  await db.insert(schema.auditLogs).values({ id: randomUUID(), userId: input.requestedBy, entidade: "whatsapp_outbound_message", entidadeId: id, acao: "whatsapp_text_fallback_queued" });
   return { id, duplicate: false };
 }
 
@@ -129,22 +196,45 @@ export async function processMetaOutboundBatch(limit = 10, tenantId?: string) {
         const invitationKey = process.env.INVITATION_TOKEN_ENCRYPTION_KEY?.trim() || process.env.META_WHATSAPP_TOKEN_ENCRYPTION_KEY?.trim();
         if (!invitation || invitation.status !== "PENDING" || invitation.expiresAt <= new Date() || !invitation.tokenCiphertext || !invitationKey) throw new Error("Convite indisponível para entrega.");
         urlButtonParameter = decryptChannelSecret(invitation.tokenCiphertext, invitationKey);
+      } else if (row.purpose === "leadAssignmentConfirmed") {
+        const variables = Array.isArray(row.variables) ? row.variables.filter((value): value is string => typeof value === "string") : [];
+        if (variables[4]) {
+          urlButtonParameter = variables[4]; // lead ID/token for dynamic CTA button
+        }
       }
       const variables = Array.isArray(row.variables) ? row.variables.filter((value): value is string => typeof value === "string") : [];
       const response = await (row.messageType === "text"
         ? await (async () => {
-          const invitationKey = process.env.INVITATION_TOKEN_ENCRYPTION_KEY?.trim() || process.env.META_WHATSAPP_TOKEN_ENCRYPTION_KEY?.trim();
-          const ciphertext = invitation?.tokenCiphertext;
-          if (!row.recipientId || !ciphertext || !invitationKey) throw new Error("Convite indisponível para entrega.");
-          const token = decryptChannelSecret(ciphertext, invitationKey);
-          return sendMetaCloudText({ phoneNumberId, accessToken, to: row.destinationPhone, body: buildBrokerInvitationFallbackMessage({ name: variables[0], company: variables[1], role: variables[2], token }) });
+          let bodyText = "";
+          if (row.purpose === "brokerInvitation") {
+            const invitationKey = process.env.INVITATION_TOKEN_ENCRYPTION_KEY?.trim() || process.env.META_WHATSAPP_TOKEN_ENCRYPTION_KEY?.trim();
+            const ciphertext = invitation?.tokenCiphertext;
+            if (!row.recipientId || !ciphertext || !invitationKey) throw new Error("Convite indisponível para entrega.");
+            const token = decryptChannelSecret(ciphertext, invitationKey);
+            bodyText = buildBrokerInvitationFallbackMessage({ name: variables[0], company: variables[1], role: variables[2], token });
+          } else if (row.purpose === "newLeadAssignment") {
+            bodyText = buildNewLeadAssignmentFallbackMessage(variables);
+          } else if (row.purpose === "leadAssignmentConfirmed") {
+            bodyText = buildLeadAssignmentConfirmedFallbackMessage(variables);
+          } else if (row.purpose === "leadAssignmentUnavailable") {
+            bodyText = buildLeadAssignmentUnavailableFallbackMessage(variables);
+          } else if (row.purpose === "leadAssignmentExpired") {
+            bodyText = buildLeadAssignmentExpiredFallbackMessage(variables);
+          } else {
+            bodyText = variables.join("\n");
+          }
+          return sendMetaCloudText({ phoneNumberId, accessToken, to: row.destinationPhone, body: bodyText });
         })()
-        : sendMetaCloudTemplate({ phoneNumberId, accessToken, to: row.destinationPhone, templateName: row.templateName, languageCode: row.templateLanguage, variables, urlButtonParameter }));
+        : sendMetaCloudTemplate({ phoneNumberId, accessToken, to: row.destinationPhone, templateName: row.templateName, languageCode: row.templateLanguage, variables: row.purpose === "leadAssignmentConfirmed" ? variables.slice(0, 4) : variables, urlButtonParameter }));
       const providerMessageId = response.messages?.[0]?.id;
       if (!providerMessageId) throw new Error("A Meta não retornou o identificador da mensagem.");
       await db.update(schema.whatsappOutboundMessages).set({ status: "sent", providerMessageId, sentAt: new Date(), updatedAt: new Date(), providerErrorCode: null, providerErrorMessage: null }).where(eq(schema.whatsappOutboundMessages.id, row.id));
+
       if (row.purpose === "brokerInvitation" && row.recipientId) {
         await db.update(schema.brokerInvitations).set({ deliveryStatus: "sent", deliveryMessageId: providerMessageId, deliveredAt: new Date(), deliveryAttempts: row.attempts + 1, deliveryError: null }).where(and(eq(schema.brokerInvitations.id, row.recipientId), eq(schema.brokerInvitations.tenantId, row.tenantId)));
+      } else if (row.purpose === "newLeadAssignment") {
+        // Link providerMessageId to lead_offers table if matching
+        await db.update(schema.leadOffers).set({ whatsappMessageId: providerMessageId, status: "SENT", updatedAt: new Date() }).where(and(eq(schema.leadOffers.outboundMessageId, row.id), eq(schema.leadOffers.tenantId, row.tenantId)));
       }
       sent += 1;
     } catch (error) {
@@ -164,21 +254,21 @@ export async function processMetaOutboundBatch(limit = 10, tenantId?: string) {
       const nextAttemptAt = shouldRetry ? new Date(Date.now() + Math.min(3_600_000, 30_000 * 2 ** row.attempts)) : null;
       await db.update(schema.whatsappOutboundMessages).set({ status: shouldRetry ? "queued" : "failed", nextAttemptAt, failedAt: shouldRetry ? null : new Date(), providerErrorCode: safeCode, providerErrorMessage: "Falha de entrega; consulte o histórico operacional.", updatedAt: new Date() }).where(eq(schema.whatsappOutboundMessages.id, row.id));
       const templateDidNotRespond = error instanceof Error && error.message.includes("identificador");
-      if (!shouldRetry && row.messageType === "template" && row.purpose === "brokerInvitation" && row.recipientId && (error instanceof MetaCloudApiError || templateDidNotRespond)) {
-        if (!row.requestedBy) throw new Error("Convite sem solicitante para auditoria.");
-        const fallback = await enqueueBrokerInvitationTextFallback({
+
+      if (!shouldRetry && row.messageType === "template" && (error instanceof MetaCloudApiError || templateDidNotRespond)) {
+        const fallback = await enqueueTextFallbackMessage({
           tenantId: row.tenantId,
           channelId: row.channelId,
-          recipientId: row.recipientId,
+          recipientType: row.recipientType as "lead" | "client" | "user",
+          recipientId: row.recipientId ?? undefined,
           destinationPhone: row.destinationPhone,
+          purpose: row.purpose as MetaWhatsAppTemplatePurpose,
           variables: Array.isArray(row.variables) ? row.variables.filter((value): value is string => typeof value === "string") : [],
-          requestedBy: row.requestedBy,
+          requestedBy: row.requestedBy || "system",
         });
-        await db.update(schema.brokerInvitations).set({ deliveryStatus: "queued", deliveryAttempts: row.attempts + 1, deliveryError: "O modelo aprovado não respondeu; tentando mensagem alternativa." }).where(and(eq(schema.brokerInvitations.id, row.recipientId), eq(schema.brokerInvitations.tenantId, row.tenantId)));
-        if (row.requestedBy) await db.insert(schema.auditLogs).values({ id: randomUUID(), userId: row.requestedBy, entidade: "whatsapp_outbound_message", entidadeId: row.id, acao: fallback.duplicate ? "whatsapp_invite_text_fallback_reused" : "whatsapp_invite_template_failed" });
-      }
-      if (row.purpose === "brokerInvitation" && row.recipientId && !shouldRetry && row.messageType === "text") {
-        await db.update(schema.brokerInvitations).set({ deliveryStatus: "failed", deliveryAttempts: row.attempts + 1, deliveryError: "Falha de entrega; consulte o histórico operacional." }).where(and(eq(schema.brokerInvitations.id, row.recipientId), eq(schema.brokerInvitations.tenantId, row.tenantId)));
+        if (row.requestedBy) {
+          await db.insert(schema.auditLogs).values({ id: randomUUID(), userId: row.requestedBy, entidade: "whatsapp_outbound_message", entidadeId: row.id, acao: fallback.duplicate ? "whatsapp_text_fallback_reused" : "whatsapp_template_failed_fallback_queued" });
+        }
       }
       if (shouldRetry) retried += 1; else failed += 1;
     }

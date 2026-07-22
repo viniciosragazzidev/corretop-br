@@ -201,7 +201,6 @@
 html,
 body {
   min-height: 100%;
-  font-size: 14px;
 }
 
 body {
@@ -742,6 +741,7 @@ html:not([data-magicui-theme-vt="active"])::view-transition-new(ct-shell-header)
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   ::view-transition-old(*),
   ::view-transition-new(*),
   ::view-transition-group(*) {

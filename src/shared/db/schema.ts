@@ -1638,6 +1638,30 @@ export const whatsappOutboundMessages = pgTable(
   ],
 );
 
+export const leadOffers = pgTable(
+  "lead_offers",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    leadId: text("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+    brokerId: text("broker_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+    status: text("status").notNull().default("PENDING"),
+    offeredAt: timestamp("offered_at", { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    declinedAt: timestamp("declined_at", { withTimezone: true }),
+    whatsappMessageId: text("whatsapp_message_id"),
+    outboundMessageId: text("outbound_message_id").references(() => whatsappOutboundMessages.id, { onDelete: "set null" }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("lead_offers_tenant_lead_status_idx").on(table.tenantId, table.leadId, table.status),
+    index("lead_offers_broker_status_expires_idx").on(table.brokerId, table.status, table.expiresAt),
+    index("lead_offers_whatsapp_msg_idx").on(table.whatsappMessageId),
+  ],
+);
+
 export const commissionRules = pgTable(
   "commission_rules",
   {

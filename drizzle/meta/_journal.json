@@ -218,6 +218,13 @@
       "when": 1784900400000,
       "tag": "0078_sync_terms_acceptance_metadata",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1784900500000,
+      "tag": "0079_lead_offers_and_assignment_templates",
+      "breakpoints": true
     }
   ]
 }

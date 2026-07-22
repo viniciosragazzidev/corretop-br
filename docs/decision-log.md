@@ -219,3 +219,15 @@ catálogo persistido, com dependências, escopo e auditoria do Super-admin.
 
 O plano executável e o inventário de capacidades estão em
 `docs/access-control-capability-plan.md`.
+
+## DEC-049 — Atribuição de Leads por Oferta em 2 Etapas via WhatsApp com Resposta Rápida
+
+**Estado:** Aceita  
+**Data:** 2026-07-22
+
+O CorreTop adota o fluxo de ofertas em duas etapas para distribuição de novos leads por WhatsApp:
+1. **Oferta Privada (`new_lead_assignment`):** Apenas metadados gerais (empresa, tipo de lead, unidade, tempo de resposta) são enviados no primeiro template com botões de resposta rápida ("Aceitar lead" / "Recusar"). Nenhum dado sensível do cliente é exposto antes do aceite.
+2. **Confirmação Atômica com Row Locking:** O clique no botão aciona a transação no servidor (`SELECT FOR UPDATE`), que garante que apenas o primeiro corretor elegível assuma o lead.
+3. **Template de Confirmação (`lead_assignment_confirmed`):** Enviado somente após confirmação do aceite, com o link direto para o atendimento no CRM (`https://corretop.vercel.app/leads/{{lead_id}}`).
+4. **Resolução de Disputas e Expiração:** Corretores que perderem a disputa recebem o modelo `lead_assignment_unavailable`. Ofertas não respondidas dentro do SLA expiram (`lead_assignment_expired`) e o lead retorna para a fila de distribuição.
+5. **Resiliência e Fallbacks:** Todos os 4 modelos contam com geradores automáticos de mensagens de texto alternativas caso a entrega do modelo oficial falhe. Toda transição é registrada nos logs de auditoria.
