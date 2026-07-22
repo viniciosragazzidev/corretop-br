@@ -155,3 +155,14 @@ Ao solicitar a conversao, o CRM abre um dialogo com os dados da venda. A convers
 ocorre quando a acao de servidor valida apolice, vigencia, valor, titular/beneficiarios,
 documento aprovado da operadora e permissoes do usuario. Em caso de falha, o lead
 permanece no status anterior e o formulario informa a pendencia.
+
+## DEC-045 - Canal oficial corporativo e outbox assíncrono
+
+**Estado:** Aceita
+**Data:** 2026-07-22
+
+O produto inicial terá um único canal oficial de WhatsApp por tenant, conectado
+pela matriz. Canais por unidade permanecem compatíveis no schema, mas não ficam
+expostos no Embedded Signup até uma decisão específica. Envios de negócio usam
+modelos aprovados, ledger idempotente e processamento assíncrono; o cron do Vercel
+Hobby serve apenas como recuperação diária, não como garantia de latência.

@@ -1593,6 +1593,49 @@ export const leadDocumentChecklist = pgTable(
   ],
 );
 
+/**
+ * Outbound WhatsApp delivery ledger. Provider credentials are intentionally
+ * absent here; only the channel id is stored and the encrypted secret remains
+ * in communication_channels.
+ */
+export const whatsappOutboundMessages = pgTable(
+  "whatsapp_outbound_messages",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    channelId: text("channel_id").notNull().references(() => communicationChannels.id, { onDelete: "restrict" }),
+    recipientType: text("recipient_type").notNull(),
+    recipientId: text("recipient_id"),
+    destinationPhone: text("destination_phone").notNull(),
+    purpose: text("purpose").notNull(),
+    templateName: text("template_name").notNull(),
+    templateLanguage: text("template_language").notNull().default("pt_BR"),
+    variables: jsonb("variables").notNull().default([]),
+    status: text("status").notNull().default("pending"),
+    providerMessageId: text("provider_message_id"),
+    providerErrorCode: text("provider_error_code"),
+    providerErrorMessage: text("provider_error_message"),
+    idempotencyKey: text("idempotency_key").notNull(),
+    scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
+    queuedAt: timestamp("queued_at", { withTimezone: true }),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    deliveredAt: timestamp("delivered_at", { withTimezone: true }),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    failedAt: timestamp("failed_at", { withTimezone: true }),
+    attempts: integer("attempts").notNull().default(0),
+    nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }),
+    requestedBy: text("requested_by").references(() => user.id, { onDelete: "set null" }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    uniqueIndex("whatsapp_outbound_messages_tenant_idempotency_unique").on(table.tenantId, table.idempotencyKey),
+    index("whatsapp_outbound_messages_queue_idx").on(table.status, table.nextAttemptAt, table.createdAt),
+    index("whatsapp_outbound_messages_tenant_idx").on(table.tenantId, table.createdAt),
+    index("whatsapp_outbound_messages_provider_idx").on(table.providerMessageId),
+  ],
+);
+
 export const commissionRules = pgTable(
   "commission_rules",
   {

@@ -49,3 +49,29 @@ export async function sendMetaCloudText(input: { phoneNumberId: string; accessTo
     body: JSON.stringify({ messaging_product: "whatsapp", recipient_type: "individual", to: input.to.replace(/\D/g, ""), type: "text", text: { preview_url: false, body: input.body } }),
   }, input.accessToken);
 }
+
+export async function sendMetaCloudTemplate(input: {
+  phoneNumberId: string;
+  accessToken: string;
+  to: string;
+  templateName: string;
+  languageCode: string;
+  variables: string[];
+}) {
+  const parameters = input.variables.map((text) => ({ type: "text", text }));
+  return graphRequest<{ messages?: Array<{ id: string }> }>(`${encodeURIComponent(input.phoneNumberId)}/messages`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to: input.to.replace(/\D/g, ""),
+      type: "template",
+      template: {
+        name: input.templateName,
+        language: { code: input.languageCode },
+        ...(parameters.length ? { components: [{ type: "body", parameters }] } : {}),
+      },
+    }),
+  }, input.accessToken);
+}

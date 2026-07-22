@@ -23,12 +23,12 @@ export async function getPreferredMetaCloudChannel(input: { tenantId: string; br
     eq(schema.communicationChannels.status, "active"),
   ];
   const ownedScope = or(isNull(schema.communicationChannels.ownerUserId), eq(schema.communicationChannels.ownerUserId, input.userId));
-  const branchChannel = input.branchId
-    ? await db.select().from(schema.communicationChannels).where(and(...base, eq(schema.communicationChannels.branchId, input.branchId), ownedScope)).orderBy(desc(schema.communicationChannels.isDefault), desc(schema.communicationChannels.activatedAt)).limit(1)
-    : [];
-  if (branchChannel[0]) return branchChannel[0];
   const tenantChannel = await db.select().from(schema.communicationChannels).where(and(...base, isNull(schema.communicationChannels.branchId), ownedScope)).orderBy(desc(schema.communicationChannels.isDefault), desc(schema.communicationChannels.activatedAt)).limit(1);
-  return tenantChannel[0] ?? null;
+  if (tenantChannel[0]) return tenantChannel[0];
+  // Compatibility fallback for legacy branch channels; new connections are company-wide.
+  if (!input.branchId) return null;
+  const branchChannel = await db.select().from(schema.communicationChannels).where(and(...base, eq(schema.communicationChannels.branchId, input.branchId), ownedScope)).orderBy(desc(schema.communicationChannels.isDefault), desc(schema.communicationChannels.activatedAt)).limit(1);
+  return branchChannel[0] ?? null;
 }
 
 export async function sendMetaCloudChannelText(input: { channel: NonNullable<Awaited<ReturnType<typeof getPreferredMetaCloudChannel>>>; to: string; body: string }) {
@@ -108,6 +108,14 @@ export async function ingestMetaCloudWebhook(payload: MetaWebhookPayload, rawPay
         const eventId = await registerWebhookEvent({ channelId: channel.id, externalEventId: `${status.id}:${status.status}`, eventType: "message.status", payloadHash });
         if (!eventId) continue;
         await db.update(schema.whatsappMessages).set({ providerStatus: status.status }).where(and(eq(schema.whatsappMessages.tenantId, channel.tenantId), eq(schema.whatsappMessages.messageId, status.id), eq(schema.whatsappMessages.provider, META_CLOUD_PROVIDER)));
+        const outboundUpdate: Partial<typeof schema.whatsappOutboundMessages.$inferInsert> = { updatedAt: new Date() };
+        if (["sent", "delivered", "read"].includes(status.status)) outboundUpdate.status = status.status;
+        else if (["failed", "deleted"].includes(status.status)) outboundUpdate.status = "failed";
+        if (status.status === "sent") outboundUpdate.sentAt = new Date();
+        if (status.status === "delivered") outboundUpdate.deliveredAt = new Date();
+        if (status.status === "read") outboundUpdate.readAt = new Date();
+        if (status.status === "failed" || status.status === "deleted") outboundUpdate.failedAt = new Date();
+        await db.update(schema.whatsappOutboundMessages).set(outboundUpdate).where(and(eq(schema.whatsappOutboundMessages.tenantId, channel.tenantId), eq(schema.whatsappOutboundMessages.providerMessageId, status.id)));
         await setWebhookEventResult(eventId, "processed");
         processed += 1;
       }
