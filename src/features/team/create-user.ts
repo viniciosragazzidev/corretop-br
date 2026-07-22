@@ -16,7 +16,11 @@ const createUserInput = z.object({
   email: z.string().trim().email().max(254).transform((v) => v.toLowerCase()),
   phone: z.string().trim().min(8).max(30),
   cpf: z.string().trim().min(11).max(20),
-  role: z.enum(["manager", "broker"]),
+  // The UI sends the job title and profile separately. Older clients could
+  // accidentally send the title (e.g. "marketing") as role; normalize that
+  // value server-side so only the two supported access profiles reach the
+  // permission guard. A manager request still goes through requireCanCreateRole.
+  role: z.preprocess((value) => value === "manager" ? "manager" : "broker", z.enum(["manager", "broker"])),
   jobTitle: z.enum(["director", "manager", "broker", "marketing", "finance", "operations", "support"]).default("broker"),
   branchId: z.string().uuid(),
 });
