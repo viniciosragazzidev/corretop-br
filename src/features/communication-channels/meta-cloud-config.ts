@@ -29,11 +29,11 @@ function requiredEnvironment(): Array<[keyof NodeJS.ProcessEnv, string]> {
   ];
 }
 
-export function getMetaCloudConfigurationState(): MetaCloudConfigurationState {
+export function getMetaCloudConfigurationState(options?: { includeEmbeddedSignup?: boolean }): MetaCloudConfigurationState {
   const missing = requiredEnvironment().filter(([key]) => !process.env[key]?.trim()).map(([, label]) => label);
   const appId = process.env.NEXT_PUBLIC_META_WHATSAPP_APP_ID?.trim() || process.env.META_WHATSAPP_APP_ID?.trim() || null;
   const embeddedSignupConfigId = process.env.NEXT_PUBLIC_META_WHATSAPP_EMBEDDED_SIGNUP_CONFIG_ID?.trim() || null;
-  if (!embeddedSignupConfigId) missing.push("NEXT_PUBLIC_META_WHATSAPP_EMBEDDED_SIGNUP_CONFIG_ID");
+  if (options?.includeEmbeddedSignup !== false && !embeddedSignupConfigId) missing.push("NEXT_PUBLIC_META_WHATSAPP_EMBEDDED_SIGNUP_CONFIG_ID");
   return { configured: missing.length === 0, missing, appId, embeddedSignupConfigId };
 }
 

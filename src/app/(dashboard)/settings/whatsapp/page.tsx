@@ -48,7 +48,7 @@ export default async function WhatsAppSettingsPage({ searchParams }: { searchPar
     <WhatsAppPage
       initial={initial}
       returnTo={returnTo}
-      official={{ ...getMetaCloudConfigurationState(), enabled: metaEnabled, canConfigure: context.role === "director", branches, channels, companyAccount }}
+      official={{ ...getMetaCloudConfigurationState({ includeEmbeddedSignup: false }), enabled: metaEnabled, canConfigure: false, branches, channels, companyAccount }}
     />
   </>;
 }

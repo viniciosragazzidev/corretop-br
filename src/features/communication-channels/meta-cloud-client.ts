@@ -38,6 +38,10 @@ export async function getMetaPhoneNumber(phoneNumberId: string, accessToken: str
   return graphRequest<{ id: string; display_phone_number?: string; verified_name?: string; quality_rating?: string; messaging_limit_tier?: string }>(`${encodeURIComponent(phoneNumberId)}?fields=id,display_phone_number,verified_name,quality_rating,messaging_limit_tier`, { method: "GET" }, accessToken);
 }
 
+export async function getMetaWabaPhoneNumbers(wabaId: string, accessToken: string) {
+  return graphRequest<{ data?: Array<{ id: string; display_phone_number?: string; verified_name?: string; quality_rating?: string; messaging_limit_tier?: string }> }>(`${encodeURIComponent(wabaId)}/phone_numbers?fields=id,display_phone_number,verified_name,quality_rating,messaging_limit_tier&limit=100`, { method: "GET" }, accessToken);
+}
+
 export async function subscribeWabaToApp(wabaId: string, accessToken: string) {
   return graphRequest<{ success?: boolean }>(`${encodeURIComponent(wabaId)}/subscribed_apps`, { method: "POST" }, accessToken);
 }

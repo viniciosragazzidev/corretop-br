@@ -68,6 +68,17 @@ export function PlatformAdminSidebar() {
             <SidebarMenu className="gap-1">
               <SidebarMenuItem>
                 <SidebarMenuButton
+                  isActive={pathname === "/super-admin/integrations/whatsapp"}
+                  render={<Link href="/super-admin/integrations/whatsapp" prefetch />}
+                  tooltip="WhatsApp Oficial"
+                  className="px-3.5 py-2 text-xs font-medium"
+                >
+                  <WhatsappLogo className="size-4" />
+                  <span>WhatsApp Oficial</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
                   isActive={pathname === "/super-admin/whatsapp-review"}
                   render={<Link href="/super-admin/whatsapp-review" prefetch />}
                   tooltip="Revisão WhatsApp Meta"

@@ -19,9 +19,17 @@ criptografia nunca são enviados ao navegador, registrados em logs ou exibidos n
 
 ## Governança
 
-Somente o Diretor pode conectar, ativar ou pausar a conta oficial. A mutação existente
-permanece validada no servidor e registrada em auditoria. O Super-admin pode desativar
-a capacidade por feature flag.
+Somente o Super Admin pode validar, conectar, substituir ou desconectar a conta oficial
+de um tenant. O Diretor consulta apenas o status operacional, número e nome verificados,
+qualidade e sincronização; não recebe WABA ID, Phone Number ID, Access Token ou App Secret.
+Todas as mutações são validadas no servidor e registradas em auditoria. O Super-admin
+também pode desativar a capacidade por feature flag.
+
+O painel administrativo fica em `/super-admin/integrations/whatsapp` e lista todos os
+tenants, permitindo selecionar uma empresa, validar a WABA e o número diretamente na
+Meta e salvar o canal somente depois da confirmação. O token informado pelo operador é
+usado na requisição, cifrado com a chave do ambiente e nunca é incluído em retorno,
+metadata ou logs.
 
 ## Legado
 
