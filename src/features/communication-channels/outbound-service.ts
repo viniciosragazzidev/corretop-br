@@ -10,6 +10,7 @@ import { MetaCloudApiError, sendMetaCloudText, sendMetaCloudTemplate } from "./m
 import { getMetaCloudServerConfig } from "./meta-cloud-config";
 import { getMetaWhatsAppTemplate, type MetaWhatsAppTemplatePurpose } from "./templates";
 import { META_CLOUD_PROVIDER } from "./types";
+import { runWithConcurrency } from "@/shared/async/run-with-concurrency";
 
 const phoneSchema = z.string().trim().transform((value) => value.replace(/\D/g, "")).pipe(z.string().min(10).max(15));
 const variablesSchema = z.array(z.string().trim().min(1).max(512)).max(10).default([]);
@@ -188,9 +189,9 @@ export async function processMetaOutboundBatch(limit = 10, tenantId?: string, pa
   let failed = 0;
   let retried = 0;
   let fallbackQueued = 0;
-  for (const row of rows) {
+  const processRow = async (row: (typeof rows)[number]) => {
     const [claimed] = await db.update(schema.whatsappOutboundMessages).set({ status: "processing", attempts: row.attempts + 1, updatedAt: new Date() }).where(and(eq(schema.whatsappOutboundMessages.id, row.id), or(eq(schema.whatsappOutboundMessages.status, "queued"), eq(schema.whatsappOutboundMessages.status, "pending")))).returning({ id: schema.whatsappOutboundMessages.id });
-    if (!claimed) continue;
+    if (!claimed) return;
     try {
       const [channel] = await db.select().from(schema.communicationChannels).where(and(eq(schema.communicationChannels.id, row.channelId), eq(schema.communicationChannels.tenantId, row.tenantId), eq(schema.communicationChannels.provider, META_CLOUD_PROVIDER), eq(schema.communicationChannels.status, "active"))).limit(1);
       if (!channel?.phoneNumberId || !channel.accessTokenCiphertext) throw new Error("Canal corporativo incompleto.");
@@ -281,7 +282,8 @@ export async function processMetaOutboundBatch(limit = 10, tenantId?: string, pa
       }
       if (shouldRetry) retried += 1; else failed += 1;
     }
-  }
+  };
+  await runWithConcurrency(rows, 5, processRow);
   if (fallbackQueued > 0 && pass === 0) {
     const next = await processMetaOutboundBatch(Math.min(safeLimit, fallbackQueued), tenantId, 1);
     return { processed: rows.length + next.processed, sent: sent + next.sent, failed: failed + next.failed, retried: retried + next.retried };

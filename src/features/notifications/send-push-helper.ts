@@ -6,6 +6,7 @@ import webpush from "web-push";
 
 import { createLeadOffersForBrokers } from "@/features/lead-distribution/offers";
 import { getDatabase, schema } from "@/shared/db";
+import { runWithConcurrency } from "@/shared/async/run-with-concurrency";
 import { isNotificationCapabilityEnabled } from "./queries";
 import type { NotificationCapabilityId } from "./catalog";
 
@@ -19,7 +20,7 @@ if (vapidPublicKey && vapidPrivateKey) {
 export async function sendNotificationToUser(userId: string, payload: { title: string; body: string; url?: string; tag?: string }) {
   const db = getDatabase();
   const subscriptions = await db.select().from(schema.pushSubscriptions).where(eq(schema.pushSubscriptions.userId, userId));
-  for (const sub of subscriptions) {
+  await runWithConcurrency(subscriptions, 5, async (sub) => {
     try {
       await webpush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, JSON.stringify({
         title: payload.title,
@@ -37,7 +38,7 @@ export async function sendNotificationToUser(userId: string, payload: { title: s
       const statusCode = typeof error === "object" && error !== null && "statusCode" in error ? error.statusCode : undefined;
       if (statusCode === 410) await db.delete(schema.pushSubscriptions).where(eq(schema.pushSubscriptions.id, sub.id));
     }
-  }
+  });
 }
 
 export async function publishNotification(input: {
