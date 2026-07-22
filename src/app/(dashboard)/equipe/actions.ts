@@ -2,16 +2,30 @@
 
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
-import { and, eq, inArray, ne, sql } from "drizzle-orm";
+import { and, eq, inArray, ne, or, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { createTeamUser } from "@/features/team/create-user";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { requireCanCreateRole, requireCanManageMember } from "@/shared/auth/team-permissions";
 import { getDatabase, schema } from "@/shared/db";
-import { generateNextInternalCode } from "@/features/team/onboarding-helpers";
+import { generateNextInternalCode, createBrokerInvitation } from "@/features/team/onboarding-helpers";
+import { enqueueMetaTemplateMessage } from "@/features/communication-channels/outbound-service";
+import { META_CLOUD_PROVIDER } from "@/features/communication-channels/types";
 
-export type TeamActionState = { success?: boolean; error?: string; token?: string; invitationId?: string; whatsappStatus?: "queued" | "not_available" | "failed" };
+// Pending invitations don't have a userId, they use brokerProfileId
+type PendingInvite = {
+  id: string;
+  brokerProfileId: string;
+  email: string;
+  createdAt: Date;
+  expiresAt: Date;
+  deliveryStatus: string | null;
+  phone: string | null;
+  name: string | null;
+};
+
+export type TeamActionState = { success?: boolean; error?: string; token?: string; invitationId?: string; whatsappStatus?: "queued" | "not_available" | "failed" | "sent" };
 
 const memberRole = z.enum(["manager", "broker"]);
 const memberJobTitle = z.enum(schema.teamJobTitleValues);
@@ -189,6 +203,11 @@ export async function toggleTeamMemberStatusAction(
         updatedAt: new Date(),
       }).where(eq(schema.tenantMemberships.id, member.membershipId));
       await tx.insert(schema.auditLogs).values({ id: randomUUID(), userId: context.userId, entidade: "tenant_membership", entidadeId: member.membershipId, acao: nextActive ? "reativou_membro" : "desativou_membro" });
+
+      // Revogar sessões ao desativar membro
+      if (!nextActive) {
+        await tx.delete(schema.session).where(eq(schema.session.userId, member.userId));
+      }
     });
 
     revalidatePath("/equipe");
@@ -225,20 +244,24 @@ export async function deleteTeamMemberAction(
       )
       .limit(1);
 
-    if (!member) {
-      throw new Error("Membro nao encontrado.");
+    if (member) {
+      requireCanManageMember(context, { role: member.role, branchId: member.branchId, userId: member.userId });
+      const [profile] = await db.select({ id: schema.brokerProfiles.id }).from(schema.brokerProfiles).where(and(eq(schema.brokerProfiles.tenantId, context.tenantId), eq(schema.brokerProfiles.userId, member.userId))).limit(1);
+      await db.transaction(async (tx) => {
+        if (profile) await tx.delete(schema.brokerInvitations).where(and(eq(schema.brokerInvitations.tenantId, context.tenantId), eq(schema.brokerInvitations.brokerProfileId, profile.id)));
+        if (profile) await tx.delete(schema.brokerProfiles).where(and(eq(schema.brokerProfiles.id, profile.id), eq(schema.brokerProfiles.tenantId, context.tenantId)));
+        await tx.delete(schema.tenantMemberships).where(and(eq(schema.tenantMemberships.id, member.membershipId), eq(schema.tenantMemberships.tenantId, context.tenantId)));
+        await tx.delete(schema.user).where(eq(schema.user.id, member.userId));
+      });
+    } else {
+      const [profile] = await db.select({ id: schema.brokerProfiles.id, branchId: schema.brokerProfiles.branchId, userId: schema.brokerProfiles.userId }).from(schema.brokerProfiles).where(and(eq(schema.brokerProfiles.id, memberId), eq(schema.brokerProfiles.tenantId, context.tenantId))).limit(1);
+      if (!profile) throw new Error("Membro não encontrado.");
+      requireCanManageMember(context, { role: "broker", branchId: profile.branchId, userId: profile.userId ?? profile.id });
+      await db.transaction(async (tx) => {
+        await tx.delete(schema.brokerInvitations).where(and(eq(schema.brokerInvitations.tenantId, context.tenantId), eq(schema.brokerInvitations.brokerProfileId, profile.id)));
+        await tx.delete(schema.brokerProfiles).where(and(eq(schema.brokerProfiles.id, profile.id), eq(schema.brokerProfiles.tenantId, context.tenantId)));
+      });
     }
-
-    requireCanManageMember(context, {
-      role: member.role,
-      branchId: member.branchId,
-      userId: member.userId,
-    });
-
-    await db.transaction(async (tx) => {
-      await tx.delete(schema.tenantMemberships).where(eq(schema.tenantMemberships.id, member.membershipId));
-      await tx.delete(schema.user).where(eq(schema.user.id, member.userId));
-    });
 
     revalidatePath("/equipe");
     return { success: true };
@@ -307,6 +330,121 @@ export async function transferLeadsAction(
   } catch (e) {
     const message = e instanceof Error ? e.message : "Erro desconhecido ao transferir leads.";
     return { success: false, error: message };
+  }
+}
+
+/** Busca convites pendentes associados a membros sem userId ativo */
+export async function getPendingInvitesAction() {
+  const context = await getRequiredTenantContext();
+  const db = getDatabase();
+  const now = new Date();
+  return db.select({
+    id: schema.brokerInvitations.id,
+    brokerProfileId: schema.brokerInvitations.brokerProfileId,
+    email: schema.brokerInvitations.email,
+    status: schema.brokerInvitations.status,
+    expiresAt: schema.brokerInvitations.expiresAt,
+    deliveryStatus: schema.brokerInvitations.deliveryStatus,
+    createdAt: schema.brokerInvitations.createdAt,
+    name: schema.brokerProfiles.professionalName,
+    phone: schema.brokerProfiles.phone,
+  })
+    .from(schema.brokerInvitations)
+    .innerJoin(schema.brokerProfiles, eq(schema.brokerInvitations.brokerProfileId, schema.brokerProfiles.id))
+    .where(
+      and(
+        eq(schema.brokerInvitations.tenantId, context.tenantId),
+        eq(schema.brokerInvitations.status, "PENDING"),
+      ),
+    )
+    .orderBy(schema.brokerInvitations.createdAt);
+}
+
+export async function resendInviteAction(_prev: TeamActionState, formData: FormData): Promise<TeamActionState> {
+  try {
+    const invitationId = String(formData.get("invitationId") ?? "").trim();
+    const context = await getRequiredTenantContext();
+    const db = getDatabase();
+
+    const [invitation] = await db
+      .select()
+      .from(schema.brokerInvitations)
+      .where(and(or(eq(schema.brokerInvitations.id, invitationId), eq(schema.brokerInvitations.brokerProfileId, invitationId)), eq(schema.brokerInvitations.tenantId, context.tenantId), eq(schema.brokerInvitations.status, "PENDING")))
+      .limit(1);
+
+    if (!invitation) throw new Error("Convite não encontrado.");
+    if (invitation.status !== "PENDING") throw new Error("Este convite não está mais pendente.");
+    if (invitation.expiresAt < new Date()) throw new Error("Convite expirado. Crie um novo acesso.");
+
+    // Criar novo convite (substitui o anterior)
+    const newInvite = await db.transaction(async (tx) => {
+      const result = await createBrokerInvitation(
+        tx,
+        context.tenantId,
+        invitation.branchId,
+        invitation.brokerProfileId,
+        invitation.email,
+        invitation.role as "manager" | "broker",
+        invitation.jobTitle,
+      );
+      // Re-enfileirar envio WhatsApp
+      const [profile] = await tx
+        .select({ phone: schema.brokerProfiles.phone, name: schema.brokerProfiles.professionalName })
+        .from(schema.brokerProfiles)
+        .where(eq(schema.brokerProfiles.id, invitation.brokerProfileId))
+        .limit(1);
+      return { ...result, phone: profile?.phone ?? null, name: profile?.name ?? null };
+    });
+
+    // Tentar enfileirar WhatsApp
+    if (newInvite.phone) {
+      try {
+        const [company] = await db.select({ name: schema.tenants.name }).from(schema.tenants).where(eq(schema.tenants.id, context.tenantId)).limit(1);
+        await enqueueMetaTemplateMessage({
+          tenantId: context.tenantId,
+          recipientType: "user",
+          recipientId: newInvite.id,
+          destinationPhone: newInvite.phone,
+          purpose: "brokerInvitation",
+          variables: [newInvite.name ?? newInvite.id, company?.name ?? "sua corretora", invitation.role === "manager" ? "Gestor" : "Corretor"],
+          requestedBy: context.userId,
+          idempotencyKey: `team-invitation:${newInvite.id}`,
+        });
+      } catch { /* fallback silencioso */ }
+    }
+
+    await db.insert(schema.auditLogs).values({ id: randomUUID(), userId: context.userId, entidade: "broker_invitation", entidadeId: newInvite.id, acao: "reenviou_convite" });
+    revalidatePath("/equipe");
+    return { success: true, token: newInvite.token, invitationId: newInvite.id };
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : "Erro ao reenviar convite." };
+  }
+}
+
+export async function revokeInviteAction(_prev: TeamActionState, formData: FormData): Promise<TeamActionState> {
+  try {
+    const invitationId = String(formData.get("invitationId") ?? "").trim();
+    const context = await getRequiredTenantContext();
+    const db = getDatabase();
+
+    const [invitation] = await db
+      .select({ id: schema.brokerInvitations.id, status: schema.brokerInvitations.status })
+      .from(schema.brokerInvitations)
+      .where(and(or(eq(schema.brokerInvitations.id, invitationId), eq(schema.brokerInvitations.brokerProfileId, invitationId)), eq(schema.brokerInvitations.tenantId, context.tenantId)))
+      .limit(1);
+
+    if (!invitation) throw new Error("Convite não encontrado.");
+
+    await db
+      .update(schema.brokerInvitations)
+      .set({ status: "REVOKED", revokedAt: new Date() })
+      .where(eq(schema.brokerInvitations.id, invitation.id));
+
+    await db.insert(schema.auditLogs).values({ id: randomUUID(), userId: context.userId, entidade: "broker_invitation", entidadeId: invitation.id, acao: "revogou_convite" });
+    revalidatePath("/equipe");
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : "Erro ao revogar convite." };
   }
 }
 

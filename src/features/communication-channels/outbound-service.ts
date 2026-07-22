@@ -89,11 +89,11 @@ async function enqueueBrokerInvitationTextFallback(input: {
   return { id, duplicate: false };
 }
 
-export async function processMetaOutboundBatch(limit = 10) {
+export async function processMetaOutboundBatch(limit = 10, tenantId?: string) {
   const db = getDatabase();
   const safeLimit = Math.min(Math.max(Math.floor(limit), 1), 50);
   const now = new Date();
-  const rows = await db.select().from(schema.whatsappOutboundMessages).where(and(or(eq(schema.whatsappOutboundMessages.status, "queued"), eq(schema.whatsappOutboundMessages.status, "pending")), or(lte(schema.whatsappOutboundMessages.scheduledAt, now), isNull(schema.whatsappOutboundMessages.scheduledAt)), or(lte(schema.whatsappOutboundMessages.nextAttemptAt, now), isNull(schema.whatsappOutboundMessages.nextAttemptAt)))).limit(safeLimit);
+  const rows = await db.select().from(schema.whatsappOutboundMessages).where(and(tenantId ? eq(schema.whatsappOutboundMessages.tenantId, tenantId) : undefined, or(eq(schema.whatsappOutboundMessages.status, "queued"), eq(schema.whatsappOutboundMessages.status, "pending")), or(lte(schema.whatsappOutboundMessages.scheduledAt, now), isNull(schema.whatsappOutboundMessages.scheduledAt)), or(lte(schema.whatsappOutboundMessages.nextAttemptAt, now), isNull(schema.whatsappOutboundMessages.nextAttemptAt)))).limit(safeLimit);
   let sent = 0;
   let failed = 0;
   let retried = 0;

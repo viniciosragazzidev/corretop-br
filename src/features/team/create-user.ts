@@ -8,7 +8,7 @@ import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { requireCanCreateRole } from "@/shared/auth/team-permissions";
 import { getDatabase, schema } from "@/shared/db";
 import { generateNextInternalCode, createBrokerInvitation } from "./onboarding-helpers";
-import { enqueueMetaTemplateMessage } from "@/features/communication-channels/outbound-service";
+import { enqueueMetaTemplateMessage, processMetaOutboundBatch } from "@/features/communication-channels/outbound-service";
 import { META_CLOUD_PROVIDER } from "@/features/communication-channels/types";
 
 const createUserInput = z.object({
@@ -114,7 +114,7 @@ export async function createTeamUser(rawInput: unknown) {
     });
   });
 
-  let whatsappStatus: "queued" | "not_available" | "failed" = "not_available";
+  let whatsappStatus: "queued" | "not_available" | "failed" | "sent" = "not_available";
   try {
     const [channel] = await db.select({ id: schema.communicationChannels.id }).from(schema.communicationChannels).where(and(
       eq(schema.communicationChannels.tenantId, context.tenantId),
@@ -137,6 +137,17 @@ export async function createTeamUser(rawInput: unknown) {
       });
       whatsappStatus = queued.duplicate || queued.status === "queued" ? "queued" : "failed";
       await db.update(schema.brokerInvitations).set({ deliveryStatus: whatsappStatus === "queued" ? "queued" : "failed" }).where(eq(schema.brokerInvitations.id, invitationId));
+      // Process the newly queued message immediately. The scheduled job remains
+      // the recovery path, but Vercel Hobby can run it only once per day.
+      try {
+        const firstAttempt = await processMetaOutboundBatch(10, context.tenantId);
+        if (firstAttempt.failed > 0) await processMetaOutboundBatch(10, context.tenantId);
+      } catch {
+        // Keep the invitation queued; the protected worker will retry it later.
+      }
+      const [delivery] = await db.select({ status: schema.brokerInvitations.deliveryStatus }).from(schema.brokerInvitations).where(and(eq(schema.brokerInvitations.id, invitationId), eq(schema.brokerInvitations.tenantId, context.tenantId))).limit(1);
+      if (delivery?.status === "sent") whatsappStatus = "sent";
+      else if (delivery?.status === "failed") whatsappStatus = "failed";
     } else {
       await db.update(schema.brokerInvitations).set({ deliveryStatus: "not_available" }).where(eq(schema.brokerInvitations.id, invitationId));
     }
