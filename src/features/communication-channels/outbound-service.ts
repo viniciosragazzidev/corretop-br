@@ -135,6 +135,16 @@ export async function processMetaOutboundBatch(limit = 10, tenantId?: string) {
       const transient = error instanceof MetaCloudApiError && (error.status === 408 || error.status === 409 || error.status === 429 || error.status >= 500);
       const shouldRetry = transient && row.attempts + 1 < 5;
       const safeCode = error instanceof MetaCloudApiError && error.code ? String(error.code) : "outbound_delivery_failed";
+      console.error("[whatsapp/outbound] delivery failed", {
+        messageId: row.id,
+        tenantId: row.tenantId,
+        purpose: row.purpose,
+        messageType: row.messageType,
+        status: error instanceof MetaCloudApiError ? error.status : undefined,
+        code: safeCode,
+        attempt: row.attempts + 1,
+        retrying: shouldRetry,
+      });
       const nextAttemptAt = shouldRetry ? new Date(Date.now() + Math.min(3_600_000, 30_000 * 2 ** row.attempts)) : null;
       await db.update(schema.whatsappOutboundMessages).set({ status: shouldRetry ? "queued" : "failed", nextAttemptAt, failedAt: shouldRetry ? null : new Date(), providerErrorCode: safeCode, providerErrorMessage: "Falha de entrega; consulte o histórico operacional.", updatedAt: new Date() }).where(eq(schema.whatsappOutboundMessages.id, row.id));
       const templateDidNotRespond = error instanceof Error && error.message.includes("identificador");

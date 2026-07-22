@@ -10,7 +10,7 @@ import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { requireCanCreateRole, requireCanManageMember } from "@/shared/auth/team-permissions";
 import { getDatabase, schema } from "@/shared/db";
 import { generateNextInternalCode, createBrokerInvitation } from "@/features/team/onboarding-helpers";
-import { enqueueMetaTemplateMessage } from "@/features/communication-channels/outbound-service";
+import { enqueueMetaTemplateMessage, processMetaOutboundBatch } from "@/features/communication-channels/outbound-service";
 import { META_CLOUD_PROVIDER } from "@/features/communication-channels/types";
 
 // Pending invitations don't have a userId, they use brokerProfileId
@@ -397,10 +397,11 @@ export async function resendInviteAction(_prev: TeamActionState, formData: FormD
     });
 
     // Tentar enfileirar WhatsApp
+    let whatsappStatus: TeamActionState["whatsappStatus"] = "not_available";
     if (newInvite.phone) {
       try {
         const [company] = await db.select({ name: schema.tenants.name }).from(schema.tenants).where(eq(schema.tenants.id, context.tenantId)).limit(1);
-        await enqueueMetaTemplateMessage({
+        const queued = await enqueueMetaTemplateMessage({
           tenantId: context.tenantId,
           recipientType: "user",
           recipientId: newInvite.id,
@@ -410,12 +411,31 @@ export async function resendInviteAction(_prev: TeamActionState, formData: FormD
           requestedBy: context.userId,
           idempotencyKey: `team-invitation:${newInvite.id}`,
         });
-      } catch { /* fallback silencioso */ }
+        whatsappStatus = queued.duplicate || queued.status === "queued" ? "queued" : "failed";
+        await processMetaOutboundBatch(10, context.tenantId);
+        // A failed approved-template attempt can enqueue the text fallback.
+        // Process that fallback in the same request instead of waiting for cron.
+        const [delivery] = await db
+          .select({ status: schema.brokerInvitations.deliveryStatus })
+          .from(schema.brokerInvitations)
+          .where(and(eq(schema.brokerInvitations.id, newInvite.id), eq(schema.brokerInvitations.tenantId, context.tenantId)))
+          .limit(1);
+        if (delivery?.status === "queued") await processMetaOutboundBatch(10, context.tenantId);
+        const [finalDelivery] = await db
+          .select({ status: schema.brokerInvitations.deliveryStatus })
+          .from(schema.brokerInvitations)
+          .where(and(eq(schema.brokerInvitations.id, newInvite.id), eq(schema.brokerInvitations.tenantId, context.tenantId)))
+          .limit(1);
+        if (finalDelivery?.status === "sent") whatsappStatus = "sent";
+        else if (finalDelivery?.status === "failed") whatsappStatus = "failed";
+      } catch {
+        whatsappStatus = "failed";
+      }
     }
 
     await db.insert(schema.auditLogs).values({ id: randomUUID(), userId: context.userId, entidade: "broker_invitation", entidadeId: newInvite.id, acao: "reenviou_convite" });
     revalidatePath("/equipe");
-    return { success: true, token: newInvite.token, invitationId: newInvite.id };
+    return { success: true, token: newInvite.token, invitationId: newInvite.id, whatsappStatus };
   } catch (e) {
     return { success: false, error: e instanceof Error ? e.message : "Erro ao reenviar convite." };
   }

@@ -12,7 +12,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { deleteTeamMemberAction, toggleTeamMemberStatusAction, updateTeamMemberAction, transferLeadsAction, type TeamActionState } from "./actions";
+import { deleteTeamMemberAction, toggleTeamMemberStatusAction, updateTeamMemberAction, transferLeadsAction, resendInviteAction, revokeInviteAction, type TeamActionState } from "./actions";
 
 type BranchOption = { id: string; name: string };
 type TeamMember = {
@@ -317,6 +317,7 @@ export function TeamMemberActions({
     TeamActionState,
     FormData
   >(toggleTeamMemberStatusAction, {});
+  const [resendState, resendAction, resendPending] = useActionState<TeamActionState, FormData>(resendInviteAction, {});
   const router = useRouter();
 
   useEffect(() => {
@@ -331,10 +332,26 @@ export function TeamMemberActions({
     if (toggleState.error) toast.error(toggleState.error);
   }, [member.status, router, toggleState.error, toggleState.success]);
 
+  useEffect(() => {
+    if (resendState.success) {
+      const message = resendState.whatsappStatus === "sent"
+        ? "A mensagem foi enviada pelo WhatsApp corporativo."
+        : resendState.whatsappStatus === "failed"
+          ? "O convite foi recriado, mas a Meta recusou o envio. Use o link gerado no perfil do membro."
+          : resendState.whatsappStatus === "queued"
+            ? "O convite foi colocado na fila de envio do WhatsApp."
+            : "O convite foi recriado. Envie o link manualmente se necessário.";
+      toast.success("Convite processado.", { description: message });
+      router.refresh();
+    }
+    if (resendState.error) toast.error(resendState.error);
+  }, [resendState, router]);
+
   const canEdit = currentUserId !== member.userId && member.role !== "director";
   const canDelete = canEdit;
   const canToggle = canEdit;
   const toggleLabel = member.status === "active" ? "Desativar" : "Ativar";
+  const canManageInvite = canEdit && (member.role === "broker" || member.role === "manager");
 
   return (
     <>
@@ -377,7 +394,34 @@ export function TeamMemberActions({
             }
           />
           <DropdownMenuContent align="end" className="w-48">
-            {member.role === "broker" ? (
+            {member.status === "pending" && canManageInvite ? (
+              <>
+                <DropdownMenuItem onClick={() => {
+                  const fd = new FormData();
+                  fd.set("invitationId", member.id);
+                  resendAction(fd);
+                }} disabled={resendPending}>
+                  <UserSwitch size={15} />
+                  Reenviar convite
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={async () => {
+                  const fd = new FormData();
+                  fd.set("invitationId", member.id);
+                  const result = await revokeInviteAction({ success: false }, fd);
+                  if (result.success) {
+                    toast.success("Convite revogado.");
+                    router.refresh();
+                  } else {
+                    toast.error(result.error ?? "Erro ao revogar convite.");
+                  }
+                }} variant="destructive">
+                  <Trash size={15} />
+                  Revogar convite
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            ) : null}
+            {member.role === "broker" && member.userId ? (
               <DropdownMenuItem
                 onClick={() => setTransferOpen(true)}
               >
