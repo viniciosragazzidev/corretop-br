@@ -35,7 +35,7 @@ export async function createLeadOffersForBrokers(input: {
       id: schema.leads.id,
       nome: schema.leads.nome,
       branchId: schema.leads.branchId,
-      tipoLead: schema.leads.tipoLead,
+      tipo: schema.leads.tipo,
     })
     .from(schema.leads)
     .where(and(eq(schema.leads.id, input.leadId), eq(schema.leads.tenantId, input.tenantId)))
@@ -52,23 +52,23 @@ export async function createLeadOffersForBrokers(input: {
 
   const [tenant] = await db.select({ name: schema.tenants.name }).from(schema.tenants).where(eq(schema.tenants.id, input.tenantId)).limit(1);
   const companyName = tenant?.name || "CorreTop";
-  const leadTypeLabel = lead.tipoLead === "pme" ? "PME" : lead.tipoLead === "pj" ? "Empresarial" : "Pessoa Física";
+  const leadTypeLabel = lead.tipo === "pme" ? "PME" : lead.tipo === "pj" ? "Empresarial" : "Pessoa Física";
 
   // 2. Fetch brokers info
   const brokers = await db
     .select({
       id: schema.user.id,
       name: schema.user.name,
-      phone: schema.user.phone,
-      telefone: schema.user.telefone,
+      phone: schema.brokerProfiles.phone,
     })
     .from(schema.user)
+    .leftJoin(schema.brokerProfiles, eq(schema.brokerProfiles.userId, schema.user.id))
     .where(inArray(schema.user.id, input.brokerIds));
 
   const createdOffers: Array<{ offerId: string; brokerId: string; whatsappMessageId?: string }> = [];
 
   for (const broker of brokers) {
-    const destinationPhone = broker.phone || broker.telefone;
+    const destinationPhone = broker.phone;
     if (!destinationPhone) continue;
 
     const offerId = randomUUID();
@@ -137,14 +137,14 @@ export async function handleLeadOfferWebhookResponse(input: {
     .select({
       id: schema.user.id,
       name: schema.user.name,
-      phone: schema.user.phone,
-      telefone: schema.user.telefone,
+      phone: schema.brokerProfiles.phone,
     })
     .from(schema.tenantMemberships)
     .innerJoin(schema.user, eq(schema.tenantMemberships.userId, schema.user.id))
+    .leftJoin(schema.brokerProfiles, eq(schema.brokerProfiles.userId, schema.user.id))
     .where(and(eq(schema.tenantMemberships.tenantId, input.tenantId), eq(schema.tenantMemberships.role, "broker")));
 
-  const broker = allUsers.find((u) => samePhone(u.phone || u.telefone || "", phone));
+  const broker = allUsers.find((u) => u.phone && samePhone(u.phone, phone));
   if (!broker) return { processed: false, reason: "broker_not_found" };
 
   // 2. Find matching offer for this broker
@@ -219,7 +219,7 @@ export async function handleLeadOfferWebhookResponse(input: {
         id: schema.leads.id,
         nome: schema.leads.nome,
         telefone: schema.leads.telefone,
-        tipoLead: schema.leads.tipoLead,
+        tipo: schema.leads.tipo,
         corretorId: schema.leads.corretorId,
         branchId: schema.leads.branchId,
         queueId: schema.leads.queueId,
@@ -301,20 +301,22 @@ export async function handleLeadOfferWebhookResponse(input: {
 
   if (result.won && result.lead && result.broker) {
     const brokerName = result.broker.name || "Corretor(a)";
-    const leadTypeLabel = result.lead.tipoLead === "pme" ? "PME" : result.lead.tipoLead === "pj" ? "Empresarial" : "Pessoa Física";
+    const leadTypeLabel = result.lead.tipo === "pme" ? "PME" : result.lead.tipo === "pj" ? "Empresarial" : "Pessoa Física";
 
     // Enqueue confirmation template: lead_assignment_confirmed
     // Variables: {{nome_corretor}}, {{nome_cliente}}, {{telefone_cliente}}, {{tipo_lead}}, {{lead_id}}
-    await enqueueMetaTemplateMessage({
-      tenantId: input.tenantId,
-      recipientType: "user",
-      recipientId: result.broker.id,
-      destinationPhone: broker.phone || broker.telefone || input.phone,
-      purpose: "leadAssignmentConfirmed",
-      variables: [brokerName, result.lead.nome, result.lead.telefone, leadTypeLabel, result.lead.id],
-      requestedBy: broker.id,
-      idempotencyKey: `lead-confirmed:${result.lead.id}:${result.broker.id}`,
-    });
+    if (result.broker.phone) {
+      await enqueueMetaTemplateMessage({
+        tenantId: input.tenantId,
+        recipientType: "user",
+        recipientId: result.broker.id,
+        destinationPhone: result.broker.phone,
+        purpose: "leadAssignmentConfirmed",
+        variables: [brokerName, result.lead.nome, result.lead.telefone, leadTypeLabel, result.lead.id],
+        requestedBy: broker.id,
+        idempotencyKey: `lead-confirmed:${result.lead.id}:${result.broker.id}`,
+      });
+    }
 
     // Notify other candidate brokers that lead was assigned to someone else
     const losingOffers = await db
@@ -324,17 +326,22 @@ export async function handleLeadOfferWebhookResponse(input: {
 
     for (const losingOffer of losingOffers) {
       const [losingBroker] = await db
-        .select({ id: schema.user.id, name: schema.user.name, phone: schema.user.phone, telefone: schema.user.telefone })
+        .select({
+          id: schema.user.id,
+          name: schema.user.name,
+          phone: schema.brokerProfiles.phone,
+        })
         .from(schema.user)
+        .leftJoin(schema.brokerProfiles, eq(schema.brokerProfiles.userId, schema.user.id))
         .where(eq(schema.user.id, losingOffer.brokerId))
         .limit(1);
 
-      if (losingBroker && (losingBroker.phone || losingBroker.telefone)) {
+      if (losingBroker && losingBroker.phone) {
         await enqueueMetaTemplateMessage({
           tenantId: input.tenantId,
           recipientType: "user",
           recipientId: losingBroker.id,
-          destinationPhone: losingBroker.phone || losingBroker.telefone!,
+          destinationPhone: losingBroker.phone,
           purpose: "leadAssignmentUnavailable",
           variables: [losingBroker.name || "Corretor(a)"],
           requestedBy: broker.id,
@@ -347,7 +354,7 @@ export async function handleLeadOfferWebhookResponse(input: {
   } else {
     // Send unavailable template to broker who lost the dispute
     const brokerName = broker.name || "Corretor(a)";
-    const destPhone = broker.phone || broker.telefone || input.phone;
+    const destPhone = broker.phone || input.phone;
 
     await enqueueMetaTemplateMessage({
       tenantId: input.tenantId,
@@ -397,17 +404,22 @@ export async function expireOutdatedLeadOffers(tenantId?: string) {
       expiredCount += 1;
 
       const [broker] = await db
-        .select({ id: schema.user.id, name: schema.user.name, phone: schema.user.phone, telefone: schema.user.telefone })
+        .select({
+          id: schema.user.id,
+          name: schema.user.name,
+          phone: schema.brokerProfiles.phone,
+        })
         .from(schema.user)
+        .leftJoin(schema.brokerProfiles, eq(schema.brokerProfiles.userId, schema.user.id))
         .where(eq(schema.user.id, offer.brokerId))
         .limit(1);
 
-      if (broker && (broker.phone || broker.telefone)) {
+      if (broker && broker.phone) {
         await enqueueMetaTemplateMessage({
           tenantId: offer.tenantId,
           recipientType: "user",
           recipientId: broker.id,
-          destinationPhone: broker.phone || broker.telefone!,
+          destinationPhone: broker.phone,
           purpose: "leadAssignmentExpired",
           variables: [broker.name || "Corretor(a)"],
           requestedBy: "system",

@@ -14,6 +14,12 @@ export type MetaWebhookMessage = {
   timestamp?: string;
   type?: string;
   text?: { body?: string };
+  button?: { text?: string; payload?: string };
+  interactive?: {
+    type?: string;
+    button_reply?: { id?: string; title?: string };
+  };
+  context?: { id?: string };
 };
 
 export type MetaWebhookStatus = {

@@ -5,16 +5,54 @@ import { and, eq } from "drizzle-orm";
 
 import { getDatabase, schema } from "@/shared/db";
 import { handleLeadOfferWebhookResponse } from "@/features/lead-distribution/offers";
+import { decryptChannelSecret } from "./secret-crypto";
+import { sendMetaCloudText } from "./meta-cloud-client";
+import { getMetaCloudServerConfig } from "./meta-cloud-config";
 import { META_CLOUD_PROVIDER } from "./types";
 import type { MetaWebhookPayload } from "./types";
 
 export async function isMetaCloudWhatsAppEnabled() {
   const [row] = await getDatabase()
-    .select({ disabled: schema.systemSettings.disabled })
+    .select({ value: schema.systemSettings.value })
     .from(schema.systemSettings)
     .where(eq(schema.systemSettings.key, "feature_whatsapp_meta_cloud_enabled"))
     .limit(1);
-  return row ? !row.disabled : true;
+  return row ? row.value !== "false" && row.value !== "disabled" : true;
+}
+
+export async function getPreferredMetaCloudChannel(input: { tenantId: string; branchId?: string | null; userId?: string | null }) {
+  const db = getDatabase();
+  const [channel] = await db
+    .select()
+    .from(schema.communicationChannels)
+    .where(
+      and(
+        eq(schema.communicationChannels.tenantId, input.tenantId),
+        eq(schema.communicationChannels.provider, META_CLOUD_PROVIDER),
+        eq(schema.communicationChannels.status, "active"),
+      ),
+    )
+    .limit(1);
+  return channel ?? null;
+}
+
+export async function sendMetaCloudChannelText(input: { channel: typeof schema.communicationChannels.$inferSelect; to: string; body: string }) {
+  if (!input.channel.phoneNumberId || !input.channel.accessTokenCiphertext) {
+    throw new Error("Canal corporativo incompleto.");
+  }
+  const accessToken = decryptChannelSecret(
+    input.channel.accessTokenCiphertext,
+    getMetaCloudServerConfig().tokenEncryptionKey,
+  );
+  const response = await sendMetaCloudText({
+    phoneNumberId: input.channel.phoneNumberId,
+    accessToken,
+    to: input.to,
+    body: input.body,
+  });
+  const messageId = response.messages?.[0]?.id;
+  if (!messageId) throw new Error("A Meta não retornou o ID da mensagem.");
+  return { messageId };
 }
 
 function normalizePhone(phone: string) {
