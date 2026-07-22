@@ -183,6 +183,20 @@
       "when": 1784815900000,
       "tag": "0073_whatsapp_invite_text_fallback",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1784900000000,
+      "tag": "0074_password_reset_requests",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1784900100000,
+      "tag": "0075_add_invitation_revoked_at",
+      "breakpoints": true
     }
   ]
 }
