@@ -101,7 +101,7 @@ export default async function SuperAdminSettingsPage() {
         </Card>
 
         <Card className="border-border bg-card shadow-none">
-          <CardHeader><CardTitle>Onboarding por rota</CardTitle><CardDescription>ApresentaÃ§Ãµes contextuais aparecem uma vez por usuÃ¡rio e rota. O estado Ã© persistido por corretora, pode ser reiniciado pela central administrativa e toda alteraÃ§Ã£o fica auditada.</CardDescription></CardHeader>
+          <CardHeader><CardTitle>Onboarding por rota</CardTitle><CardDescription>Apresentações contextuais aparecem uma vez por usuário e rota. O estado é persistido por corretora, pode ser reiniciado pela central administrativa e toda alteração fica auditada.</CardDescription></CardHeader>
           <CardContent>
             <form action={setRouteOnboardingGlobalAction} className="flex flex-wrap items-center justify-between gap-4">
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="enabled" value="true" defaultChecked={routeOnboardingEnabled} className="size-4 warning-[var(--primary)]" /><span><span className="font-medium">Onboarding de rotas habilitado</span><span className="block text-xs text-muted-foreground">Desative temporariamente sem apagar progresso nem auditoria.</span></span></label>

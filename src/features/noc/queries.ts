@@ -575,14 +575,14 @@ async function getBranchHealth(context: TenantContext): Promise<BranchHealth[]> 
     const status = !branch.acceptingLeads
       ? { health: "attention" as const, healthReason: "Recebimento de leads pausado" }
       : slaRiskLeads > 0
-        ? { health: "critical" as const, healthReason: `${slaRiskLeads} lead(s) fora do SLA de 1Âº contato` }
+        ? { health: "critical" as const, healthReason: `${slaRiskLeads} lead(s) fora do SLA de 1º contato` }
         : unassignedLeads > 0
           ? { health: "attention" as const, healthReason: `${unassignedLeads} lead(s) aguardando corretor` }
           : totalBrokers === 0
             ? { health: "attention" as const, healthReason: "Nenhum corretor ativo na unidade" }
             : availableBrokers === 0
-              ? { health: "attention" as const, healthReason: "Nenhum corretor disponÃ­vel agora" }
-              : { health: "healthy" as const, healthReason: "OperaÃ§Ã£o dentro dos indicadores acompanhados" };
+              ? { health: "attention" as const, healthReason: "Nenhum corretor disponível agora" }
+              : { health: "healthy" as const, healthReason: "Operação dentro dos indicadores acompanhados" };
 
     return { id: branch.id, name: branch.name, acceptingLeads: branch.acceptingLeads, leadsToday, activeAttendances, unassignedLeads, slaRiskLeads, availableBrokers, totalBrokers, ...status };
   });

@@ -414,7 +414,7 @@ function MessageBubble({ message }: { message: ConversationMessage }) {
   const outgoing = message.direction === "outgoing";
 
   return (
-    <article className={cn("flex", outgoing ? "justify-end" : "justify-start")}>
+    <article className={cn("flex", outgoing ? "justify-end" : "justify-center")}>
       <div className={cn("max-w-[84%] rounded-xl border px-3 py-2.5 sm:max-w-[74%]", outgoing ? "border-primary/15 bg-primary/[0.08]" : "border-border bg-card")}>
         <p className="whitespace-pre-wrap break-words text-sm leading-6 text-foreground">{message.body}</p>
         <div className={cn("mt-1.5 flex items-center gap-1.5 text-[11px] text-muted-foreground", outgoing && "justify-end")}>
@@ -525,16 +525,16 @@ function ClientProfile({ client }: { client: ConversationItem }) {
       <ScrollArea className="min-h-0 flex-1">
         <div className="space-y-5 p-4">
           <ProfileSection title="Próximas ações">
-            <div className="grid gap-2">
-              <Button className="w-full justify-start" render={<a href="https://cotadorsimplificado.com.br/" rel="noreferrer" target="_blank" />} size="sm">
+            <div className="grid gap-2 grid-cols-2">
+              <Button className="w-full justify-center" render={<a href="https://cotadorsimplificado.com.br/" rel="noreferrer" target="_blank" />} size="sm">
                 <Calculator />
                 Nova cotação
               </Button>
-              <Button className="w-full justify-start" render={<Link href={`/leads/${client.id}`} />} size="sm" variant="outline">
+              <Button className="w-full justify-center" render={<Link href={`/leads/${client.id}`} />} size="sm" variant="outline">
                 <FileText />
                 Ver tarefas e documentos
               </Button>
-              <Button className="w-full justify-start" render={<Link href={`/leads/${client.id}#documentos`} />} size="sm" variant="ghost">
+              <Button className="w-full justify-center" render={<Link href={`/leads/${client.id}#documentos`} />} size="sm" variant="ghost">
                 <FileText />
                 Adicionar documento
               </Button>

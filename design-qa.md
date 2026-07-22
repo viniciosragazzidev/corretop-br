@@ -89,11 +89,11 @@ passed
 
 ## Refinamento visual (14/07/2026)
 
-- Hierarquia de textos ajustada: tÃ­tulos operacionais em 14px/semibold, metadados em 12px e rÃ³tulos de grupos em 11px com espaÃ§amento de leitura consistente.
-- A conversa selecionada agora possui um marcador interno de estado, sem depender apenas da cor; prÃ©vias e datas usam limites e nÃºmeros tabulares para evitar sobreposiÃ§Ã£o.
-- O perfil lateral recebeu ritmo vertical, seÃ§Ãµes e pares rÃ³tulo/valor mais claros. O estado vazio tambÃ©m passou a orientar a primeira aÃ§Ã£o.
-- O painel de planos usa a transiÃ§Ã£o compartilhada `t-panel-slide`, com fallback para `prefers-reduced-motion`; a central nÃ£o cria imagens de pessoas sem um ativo autorizado pelo domÃ­nio.
-- VerificaÃ§Ã£o: lint especÃ­fico e build de produÃ§Ã£o concluÃ­dos sem erros.
+- Hierarquia de textos ajustada: títulos operacionais em 14px/semibold, metadados em 12px e rótulos de grupos em 11px com espaçamento de leitura consistente.
+- A conversa selecionada agora possui um marcador interno de estado, sem depender apenas da cor; prévias e datas usam limites e números tabulares para evitar sobreposição.
+- O perfil lateral recebeu ritmo vertical, seções e pares rótulo/valor mais claros. O estado vazio também passou a orientar a primeira ação.
+- O painel de planos usa a transição compartilhada `t-panel-slide`, com fallback para `prefers-reduced-motion`; a central não cria imagens de pessoas sem um ativo autorizado pelo domínio.
+- Verificação: lint específico e build de produção concluídos sem erros.
 
 ## Ajuste de densidade e viewport (14/07/2026)
 

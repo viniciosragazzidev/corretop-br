@@ -56,6 +56,8 @@ export function MarketingImportClient({ branches, history, lastImport, role, bra
     const r = response as { importId: string; imported: number; duplicates: number; invalid: number; durationMs: number; errors: Array<{ row: number; message: string }> };
     setResult({ importId: r.importId, imported: r.imported, duplicates: r.duplicates, invalid: r.invalid, durationMs: r.durationMs, errors: r.errors });
     toast.success(`${r.imported} lead(s) importado(s)!`);
+    if (r.duplicates > 0) toast.info(`${r.duplicates} lead(s) duplicado(s) ignorado(s).`);
+    if (r.invalid > 0) toast.warning(`${r.invalid} linha(s) inválida(s) — verifique o resumo para mais detalhes.`);
     setFile(null);
     if (inputRef.current) inputRef.current.value = "";
   }
@@ -148,7 +150,7 @@ export function MarketingImportClient({ branches, history, lastImport, role, bra
             {canChooseBranch && (
               <div className="grid gap-2">
                 <label className="text-sm font-medium">Unidade de destino</label>
-                <Select value={branchId} onValueChange={(v) => setBranchId(v ?? "")}>
+                <Select value={branchId} labels={Object.fromEntries(branches.map((b) => [b.id, b.name]))} onValueChange={(v) => setBranchId(v ?? "")}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione uma unidade" />
                   </SelectTrigger>

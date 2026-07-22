@@ -201,6 +201,7 @@
 html,
 body {
   min-height: 100%;
+  font-size: 14px;
 }
 
 body {
@@ -456,11 +457,11 @@ body {
 }
 
 .ct-toaster [data-sonner-toast].ct-toast {
-  width: min(24rem, calc(100vw - 2rem));
+  width: min(20rem, calc(100vw - 2rem));
   min-height: 0;
   align-items: flex-start;
   gap: 0.75rem;
-  padding: 1rem 1.125rem;
+  padding: 1.25rem;
   color: var(--popover-foreground);
   background: color-mix(in srgb, var(--popover) 92%, transparent);
   border: 1px solid var(--border);
@@ -520,7 +521,7 @@ body {
 .ct-toaster .ct-toast__title {
   padding-right: 1.25rem;
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   line-height: 1.35;
@@ -529,9 +530,8 @@ body {
 
 .ct-toaster .ct-toast__description {
   color: var(--muted-foreground);
-  font-size: 0.875rem;
-  line-height: 1.45;
-  overflow-wrap: anywhere;
+  font-size: 0.75rem;
+  line-height: 1.5;
 }
 
 .ct-toaster .ct-toast__close {

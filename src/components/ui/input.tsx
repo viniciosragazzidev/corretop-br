@@ -52,9 +52,12 @@ function Input({
   ...props
 }: InputProps) {
   // ── Detecção automática de formato ──────────────────────────────────────────
+  // ⚠️ Inputs type="date" não podem ter formatação automática: o browser
+  // espera valor em YYYY-MM-DD, mas a formatação "date" converte para DD/MM/AAAA,
+  // quebrando o date picker nativo.
   const formatType = useMemo(
-    () => formatProp ?? detectFormat(id, name),
-    [formatProp, id, name],
+    () => type === "date" ? "none" : (formatProp ?? detectFormat(id, name)),
+    [formatProp, id, name, type],
   );
 
   const needsFormatting = formatType !== "none";

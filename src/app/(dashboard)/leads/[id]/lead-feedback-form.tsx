@@ -72,7 +72,7 @@ export function LeadFeedbackForm({ leadId }: { leadId: string }) {
 
           <div className="grid gap-2">
             <Label>O que aconteceu?</Label>
-            <Select defaultValue="contacted" name="type" onValueChange={(value) => setFeedbackType(value ?? "contacted")}>
+            <Select defaultValue="contacted" name="type" labels={Object.fromEntries(feedbackTypes.map(([v, l]) => [v, l]))} onValueChange={(value) => setFeedbackType(value ?? "contacted")}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 {feedbackTypes.map(([value, label]) => (

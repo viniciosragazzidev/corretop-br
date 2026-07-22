@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { Calculator, Plus, Trash } from "@/components/huge-icons";
 import { Button } from "@/components/ui/button";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -216,14 +217,11 @@ export function QuoteBuilder({
                   <div className="flex gap-2">
                     <div className="flex-1">
                       <Label className="text-[10px] text-muted-foreground">Valor mensal</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
+                      <CurrencyInput
                         className="h-8 text-xs"
-                        value={item.monthlyPrice || ""}
-                        onChange={(e) => updateItem(index, "monthlyPrice", parseFloat(e.target.value) || 0)}
-                        placeholder="0,00"
+                        value={String(item.monthlyPrice || "")}
+                        onChange={(v) => updateItem(index, "monthlyPrice", parseFloat(v) || 0)}
+                        placeholder="R$ 0,00"
                       />
                     </div>
                     <div className="flex items-end">
@@ -284,14 +282,11 @@ export function QuoteBuilder({
                     <div className="flex gap-2">
                       <div className="flex-1">
                         <Label className="text-[10px] text-muted-foreground">Valor mensal</Label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
+                        <CurrencyInput
                           className="h-8 text-xs"
-                          value={item.calculatedValue || ""}
-                          onChange={(e) => updateLineItem(index, "calculatedValue", parseFloat(e.target.value) || 0)}
-                          placeholder="0,00"
+                          value={String(item.calculatedValue || "")}
+                          onChange={(v) => updateLineItem(index, "calculatedValue", parseFloat(v) || 0)}
+                          placeholder="R$ 0,00"
                         />
                       </div>
                       <div className="w-20">

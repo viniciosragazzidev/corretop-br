@@ -407,7 +407,7 @@ export function CustomTableBuilder({
                 <Label className="text-[10px] font-bold text-muted-foreground uppercase">
                   Abrangência
                 </Label>
-                <Select value={cobertura} onValueChange={(val) => setCobertura(val ?? "todas")}>
+                <Select value={cobertura} labels={Object.fromEntries(COBERTURA_OPTIONS.map((o) => [o.value, o.label]))} onValueChange={(val) => setCobertura(val ?? "todas")}>
                   <SelectTrigger className="h-10 w-full text-xs">
                     <SelectValue placeholder="Filtrar por abrangência" />
                   </SelectTrigger>
@@ -428,6 +428,7 @@ export function CustomTableBuilder({
                 </Label>
                 <Select
                   value={coparticipacao}
+                  labels={Object.fromEntries(COPART_OPTIONS.map((o) => [o.value, o.label]))}
                   onValueChange={(val) => setCoparticipacao(val ?? "todos")}
                 >
                   <SelectTrigger className="h-10 w-full text-xs">

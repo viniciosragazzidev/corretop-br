@@ -308,7 +308,7 @@ export function InlineFeedbackForm({ leadId, onSuccess }: { leadId: string; onSu
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="grid gap-1.5">
           <Label className="text-xs font-medium">O que aconteceu?</Label>
-          <Select defaultValue="contacted" name="type" onValueChange={(value) => setFeedbackType(value ?? "contacted")}>
+          <Select defaultValue="contacted" name="type" labels={Object.fromEntries(feedbackTypes.map(([v, l]) => [v, l]))} onValueChange={(value) => setFeedbackType(value ?? "contacted")}>
             <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
               {feedbackTypes.map(([value, label]) => (

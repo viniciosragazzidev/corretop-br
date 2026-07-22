@@ -62,7 +62,7 @@ function SelectValue({ className, children, placeholder, ...props }: SelectPrimi
             if (value === null || value === undefined || value === "") {
               return placeholder ?? null
             }
-            return context.labels.get(value) ?? value
+            return context.labels.get(value) ?? placeholder ?? null
           }
         }
         : { children })}

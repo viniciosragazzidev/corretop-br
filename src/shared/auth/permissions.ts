@@ -60,7 +60,7 @@ export const PERMISSIONS = {
   gerenciar_materiais_divulgacao: ["director"],
   importar_planilhas: ["manager", "director"],
   importar_leads_meta: ["director"],
-  ver_importacoes_meta: ["director", "broker"],
+  ver_importacoes_meta: ["director"],
   acessar_ferramentas_vendas: ["broker", "manager", "director"],
 } as const satisfies Record<string, readonly TenantRole[]>;
 

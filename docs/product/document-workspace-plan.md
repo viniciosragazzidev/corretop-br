@@ -10,7 +10,7 @@ Documentos são opcionais. O checklist orienta o corretor, mas não bloqueia ate
 - Detalhe do lead sempre acessível, inclusive após distribuição.
 - Atalho contextual na lateral de Conversas para anexar documentos.
 - Interface separa documentos por titular e dependentes, inclusive para documentos avulsos.
-- Armazenamento de produÃ§Ã£o em bucket privado; o disco efÃªmero do deploy nÃ£o Ã© usado.
+- Armazenamento de produção em bucket privado; o disco efêmero do deploy não é usado.
 
 ## Próxima camada de produção
 

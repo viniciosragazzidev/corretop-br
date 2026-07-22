@@ -77,12 +77,12 @@ O critério para encerrar a contingência é migrar para Vercel Pro ou para um e
 | DEC-020 | Provedor de banco, storage e autenticação. | Avaliar e instalar somente quando a fundação técnica for iniciada. |
 | DEC-022 | Estratégia de PWA e push. | Requer escopo de browser e políticas de permissão. |
 
-## DecisÃµes registradas durante a implementaÃ§Ã£o
+## Decisões registradas durante a implementação
 
-| ID | DecisÃ£o | Estado | EvidÃªncia |
+| ID | Decisão | Estado | Evidência |
 |---|---|---|---|
-| DEC-023A | White-label usa nome, logo e uma cor primÃ¡ria por tenant; o servidor valida hex e assets, o shell calcula foreground legÃ­vel e a alteraÃ§Ã£o Ã© auditada. | Aprovada â€” 2026-07-13 | Settings, AppShell e sidebar |
-| DEC-024 | TOTP Ã© opcional por usuÃ¡rio; ativaÃ§Ã£o e desativaÃ§Ã£o exigem senha, login aceita aplicativo autenticador ou cÃ³digo de recuperaÃ§Ã£o e a geraÃ§Ã£o de novos cÃ³digos invalida os anteriores. | Aprovada â€” 2026-07-13 | Better Auth two-factor, /settings e /2fa |
+| DEC-023A | White-label usa nome, logo e uma cor primária por tenant; o servidor valida hex e assets, o shell calcula foreground legível e a alteração é auditada. | Aprovada — 2026-07-13 | Settings, AppShell e sidebar |
+| DEC-024 | TOTP é opcional por usuário; ativação e desativação exigem senha, login aceita aplicativo autenticador ou código de recuperação e a geração de novos códigos invalida os anteriores. | Aprovada — 2026-07-13 | Better Auth two-factor, /settings e /2fa |
 ## DEC-029 — Onboarding contextual por rota
 
 Estado: aprovada em 2026-07-16. A apresentação é persistida por tenant, usuário e rota; o Super-admin pode desativar globalmente ou reiniciar o conjunto de rotas de um usuário. A operação gera auditoria.
@@ -135,16 +135,16 @@ O funil de leads não tinha transições formalizadas. O seletor de status permi
 - A enum `lead_interaction_type` ganhou o valor `service_started` para representar início de atendimento (antes usava `whatsapp_msg`).
 - A tabela `leads` ganhou coluna `updatedAt` para rastrear modificações.
 - `assumeLeadForInvestigation` continua saltando o pipeline para status `under_analysis` — é uma ação de gestão legítima.
-## DEC-043 â€” Armazenamento privado dos documentos de atendimento
+## DEC-043 — Armazenamento privado dos documentos de atendimento
 
 **Estado:** Aceita
 **Data:** 2026-07-21
 
-Documentos de leads e clientes nÃ£o serÃ£o gravados no sistema de arquivos local do deploy.
-O upload usarÃ¡ bucket privado do Supabase Storage, acessado somente no servidor com
+Documentos de leads e clientes não serão gravados no sistema de arquivos local do deploy.
+O upload usará bucket privado do Supabase Storage, acessado somente no servidor com
 `SUPABASE_SERVICE_ROLE_KEY` e `SUPABASE_DOCUMENTS_BUCKET`. Downloads continuam passando
-pela rota autenticada e escopada. Se a configuraÃ§Ã£o estiver ausente, o upload retorna
-503 com orientaÃ§Ã£o clara e nÃ£o cria registro incompleto.
+pela rota autenticada e escopada. Se a configuração estiver ausente, o upload retorna
+503 com orientação clara e não cria registro incompleto.
 ## DEC-044 - Conversao condicionada a confirmacao de venda
 
 **Estado:** Aceita

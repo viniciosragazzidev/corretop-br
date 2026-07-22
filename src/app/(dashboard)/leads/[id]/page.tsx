@@ -251,7 +251,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
           <Tabs defaultValue="summary" className="min-h-0">
             <TabsList aria-label="Seções do detalhe do lead" className="w-full justify-start overflow-x-auto border-b border-border/40 pb-px" variant="line">
               <TabsTrigger value="summary">Atendimento</TabsTrigger>
-              <TabsTrigger value="quotes">CotaÃ§Ãµes {quotes.length > 0 ? `(${quotes.length})` : ""}</TabsTrigger>
+              <TabsTrigger value="quotes">Cotações {quotes.length > 0 ? `(${quotes.length})` : ""}</TabsTrigger>
               <TabsTrigger value="documents">Documentos {leadDocs.length > 0 ? `(${leadDocs.length})` : ""}</TabsTrigger>
               <TabsTrigger value="history">Linha do Tempo</TabsTrigger>
               <TabsTrigger value="tasks">Tarefas ({tasks.filter(t => !t.completedAt).length})</TabsTrigger>
@@ -299,17 +299,17 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                   <CardHeader className="border-b border-border/40 pb-3">
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">CotaÃ§Ãµes</CardTitle>
+                        <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Cotações</CardTitle>
                         <CardDescription className="text-xs font-normal">{isManagement ? "Propostas montadas para o cliente (somente leitura)." : "Monte propostas e compartilhe com o cliente."}</CardDescription>
                       </div>
                       {!isManagement && <QuoteBuilder leadId={lead.id} leadName={lead.nome} leadPhone={canSeePersonalData ? lead.telefone : null} beneficiaries={beneficiaries.map((b) => ({ id: b.id, name: b.name }))} plans={plans.map((p) => ({ id: p.id, name: p.name }))} />}
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3 pt-4">
-                    {quotes.length === 0 ? <p className="py-8 text-center text-xs text-muted-foreground">Nenhuma cotaÃ§Ã£o criada ainda.</p> : quotes.map((quote) => <QuoteCard key={quote.id} quote={quote} leadName={lead.nome} leadPhone={canSeePersonalData ? lead.telefone : null} />)}
+                    {quotes.length === 0 ? <p className="py-8 text-center text-xs text-muted-foreground">Nenhuma cotação criada ainda.</p> : quotes.map((quote) => <QuoteCard key={quote.id} quote={quote} leadName={lead.nome} leadPhone={canSeePersonalData ? lead.telefone : null} />)}
                   </CardContent>
                 </Card>
-              ) : <Card className="border-border bg-card shadow-sm"><CardContent className="py-10 text-center text-sm text-muted-foreground">As cotaÃ§Ãµes ficam disponÃ­veis para o responsÃ¡vel pelo atendimento e para a gestÃ£o.</CardContent></Card>}
+              ) : <Card className="border-border bg-card shadow-sm"><CardContent className="py-10 text-center text-sm text-muted-foreground">As cotações ficam disponíveis para o responsável pelo atendimento e para a gestão.</CardContent></Card>}
             </TabsContent>
 
             <TabsContent value="documents" className="mt-4">

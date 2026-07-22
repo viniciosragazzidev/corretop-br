@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -251,20 +252,12 @@ function PlanForm({
                 <span className="text-[10px] uppercase font-bold text-muted-foreground">
                   {p.ageBand} anos
                 </span>
-                <div className="relative">
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                    R$
-                  </span>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    className="pl-7 pr-1 h-8 text-xs"
-                    value={p.monthlyPrice || ""}
-                    onChange={(e) => handlePriceChange(p.ageBand, e.target.value)}
-                    placeholder="0.00"
-                  />
-                </div>
+                <CurrencyInput
+                  className="h-8 text-xs"
+                  value={String(p.monthlyPrice || "")}
+                  onChange={(val) => handlePriceChange(p.ageBand, val)}
+                  placeholder="R$ 0,00"
+                />
               </div>
             ))}
           </div>
