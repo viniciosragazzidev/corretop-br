@@ -3,7 +3,7 @@
 import { useEffect, startTransition } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { LockKey } from "@/components/huge-icons";
+import { Fingerprint, LockKey } from "@/components/huge-icons";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/shared/auth/client";
 import { recordSecurityAuditAction } from "@/app/(dashboard)/settings/security-actions";
@@ -31,26 +31,26 @@ export function PasskeyToastHandler({ userId }: { userId: string }) {
         if (result.data && Array.isArray(result.data) && result.data.length === 0) {
           toast.custom(
             (t) => (
-              <div className="flex w-full max-w-sm flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-lg">
+              <div className="flex w-full max-w-sm flex-col gap-3.5 rounded-2xl border border-primary/20 bg-card p-4 shadow-xl backdrop-blur-md dark:bg-card/95">
                 <div className="flex items-start justify-between gap-3">
-                  <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
-                    <LockKey size={20} weight="duotone" />
-                  </span>
+                  <div className="relative flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-4 ring-primary/5">
+                    <Fingerprint className="size-6 animate-pulse" />
+                  </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold uppercase tracking-wider text-primary">
-                      Segurança da Conta
+                    <span className="inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
+                      Acesso por Biometria
+                    </span>
+                    <p className="mt-1 text-sm font-bold text-foreground">
+                      Entrar com Face ID ou Digital?
                     </p>
-                    <p className="mt-0.5 text-sm font-semibold text-foreground">
-                      Cadastre sua Passkey
-                    </p>
-                    <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                      Entre com biometria ou PIN de forma simples e rápida, sem precisar digitar sua senha.
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                      Cadastre a biometria do seu celular para fazer login instantâneo com total segurança.
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => toast.dismiss(t)}
-                    className="shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    className="shrink-0 rounded-lg p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                     aria-label="Fechar"
                   >
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -65,23 +65,24 @@ export function PasskeyToastHandler({ userId }: { userId: string }) {
                   </button>
                 </div>
 
-                <div className="flex items-center gap-2 border-t border-border/50 pt-2">
+                <div className="flex items-center gap-2 pt-1">
                   <Button
                     size="sm"
-                    className="flex-1 text-xs"
+                    className="flex-1 h-9 rounded-xl text-xs font-semibold shadow-sm active:scale-[0.98]"
                     onClick={() => {
                       toast.dismiss(t);
                       startTransition(() => {
-                        router.push("/settings?tab=seguranca#passkey");
+                        router.push("/settings?tab=seguranca#passkey-section");
                       });
                     }}
                   >
-                    Configurar agora
+                    <Fingerprint className="mr-1.5 size-4" />
+                    Cadastrar Biometria
                   </Button>
                   <Button
                     size="sm"
-                    variant="outline"
-                    className="flex-1 text-xs"
+                    variant="ghost"
+                    className="h-9 rounded-xl text-xs text-muted-foreground hover:text-foreground"
                     onClick={() => {
                       try {
                         localStorage.setItem(SNOOZE_KEY, "true");
@@ -92,7 +93,7 @@ export function PasskeyToastHandler({ userId }: { userId: string }) {
                       toast.dismiss(t);
                     }}
                   >
-                    Cancelar
+                    Agora não
                   </Button>
                 </div>
               </div>

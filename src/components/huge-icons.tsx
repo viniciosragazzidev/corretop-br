@@ -41,6 +41,7 @@ const aliases: Record<string, string> = {
   EyeSlash: "ViewOffIcon",
   FileArrowDown: "FileDownloadIcon",
   FileText: "File02Icon",
+  Fingerprint: "Fingerprint01Icon",
   Flag: "Flag02Icon",
   FolderSimple: "Folder01Icon",
   Gear: "Settings01Icon",
@@ -159,6 +160,7 @@ export const Eye = createCompatIcon("Eye");
 export const EyeSlash = createCompatIcon("EyeSlash");
 export const FileArrowDown = createCompatIcon("FileArrowDown");
 export const FileText = createCompatIcon("FileText");
+export const Fingerprint = createCompatIcon("Fingerprint");
 export const Flag = createCompatIcon("Flag");
 export const FolderSimple = createCompatIcon("FolderSimple");
 export const Gear = createCompatIcon("Gear");
