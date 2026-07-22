@@ -30,6 +30,7 @@ const toolsItems: SidebarItem[] = [
 const managementItems: SidebarItem[] = [
   { label: "Resumo", icon: House, url: "/dashboard", permission: "acessar_dashboard" },
   { label: "Equipe", icon: Users, url: "/equipe", permission: "convidar_corretor" },
+  { label: "Recuperações", icon: ShieldCheck, url: "/equipe/recuperacoes", permission: "convidar_corretor" },
   { label: "Metas", icon: Target, url: "/metas", permission: "gerenciar_metas" },
   { label: "Relatórios", icon: ChartBar, url: "/relatorios", permission: "acessar_relatorios" },
   { label: "Filiais", icon: Buildings, url: "/filiais", permission: "gerenciar_filiais" },

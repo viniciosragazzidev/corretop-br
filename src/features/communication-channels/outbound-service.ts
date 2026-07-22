@@ -16,11 +16,27 @@ const variablesSchema = z.array(z.string().trim().min(1).max(512)).max(10).defau
 
 export function buildBrokerInvitationFallbackMessage(input: { name?: string; company?: string; role?: string; token: string }) {
   const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || process.env.BETTER_AUTH_URL || "https://corretop.vercel.app").replace(/\/$/, "");
-  const role = input.role === "manager" ? "Gestor" : input.role === "broker" ? "Corretor" : input.role || "colaborador";
-  const name = input.name?.trim() || "Olá";
+  const roleLabel = input.role === "manager" ? "Gestor(a)" : input.role === "broker" ? "Corretor(a)" : input.role || "Colaborador(a)";
+  const name = input.name?.trim();
   const company = input.company?.trim() || "sua corretora";
   const url = `${baseUrl}/onboarding?token=${encodeURIComponent(input.token)}`;
-  return `Olá, ${name}! Seu acesso ao ${company} foi criado como ${role}.\n\nAcesse o CorreTop pelo link seguro abaixo (válido por 72 horas):\n${url}\n\nSe você não esperava este convite, ignore esta mensagem.`;
+  const greeting = name ? `✨ *Olá, ${name}!*` : `✨ *Olá!*`;
+
+  return [
+    greeting,
+    "",
+    `Seu acesso à *${company}* foi criado com sucesso! 🚀`,
+    "",
+    `📋 *Perfil:* ${roleLabel}`,
+    `🔗 *Link de acesso (válido por 72h):*`,
+    url,
+    "",
+    `⚠️ *Não foi você?* Se não esperava este convite, ignore esta mensagem`,
+    "",
+    `📞 *Precisa de ajuda?* Fale com o suporte da ${company}`,
+    "",
+    `— *CorreTop* 💙`,
+  ].join("\n");
 }
 
 export const whatsappOutboundStatusValues = ["pending", "queued", "processing", "sent", "delivered", "read", "failed", "cancelled", "expired"] as const;

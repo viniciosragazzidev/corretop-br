@@ -13,8 +13,48 @@ describe("buildBrokerInvitationFallbackMessage", () => {
       role: "broker",
       token: "token-seguro",
     });
-    expect(message).toContain("Olá, Ana!");
+    expect(message).toContain("✨ *Olá, Ana!*");
     expect(message).toContain("https://crm.example.com/onboarding?token=token-seguro");
-    expect(message).toContain("Corretor");
+    expect(message).toContain("*Perfil:* Corretor(a)");
+    expect(message).toContain("🚀");
+    expect(message).toContain("💙");
+    expect(message).toContain("*Ancora*");
+    expect(message).toContain("72h");
+    expect(message).toContain("⚠️");
+    expect(message).toContain("📞");
+    expect(message).toContain("*CorreTop*");
+  });
+
+  it("usa o cargo original para funções não mapeadas", () => {
+    process.env.NEXT_PUBLIC_APP_URL = "https://app.corretop.com/";
+    const message = buildBrokerInvitationFallbackMessage({
+      name: "Carlos",
+      company: "Corretora XYZ",
+      role: "admin",
+      token: "abc123",
+    });
+    expect(message).toContain("*Perfil:* admin");
+  });
+
+  it("usa 'Gestor(a)' para o papel manager", () => {
+    process.env.NEXT_PUBLIC_APP_URL = "https://app.corretop.com/";
+    const message = buildBrokerInvitationFallbackMessage({
+      name: "Maria",
+      company: "Corretora ABC",
+      role: "manager",
+      token: "token-maria",
+    });
+    expect(message).toContain("*Perfil:* Gestor(a)");
+  });
+
+  it("funciona sem nome (fallback)", () => {
+    process.env.NEXT_PUBLIC_APP_URL = "https://app.corretop.com/";
+    const message = buildBrokerInvitationFallbackMessage({
+      token: "token-only",
+    });
+    expect(message).toContain("✨ *Olá!*");
+    expect(message).toContain("sua corretora");
+    expect(message).toContain("*Perfil:* Colaborador(a)");
+    expect(message).toContain("72h");
   });
 });

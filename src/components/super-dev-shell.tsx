@@ -14,6 +14,7 @@ const railAreas = [
 export function SuperDevShell({ children }: { children: ReactNode }) {
   return (
     <SidebarProvider
+      className="overflow-hidden"
       style={
         {
           "--sidebar-width": "21.5rem",
@@ -53,7 +54,7 @@ export function SuperDevShell({ children }: { children: ReactNode }) {
 
       <SuperDevSidebar />
 
-      <SidebarInset className="bg-background">
+      <SidebarInset className="bg-background overflow-y-auto">
         <div className="flex flex-1 flex-col">{children}</div>
       </SidebarInset>
     </SidebarProvider>

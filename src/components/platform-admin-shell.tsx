@@ -18,6 +18,7 @@ export function PlatformAdminShell({ children }: { children: ReactNode }) {
 
   return (
     <SidebarProvider
+      className="overflow-hidden"
       style={
         {
           "--sidebar-width": "21.5rem",
