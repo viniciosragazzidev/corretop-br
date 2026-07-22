@@ -21,7 +21,7 @@ const plugin: PluginDefinition = {
   isAllowed: () => true,
 };
 
-const context = { tenantId: "tenant-a", userId: "user-a", role: "broker" as const, branchId: "branch-a" };
+const context = { tenantId: "tenant-a", userId: "user-a", role: "broker" as const, jobTitle: null as string | null, branchId: "branch-a" };
 
 describe("plugin registry", () => {
   it("registers and filters a plugin by host, permission and feature flag", () => {

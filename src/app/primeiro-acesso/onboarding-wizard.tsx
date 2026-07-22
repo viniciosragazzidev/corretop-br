@@ -20,7 +20,7 @@ type Props = {
   profile: {
     professionalName: string;
     phone: string;
-    cpf: string;
+    cpf: string | null;
     internalCode: string;
   };
 };
@@ -46,8 +46,8 @@ export function OnboardingWizard({ invitation, profile }: Props) {
       setStep(2);
     } else if (step === 2) {
       const cleanInput = cpfInput.replace(/\D/g, "");
-      const cleanProfile = profile.cpf.replace(/\D/g, "");
-      if (cleanInput !== cleanProfile) {
+      const cleanProfile = profile.cpf?.replace(/\D/g, "") ?? "";
+      if (cleanInput && cleanProfile && cleanInput !== cleanProfile) {
         toast.error("O CPF digitado não coincide com o CPF cadastrado para o perfil.");
         return;
       }
@@ -150,8 +150,8 @@ export function OnboardingWizard({ invitation, profile }: Props) {
           {step === 2 && (
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="user-cpf">Digite seu CPF</Label>
-                <Input id="user-cpf" value={cpfInput} onChange={(e) => setCpfInput(e.target.value)} placeholder="000.000.000-00" required />
+                <Label htmlFor="user-cpf">Digite seu CPF <span className="text-muted-foreground">(opcional)</span></Label>
+                <Input id="user-cpf" value={cpfInput} onChange={(e) => setCpfInput(e.target.value)} placeholder="000.000.000-00" />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="user-birth">Data de Nascimento</Label>

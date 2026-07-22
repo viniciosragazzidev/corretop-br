@@ -135,7 +135,7 @@ export function TeamInviteSection({ branches, canInviteManager }: Props) {
                 <Field><FieldLabel htmlFor="user-name">Nome</FieldLabel><Input id="user-name" name="name" required disabled={pending} /></Field>
                 <Field><FieldLabel htmlFor="user-email">E-mail</FieldLabel><Input id="user-email" name="email" type="email" required disabled={pending} /></Field>
                 <Field><FieldLabel htmlFor="user-phone">Telefone</FieldLabel><Input id="user-phone" name="phone" placeholder="(21) 99999-9999" required disabled={pending} /></Field>
-                <Field><FieldLabel htmlFor="user-cpf">CPF</FieldLabel><Input id="user-cpf" name="cpf" placeholder="000.000.000-00" required disabled={pending} /></Field>
+                <Field><FieldLabel htmlFor="user-cpf">CPF <span className="text-muted-foreground">(opcional)</span></FieldLabel><Input id="user-cpf" name="cpf" placeholder="000.000.000-00" disabled={pending} /></Field>
                 <Field>
                   <FieldLabel>Cargo</FieldLabel>
                   <Select name="jobTitle" value={jobTitle} onValueChange={(val) => {

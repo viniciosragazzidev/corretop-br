@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
-import { hasPermission } from "@/shared/auth/permissions";
+import { hasCapability } from "@/shared/auth/permissions";
 import { getCommissionExportData, generateCsv } from "@/features/commissions/export-service";
 
 export async function GET(request: Request) {
   try {
     const context = await getRequiredTenantContext();
 
-    if (!hasPermission(context.role, "exportar_relatorios")) {
+    if (!hasCapability(context.role, "exportar_relatorios", context.jobTitle)) {
       return NextResponse.json({ error: "Sem permissão para exportar relatórios." }, { status: 403 });
     }
 

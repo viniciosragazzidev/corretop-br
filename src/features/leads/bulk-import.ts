@@ -6,7 +6,7 @@ import { randomUUID } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
-import { hasPermission } from "@/shared/auth/permissions";
+import { hasCapability } from "@/shared/auth/permissions";
 import { AuthorizationError } from "@/shared/auth/errors";
 import { getDatabase, schema } from "@/shared/db";
 import { chooseAvailableBroker } from "@/features/leads/assignment";
@@ -48,8 +48,7 @@ function normalizePhone(value: string) { const digits = value.replace(/\D/g, "")
 export async function importLeadsFromCsvAction(formData: FormData) {
   try {
     const context = await getRequiredTenantContext();
-    const isCentralMarketing = context.jobTitle === "marketing" && context.branchId === null;
-    if (!hasPermission(context.role, "importar_planilhas") && !isCentralMarketing) throw new AuthorizationError("Seu perfil não pode importar leads.");
+    if (!hasCapability(context.role, "importar_planilhas", context.jobTitle)) throw new AuthorizationError("Seu perfil não pode importar leads.");
     const input = requestSchema.parse({ file: formData.get("file"), branchId: formData.get("branchId") ?? "", consentimento: formData.get("consentimento") ?? "" });
     const branchId = context.role === "manager" ? context.branchId : input.branchId || null;
     if (!branchId) throw new Error("Selecione uma unidade para distribuir os leads importados.");

@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
-import { hasPermission } from "@/shared/auth/permissions";
+import { hasCapability } from "@/shared/auth/permissions";
 import { ExportButtons } from "./_components/export-buttons";
 import { SpreadsheetSection } from "./_components/spreadsheet-section";
 
@@ -25,7 +25,7 @@ export const dynamic = "force-dynamic";
 export default async function ReportsPage() {
   const context = await getRequiredTenantContext();
   const db = getDatabase();
-  const canExport = hasPermission(context.role, "exportar_relatorios");
+  const canExport = hasCapability(context.role, "exportar_relatorios", context.jobTitle);
   const leadScope = context.role === "broker"
     ? eq(schema.leads.corretorId, context.userId)
     : context.role === "manager" && context.branchId

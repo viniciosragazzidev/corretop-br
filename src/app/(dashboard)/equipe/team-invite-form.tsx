@@ -31,8 +31,8 @@ export function TeamInviteForm({
         <Input id="team-phone" name="phone" placeholder="(21) 99999-9999" required />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="team-cpf">CPF</Label>
-        <Input id="team-cpf" name="cpf" placeholder="000.000.000-00" required />
+        <Label htmlFor="team-cpf">CPF <span className="text-muted-foreground">(opcional)</span></Label>
+        <Input id="team-cpf" name="cpf" placeholder="000.000.000-00" />
       </div>
       <input name="role" type="hidden" value={role} />
       <fieldset className="space-y-2">

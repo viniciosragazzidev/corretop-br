@@ -7,7 +7,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
-import { hasPermission } from "@/shared/auth/permissions";
+import { hasCapability } from "@/shared/auth/permissions";
 import { AuthorizationError } from "@/shared/auth/errors";
 import { getDatabase, schema } from "@/shared/db";
 import { importMetaLeads, computeFileHash, checkExistingImport } from "./service";
@@ -42,10 +42,7 @@ export interface ImportHistoryItem {
 export async function uploadMetaLeadsAction(formData: FormData) {
   try {
     const context = await getRequiredTenantContext();
-    
-    // Only Director or Marketing can import
-    const isMarketing = context.jobTitle === "marketing";
-    if (!hasPermission(context.role, "importar_leads_meta") && !isMarketing) {
+    if (!hasCapability(context.role, "importar_leads_meta", context.jobTitle)) {
       throw new AuthorizationError("Apenas Diretor e Marketing podem importar leads Meta.");
     }
 
@@ -54,12 +51,13 @@ export async function uploadMetaLeadsAction(formData: FormData) {
       branchId: formData.get("branchId") ?? "",
     });
 
-    // Director/Marketing matrix can choose branch; Marketing unit uses own branch
-    const branchId = context.role === "director" || (isMarketing && !context.branchId)
+    // Central marketing and directors can choose branch; unit marketing uses own branch
+    const isCentralMarketing = context.jobTitle === "marketing" && !context.branchId;
+    const branchId = context.role === "director" || isCentralMarketing
       ? (input.branchId || null)
       : context.branchId;
 
-    if (!branchId && context.role !== "director" && !isMarketing) {
+    if (!branchId && context.role !== "director" && !isCentralMarketing) {
       throw new Error("Selecione uma unidade para distribuir os leads.");
     }
 

@@ -66,6 +66,42 @@ export const PERMISSIONS = {
 
 export type PermissionKey = keyof typeof PERMISSIONS;
 
+export type JobTitleCapability = "marketing" | "finance";
+
+export const JOB_TITLE_CAPABILITIES: Record<JobTitleCapability, readonly PermissionKey[]> = {
+  marketing: [
+    "importar_planilhas",
+    "importar_leads_meta",
+    "ver_importacoes_meta",
+    "acessar_leads",
+  ],
+  finance: [
+    "acessar_financeiro",
+    "ver_fluxo_caixa",
+    "ver_resultado_corretor",
+    "ver_taxas_custos",
+    "ver_relatorios_financeiros",
+    "ver_cronograma_repasses",
+    "exportar_relatorios",
+    "ver_comissao_propria",
+    "ver_comissao_equipe",
+  ],
+};
+
 export function hasPermission(role: TenantRole | string | null | undefined, permission: PermissionKey) {
-  return role != null && (PERMISSIONS[permission] as readonly string[]).includes(role);
+  if (role == null) return false;
+  return (PERMISSIONS[permission] as readonly string[]).includes(role);
+}
+
+export function hasCapability(
+  role: TenantRole | string | null | undefined,
+  permission: PermissionKey,
+  jobTitle?: string | null,
+): boolean {
+  if (hasPermission(role, permission)) return true;
+  if (jobTitle && jobTitle in JOB_TITLE_CAPABILITIES) {
+    const extras = JOB_TITLE_CAPABILITIES[jobTitle as JobTitleCapability];
+    return extras.includes(permission);
+  }
+  return false;
 }

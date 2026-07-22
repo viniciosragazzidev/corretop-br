@@ -197,6 +197,13 @@
       "when": 1784900100000,
       "tag": "0075_add_invitation_revoked_at",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1784900200000,
+      "tag": "0076_optional_broker_cpf",
+      "breakpoints": true
     }
   ]
 }

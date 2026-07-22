@@ -16,6 +16,7 @@ export type PluginContext = {
   tenantId: string;
   userId: string;
   role: TenantRole;
+  jobTitle: string | null;
   branchId: string | null;
   entityId?: string;
 };

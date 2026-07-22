@@ -2107,7 +2107,7 @@ export const brokerProfiles = pgTable(
     professionalName: text("professional_name").notNull(),
     phone: text("phone").notNull(),
     invitedEmail: text("invited_email").notNull(),
-    cpf: text("cpf").notNull(),
+    cpf: text("cpf"),
     lifecycleStatus: brokerLifecycleStatus("lifecycle_status").notNull().default("DRAFT"),
     managerId: text("manager_id")
       .references(() => user.id),
@@ -2210,5 +2210,33 @@ export const termsAcceptances = pgTable(
   ],
 );
 
+export const passwordResetRequests = pgTable(
+  "password_reset_requests",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    userEmail: text("user_email").notNull(),
+    userPhone: text("user_phone"),
+    status: text("status").notNull().default("requested"),
+    token: text("token"),
+    tokenExpiresAt: timestamp("token_expires_at", { withTimezone: true }),
+    reviewedBy: text("reviewed_by").references(() => user.id, { onDelete: "set null" }),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    directorNotes: text("director_notes"),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("password_reset_requests_tenant_idx").on(table.tenantId, table.status),
+    index("password_reset_requests_user_idx").on(table.userId),
+  ],
+);
+
 export type TenantRole = (typeof tenantRoleValues)[number];
 export type TenantStatus = (typeof tenantStatusValues)[number];
+export type PasswordResetRequestStatus = "requested" | "approved" | "rejected" | "completed";

@@ -15,7 +15,7 @@ const createUserInput = z.object({
   name: z.string().trim().min(2).max(120),
   email: z.string().trim().email().max(254).transform((v) => v.toLowerCase()),
   phone: z.string().trim().min(8).max(30),
-  cpf: z.string().trim().min(11).max(20),
+  cpf: z.string().trim().max(20).optional().or(z.literal("")),
   // The UI sends the job title and profile separately. Older clients could
   // accidentally send the title (e.g. "marketing") as role; normalize that
   // value server-side so only the two supported access profiles reach the
@@ -54,11 +54,12 @@ export async function createTeamUser(rawInput: unknown) {
     .limit(1);
   if (existingEmail) throw new Error("Já existe um corretor com este e-mail.");
 
-  const [existingCpf] = await db
+  const normalizedCpf = input.cpf?.replace(/\D/g, "") || null;
+  const [existingCpf] = normalizedCpf ? await db
     .select({ id: schema.brokerProfiles.id })
     .from(schema.brokerProfiles)
-    .where(and(eq(schema.brokerProfiles.cpf, input.cpf), eq(schema.brokerProfiles.tenantId, context.tenantId)))
-    .limit(1);
+    .where(and(eq(schema.brokerProfiles.cpf, normalizedCpf), eq(schema.brokerProfiles.tenantId, context.tenantId)))
+    .limit(1) : [];
   const normalizedPhone = input.phone.replace(/\D/g, "");
   if (normalizedPhone.length < 10 || normalizedPhone.length > 15) throw new Error("Informe um telefone internacional válido.");
   const [existingPhone] = await db
@@ -92,7 +93,7 @@ export async function createTeamUser(rawInput: unknown) {
       professionalName: input.name,
       phone: normalizedPhone,
       invitedEmail: input.email,
-      cpf: input.cpf,
+      cpf: normalizedCpf,
       lifecycleStatus: "INVITED",
       managerId: context.userId,
       invitedAt: new Date(),

@@ -3,16 +3,15 @@ import { eq } from "drizzle-orm";
 
 import { DashboardHeader } from "@/components/dashboard-header";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
-import { hasPermission } from "@/shared/auth/permissions";
+import { hasCapability } from "@/shared/auth/permissions";
 import { getDatabase, schema } from "@/shared/db";
 import { MarketingImportClient } from "./_components/marketing-import-client";
 import { getImportHistoryAction, getLastImportAction } from "@/features/marketing-import/actions";
 
 export default async function MarketingImportacoesPage() {
   const context = await getRequiredTenantContext();
-  const isMarketing = context.jobTitle === "marketing";
-  const isCentralMarketing = isMarketing && context.branchId === null;
-  if (!hasPermission(context.role, "importar_leads_meta") && !isMarketing) {
+  const isCentralMarketing = context.jobTitle === "marketing" && context.branchId === null;
+  if (!hasCapability(context.role, "importar_leads_meta", context.jobTitle)) {
     redirect("/access-denied");
   }
 

@@ -494,7 +494,7 @@ export async function importBrokersAction(
     const cpfIdx = headers.indexOf("cpf");
     const branchIdx = headers.indexOf("unidade");
 
-    if (nameIdx === -1 || emailIdx === -1 || phoneIdx === -1 || cpfIdx === -1) {
+    if (nameIdx === -1 || emailIdx === -1 || phoneIdx === -1) {
       throw new Error("O cabeçalho do CSV deve conter as colunas: nome, email, telefone, cpf.");
     }
 
@@ -510,9 +510,9 @@ export async function importBrokersAction(
         const name = row[nameIdx];
         const email = row[emailIdx]?.toLowerCase();
         const phone = row[phoneIdx];
-        const cpf = row[cpfIdx]?.replace(/\D/g, "");
+        const cpf = cpfIdx >= 0 ? row[cpfIdx]?.replace(/\D/g, "") || null : null;
 
-        if (!name || !email || !phone || !cpf) {
+        if (!name || !email || !phone) {
           errors.push(`Linha ${i + 1}: Dados incompletos.`);
           continue;
         }
@@ -527,11 +527,11 @@ export async function importBrokersAction(
           continue;
         }
 
-        const [existingCpf] = await tx
+        const [existingCpf] = cpf ? await tx
           .select({ id: schema.brokerProfiles.id })
           .from(schema.brokerProfiles)
           .where(and(eq(schema.brokerProfiles.cpf, cpf), eq(schema.brokerProfiles.tenantId, context.tenantId)))
-          .limit(1);
+          .limit(1) : [];
         if (existingCpf) {
           errors.push(`Linha ${i + 1}: CPF ${cpf} já cadastrado.`);
           continue;

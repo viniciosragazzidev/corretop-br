@@ -118,6 +118,12 @@ export async function setPlatformTenantStatus(tenantId: string, status: "active"
   await getRequiredPlatformAdmin();
   await getDatabase().update(schema.tenants).set({ status, updatedAt: new Date() }).where(eq(schema.tenants.id, tenantId));
   await writeAudit("tenant.status_changed", "tenant", tenantId, { status });
+
+  // Revogar todas as sessões quando o tenant for suspenso
+  if (status === "inactive") {
+    const { revokeTenantSessions } = await import("./session-revocation");
+    await revokeTenantSessions(tenantId, "tenant_suspended");
+  }
 }
 
 export async function createTenantAccess(rawInput: unknown) {

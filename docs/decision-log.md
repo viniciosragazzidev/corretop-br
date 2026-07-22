@@ -172,3 +172,35 @@ Hobby serve apenas como recuperação diária, não como garantia de latência.
 - **Decisão:** quando o template oficial de convite pelo WhatsApp falhar de forma não transitória, o outbox cria uma segunda tentativa idempotente de mensagem de texto com o link direto de primeiro acesso.
 - **Proteções:** o link é montado no worker a partir do token cifrado; nenhum token ou corpo da mensagem é registrado em logs; o fallback é limitado ao propósito `brokerInvitation`, mantém escopo do tenant e permanece auditável.
 - **Limitação conhecida:** a Meta pode rejeitar texto fora de uma janela de atendimento válida. Nessa situação o acesso continua criado e o link manual exibido no CRM é a recuperação oficial.
+
+## DEC-047 — Marketing e Financeiro como jobTitle com capacidades estendidas
+
+**Estado:** Aceita
+**Data:** 2026-07-22
+
+Marketing e Financeiro permanecem como `jobTitle` (cargo exibido), não como `role` (papel de segurança). O `role` (director/manager/broker) continua definindo as permissões base; o `jobTitle` concede capacidades adicionais via `JOB_TITLE_CAPABILITIES`.
+
+### Separação formalizada dos quatro conceitos
+
+| Conceito | Coluna/Atributo | Finalidade |
+|---|---|---|
+| Cargo exibido | `jobTitle` | Função descritiva exibida na interface |
+| Papel de segurança | `role` | Permissões base (director/manager/broker) |
+| Escopo de filial | `branchId` | Unidade operacional a que o usuário pertence |
+| Capacidade operacional | `hasCapability(role, permission, jobTitle)` | Permissão combinada (role base + capacidades do cargo) |
+
+### Mudanças implementadas
+
+1. `JOB_TITLE_CAPABILITIES` em `permissions.ts` — mapeia capacidades extras por jobTitle:
+   - `marketing`: `importar_planilhas`, `importar_leads_meta`, `ver_importacoes_meta`, `acessar_leads`
+   - `finance`: `acessar_financeiro`, `ver_fluxo_caixa`, `ver_resultado_corretor`, `ver_taxas_custos`, `ver_relatorios_financeiros`, `ver_cronograma_repasses`, `exportar_relatorios`, `ver_comissao_propria`, `ver_comissao_equipe`
+2. `hasCapability(role, permission, jobTitle)` — nova função que combina role base + jobTitle
+3. `requireCapability(context, permission)` — função server-side que valida a capability combinada
+4. Removidos hardcoded `jobTitle === "marketing"` bypasses em `marketing-import/actions.ts`, `bulk-import.ts`, `marketing/importacoes/page.tsx` — substituídos por `hasCapability`
+5. Plugins (`PluginContext`) agora incluem `jobTitle` para verificação de permissão
+6. Sidebars (`corretop-sidebar`, `corretor-sidebar`, `corretop-financeiro-sidebar`) usam `hasCapability` com jobTitle
+
+### Efeitos colaterais conhecidos
+
+- Rotas de restrição por função no `dashboard/layout.tsx` e sidebars continuam usando `jobTitle` diretamente (são decisões de UI/navegação, não de permissão).
+- O escopo de dados de leads (`leads/page.tsx`, `leads/[id]/page.tsx`) continua usando `jobTitle` para definir visibilidade (decisão de escopo, não de permissão).

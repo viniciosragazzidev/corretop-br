@@ -32,7 +32,7 @@ import {
 import { signOut } from "@/shared/auth/client";
 import { toast } from "sonner";
 import { getUserDisplayInfo, type UserDisplayInfo } from "@/shared/auth/actions";
-import { hasPermission, type PermissionKey } from "@/shared/auth/permissions";
+import { hasCapability, type PermissionKey } from "@/shared/auth/permissions";
 import { getPendingFeedbackCountAction } from "@/features/leads/feedback-queries";
 import { Badge } from "@/components/ui/badge";
 
@@ -74,7 +74,7 @@ function NavigationGroup({
     if (jobTitle === "marketing" && ["/conversas", "/tarefas", "/documentos", "/clientes", "/vendas", "/checklist", "/minha-fila", "/corretor/resumo", "/minha-meta"].some(path => item.url === path || item.url.startsWith(path + "/"))) {
       return false;
     }
-    return hasPermission(role, item.permission);
+    return hasCapability(role, item.permission, jobTitle);
   });
   return (
     <SidebarGroup>

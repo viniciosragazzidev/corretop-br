@@ -1,6 +1,7 @@
 import "server-only";
 
 import { AuthorizationError } from "./errors";
+import { hasCapability, type PermissionKey } from "./permissions";
 import type { TenantContext } from "./types";
 import type { TenantRole } from "@/shared/db/schema";
 
@@ -21,6 +22,17 @@ export function requireAnyRole(
 ): TenantContext {
   if (!roles.includes(context.role)) {
     throw new AuthorizationError("The current role is not authorized.");
+  }
+
+  return context;
+}
+
+export function requireCapability(
+  context: TenantContext,
+  permission: PermissionKey,
+): TenantContext {
+  if (!hasCapability(context.role, permission, context.jobTitle)) {
+    throw new AuthorizationError("The current profile does not have this capability.");
   }
 
   return context;

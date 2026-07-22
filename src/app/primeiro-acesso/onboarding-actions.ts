@@ -11,7 +11,7 @@ const completeOnboardingSchema = z.object({
   invitationId: z.string().uuid(),
   name: z.string().trim().min(2).max(120),
   phone: z.string().trim().min(8).max(30),
-  cpf: z.string().trim().min(11).max(20),
+  cpf: z.string().trim().max(20).optional().or(z.literal("")),
   birthDate: z.string().trim().min(10).max(10), // YYYY-MM-DD
   password: z.string().min(10).max(128),
   termsAccepted: z.literal("on"),
@@ -54,9 +54,9 @@ export async function completeOnboardingAction(
     }
 
     // 3. Clean and validate CPF matches the profile one
-    const cleanInputCpf = input.cpf.replace(/\D/g, "");
-    const cleanProfileCpf = profile.cpf.replace(/\D/g, "");
-    if (cleanInputCpf !== cleanProfileCpf) {
+    const cleanInputCpf = input.cpf?.replace(/\D/g, "") || "";
+    const cleanProfileCpf = profile.cpf?.replace(/\D/g, "") || "";
+    if (cleanInputCpf && cleanProfileCpf && cleanInputCpf !== cleanProfileCpf) {
       throw new Error("O CPF informado não coincide com o CPF cadastrado pelo gestor.");
     }
 
@@ -115,6 +115,7 @@ export async function completeOnboardingAction(
           activatedAt: new Date(),
           professionalName: input.name,
           phone: input.phone,
+          cpf: cleanInputCpf || profile.cpf,
           updatedAt: new Date(),
         })
         .where(eq(schema.brokerProfiles.id, profile.id));
@@ -137,6 +138,9 @@ export async function completeOnboardingAction(
         status: "COMPLETED",
         completedAt: new Date(),
         updatedAt: new Date(),
+      }).onConflictDoUpdate({
+        target: [schema.userOnboarding.userId, schema.userOnboarding.tenantId],
+        set: { status: "COMPLETED", completedAt: new Date(), updatedAt: new Date() },
       });
 
       // Save terms acceptance

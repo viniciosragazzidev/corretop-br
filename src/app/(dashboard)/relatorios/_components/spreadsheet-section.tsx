@@ -5,7 +5,7 @@ import { FileText } from "@/components/huge-icons";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { hasPermission } from "@/shared/auth/permissions";
+import { hasCapability } from "@/shared/auth/permissions";
 import { getUserDisplayInfo } from "@/shared/auth/actions";
 import { getSpreadsheetsAction, type ImportedSpreadsheet } from "./spreadsheet-actions";
 import { SpreadsheetUploader } from "./spreadsheet-uploader";
@@ -20,7 +20,7 @@ export function SpreadsheetSection() {
 
   useEffect(() => {
     getUserDisplayInfo().then((user) => {
-      setCanImport(hasPermission(user.roleKey, "importar_planilhas"));
+      setCanImport(hasCapability(user.roleKey, "importar_planilhas", user.jobTitle));
       setRoleLoaded(true);
     });
   }, []);
