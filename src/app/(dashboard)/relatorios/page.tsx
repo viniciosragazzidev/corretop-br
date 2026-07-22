@@ -195,8 +195,8 @@ export default async function ReportsPage() {
 
         {/* Quick Export Card */}
         {canExport && (
-          <Card className="border-border bg-card shadow-none">
-            <CardHeader>
+          <Card className="min-w-0 overflow-visible border-border bg-card shadow-none">
+            <CardHeader className="min-h-16 py-1">
               <div className="flex items-center gap-2">
                 <FileArrowDown className="size-4 text-primary" />
                 <div>
@@ -207,7 +207,7 @@ export default async function ReportsPage() {
                 </div>
               </div>
             </CardHeader>
-          <CardContent>
+          <CardContent className="min-h-14 pb-4 pt-0">
             <ExportButtons />
           </CardContent>
           </Card>

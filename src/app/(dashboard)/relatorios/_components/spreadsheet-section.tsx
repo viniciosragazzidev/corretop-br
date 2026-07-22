@@ -39,7 +39,7 @@ export function SpreadsheetSection() {
   if (!roleLoaded || !canImport) return null;
 
   return (
-    <section className="space-y-4">
+    <section className="min-w-0 space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs font-medium text-primary">DADOS EXTERNOS</p>
@@ -72,12 +72,14 @@ export function SpreadsheetSection() {
       </div>
 
       {showUploader && (
-        <SpreadsheetUploader
+        <div className="min-w-0 rounded-xl outline-none focus-within:ring-2 focus-within:ring-primary/20">
+          <SpreadsheetUploader
           onImported={() => {
             setShowUploader(false);
             loadSpreadsheets();
           }}
-        />
+          />
+        </div>
       )}
 
       {loading ? (
