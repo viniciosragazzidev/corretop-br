@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 
 import { WelcomeScreen } from "@/features/onboarding/components/welcome-screen";
 import { getCurrentTenantOnboarding } from "@/features/onboarding/queries/get-current-tenant-onboarding";
@@ -8,6 +9,12 @@ import { eq } from "drizzle-orm";
 
 export default async function WelcomePage() {
   const context = await getRequiredTenantContext();
+  const userAgent = (await headers()).get("user-agent") ?? "";
+  const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
+
+  if (isMobile) {
+    redirect("/dashboard");
+  }
 
   const [tenant] = await getDatabase()
     .select({ name: schema.tenants.name })

@@ -91,14 +91,15 @@ export async function createLeadOffersForBrokers(input: {
     const brokerName = broker.name || "Corretor(a)";
 
     // Enqueue offer template: new_lead_assignment
-    // Variables: {{nome_corretor}}, {{empresa}}, {{tipo_lead}}, {{unidade}}, {{tempo_resposta}}
+    // Variables: {{nome_corretor}}, {{empresa}}, {{tipo_lead}}, {{unidade}}, {{tempo_resposta}}.
+    // The lead id is reserved for the text fallback link.
     const outbound = await enqueueMetaTemplateMessage({
       tenantId: input.tenantId,
       recipientType: "user",
       recipientId: broker.id,
       destinationPhone,
       purpose: "newLeadAssignment",
-      variables: [brokerName, companyName, leadTypeLabel, branchName, String(timeoutMinutes)],
+      variables: [brokerName, companyName, leadTypeLabel, branchName, String(timeoutMinutes), lead.id],
       requestedBy: input.requestedBy,
       idempotencyKey,
     });
@@ -123,7 +124,7 @@ export async function createLeadOffersForBrokers(input: {
 
   // Trigger outbound processing batch
   if (createdOffers.length > 0) {
-    void processMetaOutboundBatch(10, input.tenantId).catch((err) => {
+    void processMetaOutboundBatch(10, input.tenantId).catch((err: unknown) => {
       console.error("[createLeadOffersForBrokers] Error processing outbound batch:", err);
     });
   }

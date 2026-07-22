@@ -3,7 +3,7 @@
 import { motion } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useEffect, useTransition } from "react";
 import { toast } from "sonner";
 import {
   ArrowRight,
@@ -291,6 +291,13 @@ export function WelcomeScreen({
   tenantName,
   onboarding,
 }: WelcomeScreenProps) {
+  useEffect(() => {
+    const standalone = window.matchMedia("(display-mode: standalone)").matches ||
+      Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
+    if (standalone) {
+      window.location.replace("/dashboard");
+    }
+  }, []);
   const router = useRouter();
   const [, startTransition] = useTransition();
   const greeting = getGreeting();

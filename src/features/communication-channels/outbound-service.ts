@@ -35,11 +35,13 @@ export function buildBrokerInvitationFallbackMessage(input: { name?: string; com
 }
 
 export function buildNewLeadAssignmentFallbackMessage(variables: string[]) {
+  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || process.env.BETTER_AUTH_URL || "https://corretop.vercel.app").replace(/\/$/, "");
   const brokerName = variables[0] || "Corretor";
   const company = variables[1] || "Empresa";
   const leadType = variables[2] || "Pessoa Física";
   const branch = variables[3] || "Unidade";
   const timeout = variables[4] || "3";
+  const leadId = variables[5];
 
   return [
     `🔔 *Novo lead disponível*`,
@@ -55,6 +57,7 @@ export function buildNewLeadAssignmentFallbackMessage(variables: string[]) {
     `⏱️ Você tem *${timeout} minutos* para aceitar este atendimento.`,
     "",
     `Responda *"Aceitar lead"* para confirmar ou *"Recusar"* para declinar.`,
+    ...(leadId ? ["", `Acesse o lead no CorreTop:`, `${baseUrl}/leads/${encodeURIComponent(leadId)}`] : []),
   ].join("\n");
 }
 
@@ -172,7 +175,7 @@ async function enqueueTextFallbackMessage(input: {
   return { id, duplicate: false };
 }
 
-export async function processMetaOutboundBatch(limit = 10, tenantId?: string) {
+export async function processMetaOutboundBatch(limit = 10, tenantId?: string, pass = 0): Promise<{ processed: number; sent: number; failed: number; retried: number }> {
   const db = getDatabase();
   const safeLimit = Math.min(Math.max(Math.floor(limit), 1), 50);
   const now = new Date();
@@ -180,6 +183,7 @@ export async function processMetaOutboundBatch(limit = 10, tenantId?: string) {
   let sent = 0;
   let failed = 0;
   let retried = 0;
+  let fallbackQueued = 0;
   for (const row of rows) {
     const [claimed] = await db.update(schema.whatsappOutboundMessages).set({ status: "processing", attempts: row.attempts + 1, updatedAt: new Date() }).where(and(eq(schema.whatsappOutboundMessages.id, row.id), or(eq(schema.whatsappOutboundMessages.status, "queued"), eq(schema.whatsappOutboundMessages.status, "pending")))).returning({ id: schema.whatsappOutboundMessages.id });
     if (!claimed) continue;
@@ -225,7 +229,7 @@ export async function processMetaOutboundBatch(limit = 10, tenantId?: string) {
           }
           return sendMetaCloudText({ phoneNumberId, accessToken, to: row.destinationPhone, body: bodyText });
         })()
-        : sendMetaCloudTemplate({ phoneNumberId, accessToken, to: row.destinationPhone, templateName: row.templateName, languageCode: row.templateLanguage, variables: row.purpose === "leadAssignmentConfirmed" ? variables.slice(0, 4) : variables, urlButtonParameter }));
+        : sendMetaCloudTemplate({ phoneNumberId, accessToken, to: row.destinationPhone, templateName: row.templateName, languageCode: row.templateLanguage, variables: row.purpose === "leadAssignmentConfirmed" ? variables.slice(0, 4) : row.purpose === "newLeadAssignment" ? variables.slice(0, 5) : variables, urlButtonParameter }));
       const providerMessageId = response.messages?.[0]?.id;
       if (!providerMessageId) throw new Error("A Meta não retornou o identificador da mensagem.");
       await db.update(schema.whatsappOutboundMessages).set({ status: "sent", providerMessageId, sentAt: new Date(), updatedAt: new Date(), providerErrorCode: null, providerErrorMessage: null }).where(eq(schema.whatsappOutboundMessages.id, row.id));
@@ -269,9 +273,14 @@ export async function processMetaOutboundBatch(limit = 10, tenantId?: string) {
         if (row.requestedBy) {
           await db.insert(schema.auditLogs).values({ id: randomUUID(), userId: row.requestedBy, entidade: "whatsapp_outbound_message", entidadeId: row.id, acao: fallback.duplicate ? "whatsapp_text_fallback_reused" : "whatsapp_template_failed_fallback_queued" });
         }
+        if (!fallback.duplicate) fallbackQueued += 1;
       }
       if (shouldRetry) retried += 1; else failed += 1;
     }
+  }
+  if (fallbackQueued > 0 && pass === 0) {
+    const next = await processMetaOutboundBatch(Math.min(safeLimit, fallbackQueued), tenantId, 1);
+    return { processed: rows.length + next.processed, sent: sent + next.sent, failed: failed + next.failed, retried: retried + next.retried };
   }
   return { processed: rows.length, sent, failed, retried };
 }
