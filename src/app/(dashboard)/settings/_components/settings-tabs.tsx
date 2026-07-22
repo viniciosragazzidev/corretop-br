@@ -1,11 +1,11 @@
 "use client";
 
-import { type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Building06Icon, LinkSquare01Icon, SecurityCheckIcon, UserIcon, Store01Icon, Message01Icon } from "@hugeicons/core-free-icons";
 
-export type TabId = "conta" | "empresa" | "unidade" | "whatsapp" | "integracoes" | "seguranca" | "atendimento";
+export type TabId = "conta" | "empresa" | "unidade" | "whatsapp" | "integracoes" | "seguranca" | "atendimento" | "passkey";
 type Tab = { id: TabId; label: string; icon: typeof UserIcon };
 
 export function SettingsTabs({ account, company, unit, whatsapp, integrations, security, atendimento, tabIds }: { account: ReactNode; company?: ReactNode; unit?: ReactNode; whatsapp: ReactNode; integrations?: ReactNode; security: ReactNode; atendimento?: ReactNode; tabIds: TabId[] }) {
@@ -22,8 +22,19 @@ export function SettingsTabs({ account, company, unit, whatsapp, integrations, s
     { id: "seguranca", label: "Segurança", icon: SecurityCheckIcon },
   ];
   const tabs = allTabs.filter((tab) => tabIds.includes(tab.id));
-  const requested = searchParams.get("tab") as TabId | null;
-  const active = tabs.some((tab) => tab.id === requested) ? requested! : tabs[0]?.id ?? "conta";
+  const requested = searchParams.get("tab") as string | null;
+  const isPasskeyRequested = requested === "passkey";
+  const effectiveRequested = isPasskeyRequested ? "seguranca" : (requested as TabId | null);
+  const active = tabs.some((tab) => tab.id === effectiveRequested) ? effectiveRequested! : tabs[0]?.id ?? "conta";
+
+  useEffect(() => {
+    if (isPasskeyRequested || window.location.hash === "#passkey-section") {
+      const el = document.getElementById("passkey-section");
+      if (el) {
+        setTimeout(() => el.scrollIntoView({ behavior: "smooth" }), 100);
+      }
+    }
+  }, [isPasskeyRequested]);
 
   function selectTab(tabId: TabId) {
     const params = new URLSearchParams(searchParams.toString());

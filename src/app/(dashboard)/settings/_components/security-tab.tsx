@@ -107,7 +107,7 @@ export function SecurityTab({ enabled: initialEnabled, email }: Props) {
         </CardContent>
       </Card>
 
-      <Card className="border-border bg-card shadow-none">
+      <Card id="passkey-section" className="border-border bg-card shadow-none">
         <CardHeader>
           <div className="flex items-start justify-between gap-4">
             <div className="flex gap-3">

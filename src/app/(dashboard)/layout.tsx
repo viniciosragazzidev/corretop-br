@@ -10,6 +10,7 @@ import { DirectorWizardLoader } from "@/features/onboarding/components/director-
 import { RealtimeSyncProvider } from "@/components/providers/realtime-sync-provider";
 import { NotificationCountProvider } from "@/components/providers/notification-count-provider";
 import { FeedbackToastHandler } from "@/features/leads/components/feedback-toast-handler";
+import { PasskeyToastHandler } from "@/components/passkey-toast-handler";
 import { RouteOnboardingLoader } from "@/features/onboarding/components/route-onboarding-loader";
 
 export default async function DashboardLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -61,6 +62,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
       >
         <NotificationCountProvider userId={context.userId}>
           <FeedbackToastHandler userId={context.userId} />
+          <PasskeyToastHandler userId={context.userId} />
           {children}
         </NotificationCountProvider>
       </RealtimeSyncProvider>

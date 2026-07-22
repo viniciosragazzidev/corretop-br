@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { CheckCircle, LockKey, PencilSimple, Plus, Trash } from "@/components/huge-icons";
 
 import { authClient } from "@/shared/auth/client";
+import { recordSecurityAuditAction } from "../security-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -66,6 +67,7 @@ export function PasskeySection() {
         authenticatorAttachment: attachmentType || undefined,
       });
       if (result.error) throw new Error(result.error.message ?? "Não foi possível criar a chave.");
+      await recordSecurityAuditAction("cadastrou_passkey");
       toast.success("Passkey cadastrada com sucesso.");
       setName("");
       await refresh();
@@ -85,6 +87,7 @@ export function PasskeySection() {
         name: editingName.trim(),
       });
       if (result.error) throw new Error(result.error.message ?? "Não foi possível renomear.");
+      await recordSecurityAuditAction("renomeou_passkey");
       toast.success("Chave renomeada.");
       setEditingId(null);
       setEditingName("");
@@ -101,6 +104,7 @@ export function PasskeySection() {
     try {
       const result = await authClient.passkey.deletePasskey({ id });
       if (result.error) throw new Error(result.error.message ?? "Não foi possível excluir.");
+      await recordSecurityAuditAction("excluiu_passkey");
       toast.success(`"${label}" removida.`);
       await refresh();
     } catch (error) {
