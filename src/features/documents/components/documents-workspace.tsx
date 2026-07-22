@@ -167,7 +167,7 @@ export function DocumentsWorkspace({
 
       {activeTab === "queue" && (
         <div className="space-y-4">
-          {selectedDocs.length > 0 && (
+          {role !== "broker" && selectedDocs.length > 0 && (
             <div className="flex items-center justify-between p-3 rounded-lg border bg-primary/5 border-primary/20">
               <span className="text-xs font-medium">
                 {selectedDocs.length} documento(s) selecionado(s)
@@ -202,12 +202,12 @@ export function DocumentsWorkspace({
                   <Table>
                     <TableHeader className="bg-muted/40">
                       <TableRow>
-                        <TableHead className="w-10">
+                        {role !== "broker" && <TableHead className="w-10">
                           <Checkbox
                             checked={selectedDocs.length === pendingDocs.length && pendingDocs.length > 0}
                             onCheckedChange={toggleSelectAll}
                           />
-                        </TableHead>
+                        </TableHead>}
                         <TableHead>Lead</TableHead>
                         <TableHead>Documento</TableHead>
                         <TableHead>Tipo Requisitado</TableHead>
@@ -219,12 +219,12 @@ export function DocumentsWorkspace({
                     <TableBody>
                       {pendingDocs.map((doc) => (
                         <TableRow key={doc.id}>
-                          <TableCell>
+                          {role !== "broker" && <TableCell>
                             <Checkbox
                               checked={selectedDocs.includes(doc.id)}
                               onCheckedChange={() => toggleSelectDoc(doc.id)}
                             />
-                          </TableCell>
+                          </TableCell>}
                           <TableCell className="font-medium">
                             <a href={`/leads/${doc.leadId}`} className="text-primary hover:underline">
                               {doc.leadNome}
@@ -250,7 +250,8 @@ export function DocumentsWorkspace({
                               minute: "2-digit",
                             }).format(new Date(doc.createdAt))}
                           </TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className={role === "broker" ? "text-sm capitalize" : "text-right"}>
+                            {role === "broker" ? doc.status : (
                             <div className="flex justify-end gap-1.5">
                               <Button
                                 size="icon-xs"
@@ -270,6 +271,7 @@ export function DocumentsWorkspace({
                                 <XCircle className="size-3.5" />
                               </Button>
                             </div>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}

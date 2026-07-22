@@ -416,7 +416,6 @@ export async function deleteDocumentAction(documentId: string): Promise<Document
 
 export async function getPendingDocuments() {
   const context = await getRequiredTenantContext();
-  if (context.role === "broker") return [];
 
   const db = getDatabase();
 
@@ -441,7 +440,9 @@ export async function getPendingDocuments() {
     .leftJoin(schema.documentRequirements, eq(schema.leadDocuments.requirementId, schema.documentRequirements.id))
     .where(
       and(
-        eq(schema.leadDocuments.status, "pending"),
+        context.role === "broker"
+          ? eq(schema.leads.corretorId, context.userId)
+          : eq(schema.leadDocuments.status, "pending"),
         isNull(schema.leadDocuments.deletedAt),
         eq(schema.leadDocuments.tenantId, context.tenantId)
       )

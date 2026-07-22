@@ -1,5 +1,4 @@
 import { and, eq } from "drizzle-orm";
-import { redirect } from "next/navigation";
 
 import { DashboardHeader } from "@/components/dashboard-header";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
@@ -12,9 +11,6 @@ import {
 
 export default async function DocumentsPage() {
   const context = await getRequiredTenantContext();
-  if (context.role === "broker") {
-    redirect("/access-denied");
-  }
 
   const db = getDatabase();
 
