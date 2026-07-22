@@ -22,7 +22,7 @@ export async function createLeadOffersForBrokers(input: {
   leadId: string;
   brokerIds: string[];
   responseTimeoutMinutes?: number;
-  requestedBy: string;
+  requestedBy?: string | null;
 }) {
   const db = getDatabase();
   const timeoutMinutes = Math.max(1, Math.min(input.responseTimeoutMinutes ?? 3, 60));
@@ -111,13 +111,15 @@ export async function createLeadOffersForBrokers(input: {
         .where(eq(schema.leadOffers.id, offerId));
     }
 
-    await db.insert(schema.auditLogs).values({
-      id: randomUUID(),
-      userId: input.requestedBy,
-      entidade: "lead_offer",
-      entidadeId: offerId,
-      acao: "lead_offer_created",
-    });
+    if (input.requestedBy) {
+      await db.insert(schema.auditLogs).values({
+        id: randomUUID(),
+        userId: input.requestedBy,
+        entidade: "lead_offer",
+        entidadeId: offerId,
+        acao: "lead_offer_created",
+      });
+    }
 
     createdOffers.push({ offerId, brokerId: broker.id, whatsappMessageId: outbound.id });
   }
@@ -436,7 +438,7 @@ export async function expireOutdatedLeadOffers(tenantId?: string) {
           destinationPhone: broker.phone,
           purpose: "leadAssignmentExpired",
           variables: [broker.name || "Corretor(a)"],
-          requestedBy: "system",
+      requestedBy: null,
           idempotencyKey: `offer-expired:${offer.id}`,
         });
       }

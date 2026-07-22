@@ -123,7 +123,7 @@ export async function enqueueMetaTemplateMessage(input: {
   destinationPhone: string;
   purpose: MetaWhatsAppTemplatePurpose;
   variables?: string[];
-  requestedBy: string;
+  requestedBy?: string | null;
   idempotencyKey: string;
   scheduledAt?: Date;
 }) {
@@ -145,9 +145,11 @@ export async function enqueueMetaTemplateMessage(input: {
     id, tenantId: input.tenantId, channelId: channel.id, recipientType: input.recipientType, recipientId: input.recipientId ?? null,
     destinationPhone, purpose: input.purpose, messageType: "template", templateName: template.name, templateLanguage: template.language, variables,
     status: input.scheduledAt && input.scheduledAt > now ? "pending" : "queued", idempotencyKey: input.idempotencyKey,
-    scheduledAt: input.scheduledAt ?? null, queuedAt: now, requestedBy: input.requestedBy, createdAt: now, updatedAt: now,
+    scheduledAt: input.scheduledAt ?? null, queuedAt: now, requestedBy: input.requestedBy ?? null, createdAt: now, updatedAt: now,
   });
-  await db.insert(schema.auditLogs).values({ id: randomUUID(), userId: input.requestedBy, entidade: "whatsapp_outbound_message", entidadeId: id, acao: "whatsapp_message_queued" });
+  if (input.requestedBy) {
+    await db.insert(schema.auditLogs).values({ id: randomUUID(), userId: input.requestedBy, entidade: "whatsapp_outbound_message", entidadeId: id, acao: "whatsapp_message_queued" });
+  }
   return { id, status: "queued" as const, duplicate: false };
 }
 
@@ -159,7 +161,7 @@ async function enqueueTextFallbackMessage(input: {
   destinationPhone: string;
   purpose: MetaWhatsAppTemplatePurpose;
   variables: string[];
-  requestedBy: string;
+  requestedBy?: string | null;
 }) {
   const db = getDatabase();
   const idempotencyKey = `text-fallback:${input.purpose}:${input.recipientId || input.destinationPhone}:${Date.now()}`;
@@ -169,9 +171,11 @@ async function enqueueTextFallbackMessage(input: {
     id, tenantId: input.tenantId, channelId: input.channelId, recipientType: input.recipientType, recipientId: input.recipientId ?? null,
     destinationPhone: phoneSchema.parse(input.destinationPhone), purpose: input.purpose, messageType: "text",
     templateName: "__text_fallback__", templateLanguage: "pt_BR", variables: variablesSchema.parse(input.variables),
-    status: "queued", idempotencyKey, queuedAt: now, requestedBy: input.requestedBy, createdAt: now, updatedAt: now,
+    status: "queued", idempotencyKey, queuedAt: now, requestedBy: input.requestedBy ?? null, createdAt: now, updatedAt: now,
   });
-  await db.insert(schema.auditLogs).values({ id: randomUUID(), userId: input.requestedBy, entidade: "whatsapp_outbound_message", entidadeId: id, acao: "whatsapp_text_fallback_queued" });
+  if (input.requestedBy) {
+    await db.insert(schema.auditLogs).values({ id: randomUUID(), userId: input.requestedBy, entidade: "whatsapp_outbound_message", entidadeId: id, acao: "whatsapp_text_fallback_queued" });
+  }
   return { id, duplicate: false };
 }
 
@@ -268,7 +272,7 @@ export async function processMetaOutboundBatch(limit = 10, tenantId?: string, pa
           destinationPhone: row.destinationPhone,
           purpose: row.purpose as MetaWhatsAppTemplatePurpose,
           variables: Array.isArray(row.variables) ? row.variables.filter((value): value is string => typeof value === "string") : [],
-          requestedBy: row.requestedBy || "system",
+          requestedBy: row.requestedBy,
         });
         if (row.requestedBy) {
           await db.insert(schema.auditLogs).values({ id: randomUUID(), userId: row.requestedBy, entidade: "whatsapp_outbound_message", entidadeId: row.id, acao: fallback.duplicate ? "whatsapp_text_fallback_reused" : "whatsapp_template_failed_fallback_queued" });

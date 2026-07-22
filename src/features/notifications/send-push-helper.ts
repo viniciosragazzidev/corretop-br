@@ -68,7 +68,7 @@ export async function notifyNewLead(leadId: string, tenantId: string, branchId: 
       tenantId,
       leadId,
       brokerIds: [corretorId],
-      requestedBy: "system",
+      requestedBy: null,
     }).catch((err) => console.error("[notifyNewLead] WhatsApp lead offer error:", err));
   }
 
