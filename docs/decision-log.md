@@ -204,3 +204,18 @@ Marketing e Financeiro permanecem como `jobTitle` (cargo exibido), não como `ro
 
 - Rotas de restrição por função no `dashboard/layout.tsx` e sidebars continuam usando `jobTitle` diretamente (são decisões de UI/navegação, não de permissão).
 - O escopo de dados de leads (`leads/page.tsx`, `leads/[id]/page.tsx`) continua usando `jobTitle` para definir visibilidade (decisão de escopo, não de permissão).
+
+## DEC-048 — Catálogo de capacidades e cargos especializados
+
+**Estado:** Aceita  
+**Data:** 2026-07-22
+
+O núcleo continuará com os papéis de segurança `director`, `manager` e `broker`.
+Marketing, Financeiro, Operações e Suporte são cargos exibidos com capacidades
+estendidas e escopo derivado da sessão. Compliance/Privacidade e Auditoria/Qualidade
+ficam planejados até existir uma matriz de leitura com deny-by-default para ações
+operacionais. A ativação e desativação de funcionalidades deverá ser feita por um
+catálogo persistido, com dependências, escopo e auditoria do Super-admin.
+
+O plano executável e o inventário de capacidades estão em
+`docs/access-control-capability-plan.md`.
