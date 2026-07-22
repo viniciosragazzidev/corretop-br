@@ -2140,13 +2140,21 @@ export const brokerInvitations = pgTable(
       .notNull()
       .references(() => brokerProfiles.id, { onDelete: "cascade" }),
     email: text("email").notNull(),
+    role: tenantRole("role").notNull().default("broker"),
+    jobTitle: text("job_title").notNull().default("broker"),
     tokenHash: text("token_hash").notNull().unique(),
+    tokenCiphertext: text("token_ciphertext"),
     status: text("status", { enum: ["PENDING", "ACCEPTED", "EXPIRED", "REVOKED", "REPLACED"] })
       .notNull()
       .default("PENDING"),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     acceptedAt: timestamp("accepted_at", { withTimezone: true }),
     revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    deliveryStatus: text("delivery_status", { enum: ["pending", "queued", "sent", "failed", "not_available"] }).notNull().default("pending"),
+    deliveryMessageId: text("delivery_message_id"),
+    deliveryAttempts: integer("delivery_attempts").notNull().default(0),
+    deliveryError: text("delivery_error"),
+    deliveredAt: timestamp("delivered_at", { withTimezone: true }),
     createdAt,
   },
   (table) => [

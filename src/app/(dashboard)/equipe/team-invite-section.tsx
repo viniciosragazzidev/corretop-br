@@ -27,6 +27,7 @@ export function TeamInviteSection({ branches, canInviteManager }: Props) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [createdLink, setCreatedLink] = useState<string | null>(null);
+  const [whatsappStatus, setWhatsappStatus] = useState<"queued" | "not_available" | "failed" | null>(null);
   const [activeTab, setActiveTab] = useState<'manual' | 'csv'>('manual');
   const [jobTitle, setJobTitle] = useState("broker");
   const [role, setRole] = useState(canInviteManager ? "manager" : "broker");
@@ -39,6 +40,7 @@ export function TeamInviteSection({ branches, canInviteManager }: Props) {
       const result = await createTeamUserAction({ success: false }, formData);
       if (result.success) {
         toast.success("Perfil profissional criado com sucesso.");
+        setWhatsappStatus(result.whatsappStatus ?? "not_available");
         const origin = typeof window !== "undefined" ? window.location.origin : "";
         if (result.token) {
           setCreatedLink(`${origin}/primeiro-acesso?token=${result.token}`);
@@ -83,6 +85,9 @@ export function TeamInviteSection({ branches, canInviteManager }: Props) {
             <DialogDescription>
               O perfil profissional foi criado com sucesso. Como não utilizamos senhas padrões, envie o link de ativação exclusivo abaixo para o colaborador:
             </DialogDescription>
+            <div className={`rounded-lg border p-3 text-sm ${whatsappStatus === "queued" ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-amber-200 bg-amber-50 text-amber-900"}`}>
+              {whatsappStatus === "queued" ? "Convite enfileirado para envio pelo WhatsApp corporativo." : whatsappStatus === "failed" ? "O convite foi criado, mas o envio pelo WhatsApp falhou. Use o link abaixo ou tente novamente depois." : "O WhatsApp corporativo ainda não está disponível. Envie o link abaixo manualmente."}
+            </div>
             <div className="flex items-center gap-2 rounded-lg border border-border bg-muted p-3 text-xs font-mono select-all break-all text-muted-foreground">
               {createdLink}
             </div>
@@ -137,7 +142,7 @@ export function TeamInviteSection({ branches, canInviteManager }: Props) {
                     if (!val) return;
                     setJobTitle(val);
                     if (val === "manager") setRole("manager");
-                    if (val === "broker") setRole("broker");
+                    if (val !== "manager") setRole("broker");
                   }} disabled={pending} labels={Object.fromEntries(jobTitles.map((t) => [t.value, t.label]))}>
                     <SelectTrigger className="w-full"><SelectValue placeholder="Selecione o cargo" /></SelectTrigger>
                     <SelectContent>{jobTitles.filter((item) => canInviteManager || item.value !== "manager").map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}</SelectContent>

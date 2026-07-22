@@ -115,7 +115,10 @@ export async function ingestMetaCloudWebhook(payload: MetaWebhookPayload, rawPay
         if (status.status === "delivered") outboundUpdate.deliveredAt = new Date();
         if (status.status === "read") outboundUpdate.readAt = new Date();
         if (status.status === "failed" || status.status === "deleted") outboundUpdate.failedAt = new Date();
-        await db.update(schema.whatsappOutboundMessages).set(outboundUpdate).where(and(eq(schema.whatsappOutboundMessages.tenantId, channel.tenantId), eq(schema.whatsappOutboundMessages.providerMessageId, status.id)));
+        const [outbound] = await db.update(schema.whatsappOutboundMessages).set(outboundUpdate).where(and(eq(schema.whatsappOutboundMessages.tenantId, channel.tenantId), eq(schema.whatsappOutboundMessages.providerMessageId, status.id))).returning({ id: schema.whatsappOutboundMessages.id, recipientId: schema.whatsappOutboundMessages.recipientId, purpose: schema.whatsappOutboundMessages.purpose });
+        if (outbound?.purpose === "brokerInvitation" && outbound.recipientId && ["delivered", "read"].includes(status.status)) {
+          await db.update(schema.brokerInvitations).set({ deliveryStatus: "sent", deliveryMessageId: status.id, deliveredAt: new Date() }).where(and(eq(schema.brokerInvitations.id, outbound.recipientId), eq(schema.brokerInvitations.tenantId, channel.tenantId)));
+        }
         await setWebhookEventResult(eventId, "processed");
         processed += 1;
       }

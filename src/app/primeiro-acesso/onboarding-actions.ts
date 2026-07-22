@@ -101,8 +101,8 @@ export async function completeOnboardingAction(
         tenantId: invitation.tenantId,
         userId,
         branchId: invitation.branchId,
-        role: "broker",
-        jobTitle: "broker",
+        role: invitation.role,
+        jobTitle: invitation.jobTitle as typeof schema.teamJobTitleValues[number],
         status: "active",
       });
 

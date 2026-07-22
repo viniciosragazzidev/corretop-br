@@ -11,7 +11,7 @@ import { requireCanCreateRole, requireCanManageMember } from "@/shared/auth/team
 import { getDatabase, schema } from "@/shared/db";
 import { generateNextInternalCode } from "@/features/team/onboarding-helpers";
 
-export type TeamActionState = { success?: boolean; error?: string; token?: string };
+export type TeamActionState = { success?: boolean; error?: string; token?: string; invitationId?: string; whatsappStatus?: "queued" | "not_available" | "failed" };
 
 const memberRole = z.enum(["manager", "broker"]);
 const memberJobTitle = z.enum(schema.teamJobTitleValues);
@@ -36,7 +36,7 @@ export async function createTeamUserAction(
   try {
     const res = await createTeamUser(Object.fromEntries(formData));
     revalidatePath("/equipe");
-    return { success: true, token: res.token };
+    return { success: true, token: res.token, invitationId: res.invitationId, whatsappStatus: res.whatsappStatus };
   } catch (e) {
     const message =
       e instanceof Error ? e.message : "Erro desconhecido ao criar acesso.";

@@ -1,6 +1,7 @@
 import { randomBytes, createHash, randomUUID } from "node:crypto";
 import { and, desc, eq } from "drizzle-orm";
 import { schema } from "@/shared/db";
+import { encryptChannelSecret } from "@/features/communication-channels/secret-crypto";
 
 /**
  * Generates the next internal code for a broker inside a specific tenant.
@@ -41,7 +42,9 @@ export async function createBrokerInvitation(
   tenantId: string,
   branchId: string,
   brokerProfileId: string,
-  email: string
+  email: string,
+  role: "manager" | "broker" = "broker",
+  jobTitle: string = role,
 ) {
   // Set all previous invitations for this broker to REPLACED
   await tx
@@ -56,6 +59,8 @@ export async function createBrokerInvitation(
 
   const token = randomBytes(32).toString("base64url");
   const tokenHash = createHash("sha256").update(token).digest("hex");
+  const encryptionKey = process.env.INVITATION_TOKEN_ENCRYPTION_KEY?.trim() || process.env.META_WHATSAPP_TOKEN_ENCRYPTION_KEY?.trim();
+  const tokenCiphertext = encryptionKey ? encryptChannelSecret(token, encryptionKey) : null;
   const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000); // 72 hours
 
   const id = randomUUID();
@@ -65,11 +70,14 @@ export async function createBrokerInvitation(
     branchId,
     brokerProfileId,
     email,
+    role,
+    jobTitle,
     tokenHash,
+    tokenCiphertext,
     status: "PENDING",
     expiresAt,
     createdAt: new Date(),
   });
 
-  return { token, expiresAt };
+  return { id, token, expiresAt };
 }

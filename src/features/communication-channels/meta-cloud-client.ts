@@ -61,6 +61,7 @@ export async function sendMetaCloudTemplate(input: {
   templateName: string;
   languageCode: string;
   variables: string[];
+  urlButtonParameter?: string;
 }) {
   const parameters = input.variables.map((text) => ({ type: "text", text }));
   return graphRequest<{ messages?: Array<{ id: string }> }>(`${encodeURIComponent(input.phoneNumberId)}/messages`, {
@@ -74,7 +75,10 @@ export async function sendMetaCloudTemplate(input: {
       template: {
         name: input.templateName,
         language: { code: input.languageCode },
-        ...(parameters.length ? { components: [{ type: "body", parameters }] } : {}),
+        ...(parameters.length || input.urlButtonParameter ? { components: [
+          ...(parameters.length ? [{ type: "body", parameters }] : []),
+          ...(input.urlButtonParameter ? [{ type: "button", sub_type: "url", index: "0", parameters: [{ type: "text", text: input.urlButtonParameter }] }] : []),
+        ] } : {}),
       },
     }),
   }, input.accessToken);
