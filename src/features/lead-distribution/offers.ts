@@ -3,7 +3,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { and, eq, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import { getDatabase, schema } from "@/shared/db";
-import { enqueueMetaTemplateMessage } from "@/features/communication-channels/outbound-service";
+import { enqueueMetaTemplateMessage, processMetaOutboundBatch } from "@/features/communication-channels/outbound-service";
 
 function normalizePhone(phone: string) {
   return phone.replace(/\D/g, "");
@@ -69,7 +69,10 @@ export async function createLeadOffersForBrokers(input: {
 
   for (const broker of brokers) {
     const destinationPhone = broker.phone;
-    if (!destinationPhone) continue;
+    if (!destinationPhone) {
+      console.warn(`[createLeadOffersForBrokers] Corretor ${broker.id} (${broker.name}) não possui telefone cadastrado.`);
+      continue;
+    }
 
     const offerId = randomUUID();
     await db.insert(schema.leadOffers).values({
@@ -116,6 +119,13 @@ export async function createLeadOffersForBrokers(input: {
     });
 
     createdOffers.push({ offerId, brokerId: broker.id, whatsappMessageId: outbound.id });
+  }
+
+  // Trigger outbound processing batch
+  if (createdOffers.length > 0) {
+    void processMetaOutboundBatch(10, input.tenantId).catch((err) => {
+      console.error("[createLeadOffersForBrokers] Error processing outbound batch:", err);
+    });
   }
 
   return { created: createdOffers.length, expiresAt, createdOffers };
@@ -304,7 +314,6 @@ export async function handleLeadOfferWebhookResponse(input: {
     const leadTypeLabel = result.lead.tipo === "pme" ? "PME" : result.lead.tipo === "pj" ? "Empresarial" : "Pessoa Física";
 
     // Enqueue confirmation template: lead_assignment_confirmed
-    // Variables: {{nome_corretor}}, {{nome_cliente}}, {{telefone_cliente}}, {{tipo_lead}}, {{lead_id}}
     if (result.broker.phone) {
       await enqueueMetaTemplateMessage({
         tenantId: input.tenantId,
@@ -350,6 +359,8 @@ export async function handleLeadOfferWebhookResponse(input: {
       }
     }
 
+    void processMetaOutboundBatch(10, input.tenantId).catch(console.error);
+
     return { processed: true, action: "accepted", won: true, leadId: result.lead.id };
   } else {
     // Send unavailable template to broker who lost the dispute
@@ -366,6 +377,8 @@ export async function handleLeadOfferWebhookResponse(input: {
       requestedBy: broker.id,
       idempotencyKey: `lead-dispute-lost:${offer.id}:${Date.now()}`,
     });
+
+    void processMetaOutboundBatch(10, input.tenantId).catch(console.error);
 
     return { processed: true, action: "accepted", won: false, reason: result.reason };
   }
@@ -435,6 +448,10 @@ export async function expireOutdatedLeadOffers(tenantId?: string) {
         acao: "lead_offer_expired",
       });
     }
+  }
+
+  if (expiredCount > 0) {
+    void processMetaOutboundBatch(10, tenantId).catch(console.error);
   }
 
   return { expired: expiredCount };

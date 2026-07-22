@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { and, eq, or } from "drizzle-orm";
 import webpush from "web-push";
 
+import { createLeadOffersForBrokers } from "@/features/lead-distribution/offers";
 import { getDatabase, schema } from "@/shared/db";
 import { isNotificationCapabilityEnabled } from "./queries";
 import type { NotificationCapabilityId } from "./catalog";
@@ -62,6 +63,15 @@ export async function publishNotification(input: {
 }
 
 export async function notifyNewLead(leadId: string, tenantId: string, branchId: string | null, corretorId: string | null, leadName: string) {
+  if (corretorId) {
+    void createLeadOffersForBrokers({
+      tenantId,
+      leadId,
+      brokerIds: [corretorId],
+      requestedBy: "system",
+    }).catch((err) => console.error("[notifyNewLead] WhatsApp lead offer error:", err));
+  }
+
   if (!(await isNotificationCapabilityEnabled("lead_assignment"))) return;
 
   const recipients = await getDatabase()
