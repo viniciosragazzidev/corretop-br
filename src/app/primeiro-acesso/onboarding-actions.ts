@@ -131,17 +131,25 @@ export async function completeOnboardingAction(
 
       // Set onboarding complete
       const onboardingId = randomUUID();
-      await tx.insert(schema.userOnboarding).values({
+      const onboardingValues = {
         id: onboardingId,
         userId,
         tenantId: invitation.tenantId,
         status: "COMPLETED",
         completedAt: new Date(),
         updatedAt: new Date(),
-      }).onConflictDoUpdate({
-        target: [schema.userOnboarding.userId, schema.userOnboarding.tenantId],
-        set: { status: "COMPLETED", completedAt: new Date(), updatedAt: new Date() },
-      });
+      } as const;
+      const insertedOnboarding = await tx
+        .insert(schema.userOnboarding)
+        .values(onboardingValues)
+        .onConflictDoNothing()
+        .returning({ id: schema.userOnboarding.id });
+      if (insertedOnboarding.length === 0) {
+        await tx
+          .update(schema.userOnboarding)
+          .set({ status: "COMPLETED", completedAt: onboardingValues.completedAt, updatedAt: onboardingValues.updatedAt })
+          .where(and(eq(schema.userOnboarding.userId, userId), eq(schema.userOnboarding.tenantId, invitation.tenantId)));
+      }
 
       // Save terms acceptance
       await tx.insert(schema.termsAcceptances).values({
