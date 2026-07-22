@@ -24,7 +24,7 @@ export default async function CreateTeamMemberPage() {
           <p className="text-xs font-medium text-primary">GESTAO DE EQUIPE</p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">Criar membro</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Crie o acesso diretamente com senha definida.
+            Informe apenas os dados básicos. A senha será criada pelo colaborador no primeiro acesso.
           </p>
         </div>
         <Card className="max-w-xl border-border bg-card shadow-none">
