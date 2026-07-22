@@ -3,8 +3,9 @@
 import { useEffect, startTransition } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { Fingerprint, LockKey } from "@/components/huge-icons";
+import { Fingerprint, X } from "@/components/huge-icons";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { authClient } from "@/shared/auth/client";
 import { recordSecurityAuditAction } from "@/app/(dashboard)/settings/security-actions";
 
@@ -31,44 +32,45 @@ export function PasskeyToastHandler({ userId }: { userId: string }) {
         if (result.data && Array.isArray(result.data) && result.data.length === 0) {
           toast.custom(
             (t) => (
-              <div className="flex w-full max-w-sm flex-col gap-3.5 rounded-2xl border border-primary/20 bg-card p-4 shadow-xl backdrop-blur-md dark:bg-card/95">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="relative flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-4 ring-primary/5">
-                    <Fingerprint className="size-6 animate-pulse" />
+              <div className="group relative w-full max-w-sm overflow-hidden rounded-xl border border-border bg-card p-4 text-card-foreground shadow-lg transition-all duration-200 hover:shadow-xl">
+                {/* Header / Main content */}
+                <div className="flex items-start gap-3.5">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20">
+                    <Fingerprint className="size-5" />
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <span className="inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
-                      Acesso por Biometria
-                    </span>
-                    <p className="mt-1 text-sm font-bold text-foreground">
-                      Entrar com Face ID ou Digital?
-                    </p>
-                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                      Cadastre a biometria do seu celular para fazer login instantâneo com total segurança.
+
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="h-5 px-2 text-[10px] font-semibold text-primary bg-primary/10 border-0">
+                        Segurança
+                      </Badge>
+                    </div>
+
+                    <h4 className="text-sm font-semibold tracking-tight text-foreground">
+                      Cadastre sua Biometria
+                    </h4>
+
+                    <p className="text-xs leading-relaxed text-muted-foreground">
+                      Acesse sua conta em 1 toque usando Face ID ou digital do aparelho.
                     </p>
                   </div>
-                  <button
-                    type="button"
+
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="size-7 shrink-0 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
                     onClick={() => toast.dismiss(t)}
-                    className="shrink-0 rounded-lg p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                    aria-label="Fechar"
+                    aria-label="Fechar notificação"
                   >
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                      <path
-                        d="M10.5 3.5L3.5 10.5M3.5 3.5L10.5 10.5"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </button>
+                    <X className="size-4" />
+                  </Button>
                 </div>
 
-                <div className="flex items-center gap-2 pt-1">
+                {/* Actions */}
+                <div className="mt-3.5 flex items-center gap-2 border-t border-border/60 pt-3">
                   <Button
                     size="sm"
-                    className="flex-1 h-9 rounded-xl text-xs font-semibold shadow-sm active:scale-[0.98]"
+                    className="flex-1 text-xs font-semibold"
                     onClick={() => {
                       toast.dismiss(t);
                       startTransition(() => {
@@ -76,13 +78,14 @@ export function PasskeyToastHandler({ userId }: { userId: string }) {
                       });
                     }}
                   >
-                    <Fingerprint className="mr-1.5 size-4" />
-                    Cadastrar Biometria
+                    <Fingerprint className="mr-1.5 size-3.5" />
+                    Cadastrar agora
                   </Button>
+
                   <Button
                     size="sm"
-                    variant="ghost"
-                    className="h-9 rounded-xl text-xs text-muted-foreground hover:text-foreground"
+                    variant="outline"
+                    className="flex-1 text-xs text-muted-foreground hover:text-foreground"
                     onClick={() => {
                       try {
                         localStorage.setItem(SNOOZE_KEY, "true");
