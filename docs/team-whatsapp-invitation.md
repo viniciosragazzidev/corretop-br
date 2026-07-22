@@ -22,7 +22,7 @@ Criação, enfileiramento e conclusão do onboarding geram auditoria. O escopo d
 
 1. Aplicar a migration `drizzle/0071_team_whatsapp_invitations.sql`.
 2. Configurar `META_WHATSAPP_TOKEN_ENCRYPTION_KEY` (ou `INVITATION_TOKEN_ENCRYPTION_KEY`) com uma chave base64 de 32 bytes.
-3. Aprovar na Meta o template `corretop_convite_primeiro_acesso` em `pt_BR`, com três variáveis no corpo e botão URL dinâmico.
+3. Aprovar na Meta o template `broker_first_access` em `pt_BR`, com três variáveis no corpo e botão URL dinâmico.
 4. Manter um canal Meta Cloud ativo e padrão no tenant.
 5. Executar o job `/api/internal/jobs/whatsapp` com `Authorization: Bearer $CRON_SECRET` em uma frequência compatível com o plano de hospedagem.
 

@@ -1,7 +1,7 @@
 import "server-only";
 
 export const META_WHATSAPP_TEMPLATE_PURPOSES = {
-  brokerInvitation: { name: "corretop_convite_primeiro_acesso", language: "pt_BR" },
+  brokerInvitation: { name: "broker_first_access", language: "pt_BR" },
   taskReminder: { name: "corretop_lembrete_tarefa", language: "pt_BR" },
   clientNotice: { name: "corretop_aviso_cliente", language: "pt_BR" },
 } as const;
