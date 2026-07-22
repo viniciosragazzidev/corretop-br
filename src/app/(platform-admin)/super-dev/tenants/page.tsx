@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PlatformAdminHeader } from "@/components/platform-admin-header";
+import { CreateTenantForm } from "@/features/platform-admin/components/create-tenant-form";
 import { ArrowRight } from "@/components/huge-icons";
 
 const statusLabel = {
@@ -98,7 +99,7 @@ export default async function SuperDevTenantsPage() {
               <CardDescription>Registre uma nova corretora.</CardDescription>
             </CardHeader>
             <CardContent>
-              <form action={createTenantAction} className="space-y-4">
+              <CreateTenantForm action={createTenantAction}>
                 <div className="space-y-2">
                   <Label htmlFor="name" className="text-xs">Nome fantasia</Label>
                   <Input id="name" name="name" className="h-9 text-xs" required />
@@ -118,7 +119,7 @@ export default async function SuperDevTenantsPage() {
                 <Button className="w-full text-xs" type="submit">
                   Criar empresa <ArrowRight className="ml-1 size-3.5" />
                 </Button>
-              </form>
+              </CreateTenantForm>
             </CardContent>
           </Card>
         </section>

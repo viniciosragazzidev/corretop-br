@@ -10,6 +10,13 @@ import { getDatabase, schema } from "@/shared/db";
 
 const cnpjPattern = /^\d{14}$/;
 
+export class TenantCnpjAlreadyExistsError extends Error {
+  constructor() {
+    super("Já existe uma empresa cadastrada com este CNPJ.");
+    this.name = "TenantCnpjAlreadyExistsError";
+  }
+}
+
 const tenantInput = z.object({
   name: z.string().trim().min(2).max(120),
   legalName: z.string().trim().max(160).optional(),
@@ -78,16 +85,31 @@ export async function createPlatformTenant(rawInput: unknown) {
   const input = tenantInput.parse(rawInput);
   await getRequiredPlatformAdmin();
   const db = getDatabase();
+  const [existingCnpj] = await db
+    .select({ id: schema.tenants.id })
+    .from(schema.tenants)
+    .where(eq(schema.tenants.cnpj, input.cnpj))
+    .limit(1);
+  if (existingCnpj) throw new TenantCnpjAlreadyExistsError();
+
   const baseSlug = slugify(input.name);
   let slug = baseSlug;
   let suffix = 2;
   while ((await db.select({ id: schema.tenants.id }).from(schema.tenants).where(eq(schema.tenants.slug, slug)).limit(1)).length) slug = `${baseSlug}-${suffix++}`;
   const tenantId = randomUUID();
   const branchId = randomUUID();
-  await db.transaction(async (tx) => {
-    await tx.insert(schema.tenants).values({ id: tenantId, name: input.name, slug, legalName: input.legalName, cnpj: input.cnpj, subscriptionPlan: input.subscriptionPlan, status: "active" });
-    await tx.insert(schema.branches).values({ id: branchId, tenantId, name: "Matriz", status: "active" });
-  });
+  try {
+    await db.transaction(async (tx) => {
+      await tx.insert(schema.tenants).values({ id: tenantId, name: input.name, slug, legalName: input.legalName, cnpj: input.cnpj, subscriptionPlan: input.subscriptionPlan, status: "active" });
+      await tx.insert(schema.branches).values({ id: branchId, tenantId, name: "Matriz", status: "active" });
+    });
+  } catch (error) {
+    const cause = error as { cause?: { code?: string; constraint?: string } };
+    if (cause.cause?.code === "23505" && cause.cause.constraint === "tenants_cnpj_unique") {
+      throw new TenantCnpjAlreadyExistsError();
+    }
+    throw error;
+  }
   await writeAudit("tenant.created", "tenant", tenantId, { slug });
   return tenantId;
 }

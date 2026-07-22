@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
   createPlatformTenant,
+  TenantCnpjAlreadyExistsError,
   createTenantAccess,
   setPlatformTenantStatus,
   terminateSession,
@@ -11,15 +12,22 @@ import {
   getPlatformAuditLogs,
   getTenantAuditLogs,
 } from "@/features/platform-admin/service";
+
+export type TenantCreateActionState = { error?: string };
 import { getDatabase, schema } from "@/shared/db";
 import { eq, and } from "drizzle-orm";
 import { getRequiredPlatformAdmin } from "@/shared/auth/platform-admin";
 
-export async function createTenantAction(formData: FormData) {
-  const tenantId = await createPlatformTenant(Object.fromEntries(formData));
-  revalidatePath("/super-dev");
-  revalidatePath("/super-dev/tenants");
-  redirect(`/super-dev/tenants/${tenantId}`);
+export async function createTenantAction(_: TenantCreateActionState, formData: FormData): Promise<TenantCreateActionState> {
+  try {
+    const tenantId = await createPlatformTenant(Object.fromEntries(formData));
+    revalidatePath("/super-dev");
+    revalidatePath("/super-dev/tenants");
+    redirect(`/super-dev/tenants/${tenantId}`);
+  } catch (error) {
+    if (error instanceof TenantCnpjAlreadyExistsError) return { error: error.message };
+    throw error;
+  }
 }
 
 export async function setTenantStatusAction(formData: FormData) {
@@ -102,4 +110,3 @@ export async function getPlatformAuditLogsAction() {
 export async function getTenantAuditLogsAction() {
   return getTenantAuditLogs();
 }
-

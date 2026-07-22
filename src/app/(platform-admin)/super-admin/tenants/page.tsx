@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PlatformAdminHeader } from "@/components/platform-admin-header";
+import { CreateTenantForm } from "@/features/platform-admin/components/create-tenant-form";
 
 const statusLabel = {
   active: "Ativo",
@@ -97,7 +98,7 @@ export default async function SuperAdminTenantsPage() {
               <CardDescription>Registre uma nova corretora.</CardDescription>
             </CardHeader>
             <CardContent>
-              <form action={createTenantAction} className="space-y-4">
+              <CreateTenantForm action={createTenantAction}>
                 <div className="space-y-1">
                   <Label htmlFor="name" className="text-xs">Razão social / Nome fantasia</Label>
                   <Input name="name" id="name" required className="h-8 text-xs" />
@@ -129,7 +130,7 @@ export default async function SuperAdminTenantsPage() {
                 <Button size="sm" type="submit" className="w-full text-xs font-semibold h-8 mt-2">
                   Criar Empresa
                 </Button>
-              </form>
+              </CreateTenantForm>
             </CardContent>
           </Card>
         </section>
