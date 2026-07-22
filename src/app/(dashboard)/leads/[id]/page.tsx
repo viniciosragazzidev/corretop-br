@@ -201,42 +201,11 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
 
         {/* Main operational area */}
         <div className="space-y-5">
-          {/* Supervision & Management Panel (only for managers and directors) */}
-          {isManagement && (
-            <SupervisionPanel
-              leadId={lead.id}
-              currentStatus={lead.status}
-              currentOwner={lead.corretorNome}
-              currentOwnerId={lead.corretorId}
-              assignedAt={lead.assignedAt}
-              stageEnteredAt={lead.stageEnteredAt}
-              serviceStartedAt={lead.serviceStartedAt}
-              brokers={brokers}
-              slaFirstContactMinutes={slaMinutes}
-              tasks={tasks}
-              isLost={lead.status === "lost"}
-              currentUserId={context.userId}
-            />
-          )}
+          {/* Dense operational content is organized in the tabs below. */}
 
-          {/* Lead Action Hub Recommendation (only for the broker owner) */}
-          {!isManagement && (
-            <LeadActionHub
-              hasPendingDocuments={leadDocs.some((document) => document.status === "pending" || document.status === "rejected")}
-              hasQuotes={quotes.length > 0}
-              leadId={lead.id}
-              currentOwner={lead.corretorNome}
-              nextTask={(() => { const task = tasks.find((item) => !item.completedAt); return task ? { title: task.title, dueAt: task.dueAt?.toISOString() ?? null, priority: task.priority, assigneeName: task.assigneeName } : null; })()}
-              status={lead.status}
-              isOwner={context.userId === lead.corretorId}
-              phone={canSeePersonalData ? lead.telefone : null}
-              canSeePersonalData={canSeePersonalData}
-              showFeedback={context.role === "broker" && context.userId === lead.corretorId && lead.status !== "lost" && lead.status !== "converted"}
-            />
-          )}
-
-          {/* Quote Viewer / Builder */}
-          {shouldShowQuotes && (
+          {/* Legacy quote block retained below in the Cotações tab. */}
+          {/*
+          {false && shouldShowQuotes && (
             <Card className="border-border bg-card shadow-sm" id="cotacao">
               <CardHeader className="pb-3 border-b border-border/40">
                 <div className="flex items-center justify-between">
@@ -275,17 +244,75 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
               </CardContent>
             </Card>
           )}
+          */}
 
 
 
           <Tabs defaultValue="summary" className="min-h-0">
             <TabsList aria-label="Seções do detalhe do lead" className="w-full justify-start overflow-x-auto border-b border-border/40 pb-px" variant="line">
-              <TabsTrigger value="summary">Resumo Comercial</TabsTrigger>
+              <TabsTrigger value="summary">Atendimento</TabsTrigger>
+              <TabsTrigger value="quotes">CotaÃ§Ãµes {quotes.length > 0 ? `(${quotes.length})` : ""}</TabsTrigger>
+              <TabsTrigger value="documents">Documentos {leadDocs.length > 0 ? `(${leadDocs.length})` : ""}</TabsTrigger>
               <TabsTrigger value="history">Linha do Tempo</TabsTrigger>
               <TabsTrigger value="tasks">Tarefas ({tasks.filter(t => !t.completedAt).length})</TabsTrigger>
             </TabsList>
 
             <TabsContent value="summary" className="mt-4 space-y-6">
+              {isManagement && (
+                <SupervisionPanel
+                  leadId={lead.id}
+                  currentStatus={lead.status}
+                  currentOwner={lead.corretorNome}
+                  currentOwnerId={lead.corretorId}
+                  assignedAt={lead.assignedAt}
+                  stageEnteredAt={lead.stageEnteredAt}
+                  serviceStartedAt={lead.serviceStartedAt}
+                  brokers={brokers}
+                  slaFirstContactMinutes={slaMinutes}
+                  tasks={tasks}
+                  isLost={lead.status === "lost"}
+                  currentUserId={context.userId}
+                />
+              )}
+              {!isManagement && (
+                <LeadActionHub
+                  hasPendingDocuments={leadDocs.some((document) => document.status === "pending" || document.status === "rejected")}
+                  hasQuotes={quotes.length > 0}
+                  leadId={lead.id}
+                  currentOwner={lead.corretorNome}
+                  nextTask={(() => { const task = tasks.find((item) => !item.completedAt); return task ? { title: task.title, dueAt: task.dueAt?.toISOString() ?? null, priority: task.priority, assigneeName: task.assigneeName } : null; })()}
+                  status={lead.status}
+                  isOwner={context.userId === lead.corretorId}
+                  phone={canSeePersonalData ? lead.telefone : null}
+                  canSeePersonalData={canSeePersonalData}
+                  showFeedback={context.role === "broker" && context.userId === lead.corretorId && lead.status !== "lost" && lead.status !== "converted"}
+                />
+              )}
+              <div className="rounded-lg border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
+                Comece pelo atendimento e use as abas para acessar propostas, documentos, histórico e tarefas sem perder o contexto do lead.
+              </div>
+            </TabsContent>
+
+            <TabsContent value="quotes" className="mt-4">
+              {shouldShowQuotes ? (
+                <Card className="border-border bg-card shadow-sm" id="cotacao">
+                  <CardHeader className="border-b border-border/40 pb-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">CotaÃ§Ãµes</CardTitle>
+                        <CardDescription className="text-xs font-normal">{isManagement ? "Propostas montadas para o cliente (somente leitura)." : "Monte propostas e compartilhe com o cliente."}</CardDescription>
+                      </div>
+                      {!isManagement && <QuoteBuilder leadId={lead.id} leadName={lead.nome} leadPhone={canSeePersonalData ? lead.telefone : null} beneficiaries={beneficiaries.map((b) => ({ id: b.id, name: b.name }))} plans={plans.map((p) => ({ id: p.id, name: p.name }))} />}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3 pt-4">
+                    {quotes.length === 0 ? <p className="py-8 text-center text-xs text-muted-foreground">Nenhuma cotaÃ§Ã£o criada ainda.</p> : quotes.map((quote) => <QuoteCard key={quote.id} quote={quote} leadName={lead.nome} leadPhone={canSeePersonalData ? lead.telefone : null} />)}
+                  </CardContent>
+                </Card>
+              ) : <Card className="border-border bg-card shadow-sm"><CardContent className="py-10 text-center text-sm text-muted-foreground">As cotaÃ§Ãµes ficam disponÃ­veis para o responsÃ¡vel pelo atendimento e para a gestÃ£o.</CardContent></Card>}
+            </TabsContent>
+
+            <TabsContent value="documents" className="mt-4">
               <Card className="border-border bg-card shadow-sm" id="documentos">
                   <CardHeader className="pb-3 border-b border-border/40">
                     <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Documentação do atendimento</CardTitle>
