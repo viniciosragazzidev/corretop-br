@@ -19,7 +19,7 @@ export function buildBrokerInvitationFallbackMessage(input: { name?: string; com
   const role = input.role === "manager" ? "Gestor" : input.role === "broker" ? "Corretor" : input.role || "colaborador";
   const name = input.name?.trim() || "Olá";
   const company = input.company?.trim() || "sua corretora";
-  const url = `${baseUrl}/primeiro-acesso?token=${encodeURIComponent(input.token)}`;
+  const url = `${baseUrl}/onboarding?token=${encodeURIComponent(input.token)}`;
   return `Olá, ${name}! Seu acesso ao ${company} foi criado como ${role}.\n\nAcesse o CorreTop pelo link seguro abaixo (válido por 72 horas):\n${url}\n\nSe você não esperava este convite, ignore esta mensagem.`;
 }
 

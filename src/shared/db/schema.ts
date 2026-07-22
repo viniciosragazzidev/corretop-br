@@ -71,6 +71,7 @@ export const beneficiaryRelationshipValues = ["titular", "conjuge", "filho", "ou
 export const beneficiaryRelationship = pgEnum("beneficiary_relationship", beneficiaryRelationshipValues);
 export const taskPriorityValues = ["low", "normal", "urgent"] as const;
 export const taskPriority = pgEnum("task_priority", taskPriorityValues);
+export const onboardingStatus = pgEnum("onboarding_status", ["PENDING", "COMPLETED"]);
 
 const createdAt = timestamp("created_at", { withTimezone: true })
   .notNull()
@@ -2174,9 +2175,9 @@ export const userOnboarding = pgTable(
     tenantId: text("tenant_id")
       .notNull()
       .references(() => tenants.id),
-    status: text("status", { enum: ["NOT_STARTED", "IN_PROGRESS", "COMPLETED", "BLOCKED"] })
+    status: onboardingStatus("status")
       .notNull()
-      .default("NOT_STARTED"),
+      .default("PENDING"),
     currentStep: text("current_step"),
     emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
     passwordCreatedAt: timestamp("password_created_at", { withTimezone: true }),

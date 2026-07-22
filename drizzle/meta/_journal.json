@@ -204,6 +204,13 @@
       "when": 1784900200000,
       "tag": "0076_optional_broker_cpf",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1784900300000,
+      "tag": "0077_sync_user_onboarding_columns",
+      "breakpoints": true
     }
   ]
 }

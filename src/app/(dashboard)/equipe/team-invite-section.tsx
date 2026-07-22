@@ -43,7 +43,7 @@ export function TeamInviteSection({ branches, canInviteManager }: Props) {
         setWhatsappStatus(result.whatsappStatus ?? "not_available");
         const origin = typeof window !== "undefined" ? window.location.origin : "";
         if (result.token) {
-          setCreatedLink(`${origin}/primeiro-acesso?token=${result.token}`);
+          setCreatedLink(`${origin}/onboarding?token=${result.token}`);
         } else {
           formRef.current?.reset();
           setOpen(false);

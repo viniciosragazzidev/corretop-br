@@ -73,13 +73,13 @@ export async function proxy(request: NextRequest) {
 
   if (userId) {
     const onboardingDone = await isBrokerOnboardingCompleted(userId);
-    if (!onboardingDone && !pathname.startsWith("/primeiro-acesso") && !pathname.startsWith("/login") && !pathname.startsWith("/api/auth")) {
-      const response = NextResponse.redirect(new URL("/primeiro-acesso", request.url));
+    if (!onboardingDone && !pathname.startsWith("/onboarding") && !pathname.startsWith("/primeiro-acesso") && !pathname.startsWith("/login") && !pathname.startsWith("/api/auth")) {
+      const response = NextResponse.redirect(new URL("/onboarding", request.url));
       copyCookies(supabaseResponse, response);
       response.headers.set("x-request-id", requestId);
       return response;
     }
-    if (onboardingDone && pathname.startsWith("/primeiro-acesso")) {
+    if (onboardingDone && (pathname.startsWith("/primeiro-acesso") || pathname.startsWith("/onboarding"))) {
       const response = NextResponse.redirect(new URL("/dashboard", request.url));
       copyCookies(supabaseResponse, response);
       response.headers.set("x-request-id", requestId);

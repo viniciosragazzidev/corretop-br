@@ -14,7 +14,7 @@ describe("buildBrokerInvitationFallbackMessage", () => {
       token: "token-seguro",
     });
     expect(message).toContain("Olá, Ana!");
-    expect(message).toContain("https://crm.example.com/primeiro-acesso?token=token-seguro");
+    expect(message).toContain("https://crm.example.com/onboarding?token=token-seguro");
     expect(message).toContain("Corretor");
   });
 });
