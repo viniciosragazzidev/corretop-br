@@ -5,7 +5,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { completeMetaEmbeddedSignupAction, setMetaCloudChannelStatusAction } from "../actions";
 
-type Channel = { id: string; displayPhoneNumber: string | null; verifiedName: string | null; branchName: string | null; status: string; qualityRating: string | null; isDefault: boolean };
+type Channel = {
+  id: string;
+  branchId: string | null;
+  displayPhoneNumber: string | null;
+  verifiedName: string | null;
+  branchName: string | null;
+  status: string;
+  qualityRating: string | null;
+  messagingLimit: string | null;
+  businessId: string | null;
+  wabaId: string | null;
+  phoneNumberId: string | null;
+  lastWebhookAt: Date | null;
+  activatedAt: Date | null;
+  tokenExpiresAt: Date | null;
+  isDefault: boolean;
+};
 type SignupMetadata = { businessId: string; wabaId: string; phoneNumberId: string };
 type FacebookLoginResponse = { authResponse?: { code?: string } };
 
@@ -24,12 +40,26 @@ function readSignupMessage(value: unknown): SignupMetadata | null {
   return { businessId: data.business_id as string, wabaId: data.waba_id as string, phoneNumberId: data.phone_number_id as string };
 }
 
-export function MetaCloudSetupCard({ enabled, configured, missing, appId, configId, canConfigure, channels }: { enabled: boolean; configured: boolean; missing: string[]; appId: string | null; configId: string | null; canConfigure: boolean; branches?: { id: string; name: string }[]; channels: Channel[] }) {
+function formatDate(value: Date | null) {
+  if (!value) return "Ainda não sincronizado";
+  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+}
+
+function accountStatus(account: Channel | null, enabled: boolean, configured: boolean) {
+  if (!enabled) return { label: "Desativada pelo Super-admin", tone: "border-warning/30 bg-warning/10 text-warning-foreground" };
+  if (!configured) return { label: "Configuração incompleta", tone: "border-warning/30 bg-warning/10 text-warning-foreground" };
+  if (!account) return { label: "Não conectada", tone: "border-border bg-muted/30 text-muted-foreground" };
+  if (account.status === "active") return { label: "Ativa", tone: "border-success/30 bg-success/10 text-success-foreground" };
+  return { label: "Pausada", tone: "border-warning/30 bg-warning/10 text-warning-foreground" };
+}
+
+export function MetaCloudSetupCard({ enabled, configured, missing, appId, configId, canConfigure, companyAccount }: { enabled: boolean; configured: boolean; missing: string[]; appId: string | null; configId: string | null; canConfigure: boolean; branches?: { id: string; name: string }[]; channels: Channel[]; companyAccount: Channel | null }) {
   const [code, setCode] = useState<string | null>(null);
   const [metadata, setMetadata] = useState<SignupMetadata | null>(null);
   const [sdkReady, setSdkReady] = useState(false);
   const [isPending, startTransition] = useTransition();
   const submitted = useRef(false);
+  const status = accountStatus(companyAccount, enabled, configured);
 
   useEffect(() => {
     if (!appId || !configId || !enabled) return;
@@ -57,7 +87,7 @@ export function MetaCloudSetupCard({ enabled, configured, missing, appId, config
     if (!code || !metadata || submitted.current) return;
     submitted.current = true;
     startTransition(async () => {
-      try { const result = await completeMetaEmbeddedSignupAction({ code, ...metadata }); toast.success("Canal oficial conectado.", { description: result.displayPhoneNumber ?? "A Meta já pode enviar e receber mensagens neste canal." }); window.location.reload(); }
+      try { const result = await completeMetaEmbeddedSignupAction({ code, ...metadata }); toast.success("Canal oficial conectado.", { description: result.displayPhoneNumber ?? "A conta empresarial já pode enviar e receber mensagens." }); window.location.reload(); }
       catch (error) { submitted.current = false; setCode(null); toast.error(error instanceof Error ? error.message : "Não foi possível concluir a conexão oficial."); }
     });
   }, [code, metadata]);
@@ -68,14 +98,40 @@ export function MetaCloudSetupCard({ enabled, configured, missing, appId, config
     window.FB.login((response) => { const nextCode = response.authResponse?.code; if (!nextCode) { toast.error("A Meta não devolveu o código de autorização. Tente novamente."); return; } setCode(nextCode); }, { config_id: configId, response_type: "code", override_default_response_type: true, extras: { feature: "whatsapp_embedded_signup" } });
   }
 
+  function toggleStatus() {
+    if (!companyAccount) return;
+    startTransition(async () => {
+      try { await setMetaCloudChannelStatusAction(companyAccount.id, companyAccount.status !== "active"); window.location.reload(); }
+      catch (error) { toast.error(error instanceof Error ? error.message : "Não foi possível alterar o status da conta."); }
+    });
+  }
+
   return <Card className="border-border bg-card shadow-none">
-    <CardHeader><CardTitle>WhatsApp oficial da Meta</CardTitle><CardDescription>Canal corporativo conectado pelo Embedded Signup. Tokens ficam cifrados no servidor; nenhum segredo é enviado ao navegador.</CardDescription></CardHeader>
+    <CardHeader>
+      <CardTitle>Status da conta WhatsApp da empresa</CardTitle>
+      <CardDescription>Uma visão única da conta oficial da Meta que atende todas as unidades. Tokens permanecem cifrados no servidor.</CardDescription>
+    </CardHeader>
     <CardContent className="space-y-4">
-      {!enabled ? <p className="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-muted-foreground">A capacidade está desativada globalmente pelo Super-admin.</p> : null}
-      {enabled && !configured ? <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm"><p className="font-medium">Faltam variáveis seguras no ambiente</p><p className="mt-1 text-muted-foreground">Configure no Vercel: {missing.join(", ")}.</p></div> : null}
-      {enabled && configured && canConfigure ? <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-muted/20 p-3"><Button disabled={!sdkReady || isPending} onClick={startSignup} type="button">{isPending ? "Concluindo conexão..." : "Conectar número oficial"}</Button><p className="text-xs text-muted-foreground">Este canal é corporativo e alimenta todas as unidades da corretora. A Meta abrirá o cadastro da WABA e do número.</p></div> : null}
-      {enabled && configured && !canConfigure ? <p className="text-sm text-muted-foreground">A conexão de novos canais oficiais é exclusiva do Diretor da corretora.</p> : null}
-      <div className="divide-y divide-border rounded-lg border border-border">{channels.length ? channels.map((channel) => <div className="flex flex-wrap items-center justify-between gap-3 p-3" key={channel.id}><div><p className="text-sm font-medium">{channel.displayPhoneNumber ?? "Número oficial"}{channel.isDefault ? " · padrão" : ""}</p><p className="text-xs text-muted-foreground">{channel.verifiedName ?? "Sem nome verificado"}{channel.branchName ? ` · ${channel.branchName}` : " · Toda a corretora"}{channel.qualityRating ? ` · Qualidade ${channel.qualityRating}` : ""}</p></div><div className="flex items-center gap-2"><span className="text-xs text-muted-foreground">{channel.status === "active" ? "Ativo" : "Pausado"}</span>{canConfigure ? <Button disabled={isPending} onClick={() => startTransition(async () => { try { await setMetaCloudChannelStatusAction(channel.id, channel.status !== "active"); window.location.reload(); } catch (error) { toast.error(error instanceof Error ? error.message : "Não foi possível alterar o canal."); } })} size="sm" type="button" variant="outline">{channel.status === "active" ? "Pausar" : "Ativar"}</Button> : null}</div></div>) : <p className="p-3 text-sm text-muted-foreground">Nenhum número oficial conectado ainda.</p>}</div>
+      <div aria-live="polite" className={`flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4 ${status.tone}`}>
+        <div><p className="text-xs font-medium uppercase tracking-wide opacity-80">Status operacional</p><p className="mt-1 text-lg font-semibold">{status.label}</p></div>
+        {canConfigure && companyAccount ? <Button disabled={isPending} onClick={toggleStatus} type="button" variant="outline">{companyAccount.status === "active" ? "Pausar conta" : "Ativar conta"}</Button> : null}
+      </div>
+      {!enabled ? <p className="text-sm text-muted-foreground">A capacidade foi desativada globalmente pelo Super-admin.</p> : null}
+      {enabled && !configured ? <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm"><p className="font-medium">Faltam variáveis seguras no ambiente</p><p className="mt-1 text-muted-foreground">Configure no ambiente de produção: {missing.join(", ")}.</p></div> : null}
+      {enabled && configured && !companyAccount ? <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-muted/20 p-3"><div className="flex-1"><p className="text-sm font-medium">Nenhuma conta empresarial conectada</p><p className="mt-1 text-xs text-muted-foreground">Conecte a WABA e o número oficial para liberar o canal para a corretora.</p></div>{canConfigure ? <Button disabled={!sdkReady || isPending} onClick={startSignup} type="button">{isPending ? "Concluindo conexão..." : "Conectar conta oficial"}</Button> : null}</div> : null}
+      {companyAccount ? <div className="grid gap-3 rounded-lg border border-border p-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div><p className="text-xs text-muted-foreground">Nome verificado</p><p className="mt-1 text-sm font-medium">{companyAccount.verifiedName ?? "Não informado"}</p></div>
+        <div><p className="text-xs text-muted-foreground">Número oficial</p><p className="mt-1 text-sm font-medium">{companyAccount.displayPhoneNumber ?? "Não informado"}</p></div>
+        <div><p className="text-xs text-muted-foreground">Qualidade</p><p className="mt-1 text-sm font-medium">{companyAccount.qualityRating ?? "Ainda não disponível"}</p></div>
+        <div><p className="text-xs text-muted-foreground">Limite de mensagens</p><p className="mt-1 text-sm font-medium">{companyAccount.messagingLimit ?? "Não informado"}</p></div>
+        <div><p className="text-xs text-muted-foreground">Último webhook</p><p className="mt-1 text-sm font-medium">{formatDate(companyAccount.lastWebhookAt)}</p></div>
+        <div><p className="text-xs text-muted-foreground">Ativada em</p><p className="mt-1 text-sm font-medium">{formatDate(companyAccount.activatedAt)}</p></div>
+        <div><p className="text-xs text-muted-foreground">Business ID</p><p className="mt-1 break-all font-mono text-xs">{companyAccount.businessId ?? "—"}</p></div>
+        <div><p className="text-xs text-muted-foreground">WABA ID</p><p className="mt-1 break-all font-mono text-xs">{companyAccount.wabaId ?? "—"}</p></div>
+        <div><p className="text-xs text-muted-foreground">Phone Number ID</p><p className="mt-1 break-all font-mono text-xs">{companyAccount.phoneNumberId ?? "—"}</p></div>
+      </div> : null}
+      {enabled && configured && companyAccount && canConfigure ? <p className="text-xs text-muted-foreground">A alteração de status é aplicada à conta corporativa e registrada para auditoria.</p> : null}
+      {enabled && configured && !canConfigure ? <p className="text-sm text-muted-foreground">A conexão e o status da conta empresarial são administrados exclusivamente pelo Diretor.</p> : null}
     </CardContent>
   </Card>;
 }
