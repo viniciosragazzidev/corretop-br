@@ -13,9 +13,9 @@ export function OnboardingStepList({ steps, onNavigate }: OnboardingStepListProp
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="text-sm font-medium">Checklist de configuração</h3>
-        <span className="text-xs text-muted-foreground">
+        <span className="text-sm text-muted-foreground">
           {progress.completedSteps} de {progress.availableSteps} etapas disponíveis concluídas
         </span>
       </div>
@@ -26,7 +26,7 @@ export function OnboardingStepList({ steps, onNavigate }: OnboardingStepListProp
         progressPercentage={progress.progressPercentage}
       />
 
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="grid min-w-0 gap-3 sm:grid-cols-2">
         {steps.map((step) => (
           <OnboardingStepItem
             key={step.id}

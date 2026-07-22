@@ -27,7 +27,7 @@ export function OnboardingHero({ steps, onDismiss, onNavigate }: OnboardingHeroP
   )
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex min-w-0 flex-col gap-4">
       <div className="flex items-center gap-2">
         <CorreTopLogo className="h-7 w-28 object-contain object-left" />
         <Badge variant="outline" className="ml-auto text-[10px]">
@@ -35,11 +35,11 @@ export function OnboardingHero({ steps, onDismiss, onNavigate }: OnboardingHeroP
         </Badge>
       </div>
 
-      <h1 className="mt-2 text-2xl font-semibold leading-tight tracking-tight">
+      <h1 className="mt-2 max-w-[22ch] text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">
         Prepare sua corretora para começar
       </h1>
 
-      <p className="text-sm leading-relaxed text-muted-foreground">
+      <p className="max-w-prose text-base leading-relaxed text-muted-foreground">
         Configure a estrutura inicial do tenant, organize sua equipe e deixe o
         ambiente pronto para operar.
       </p>
@@ -48,7 +48,7 @@ export function OnboardingHero({ steps, onDismiss, onNavigate }: OnboardingHeroP
         {hasPendingSteps && firstPending && (
           <Button
             size="lg"
-            className="w-full sm:w-auto"
+            className="w-full whitespace-normal sm:w-auto"
             onClick={handlePrimaryAction}
           >
             <span>Continuar configuração</span>
@@ -58,7 +58,7 @@ export function OnboardingHero({ steps, onDismiss, onNavigate }: OnboardingHeroP
         <Button
           variant="outline"
           size="lg"
-          className="w-full sm:w-auto"
+          className="w-full whitespace-normal sm:w-auto"
           onClick={onDismiss}
         >
           <Compass className="size-4" />

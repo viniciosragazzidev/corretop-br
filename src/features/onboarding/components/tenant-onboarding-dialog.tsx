@@ -64,8 +64,7 @@ function TenantOnboardingDialogInner({ onboarding }: TenantOnboardingDialogProps
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogPopup
-        className="w-[calc(100vw-24px)] max-w-[1000px] data-ending-style:opacity-0 data-starting-style:opacity-0 data-ending-style:translate-y-3 data-starting-style:translate-y-3 data-ending-style:scale-[0.98] data-starting-style:scale-[0.98]"
-        style={{ maxHeight: "calc(100vh - 48px)" }}
+        className="flex w-[calc(100vw-24px)] max-w-[1000px] flex-col gap-0 p-0 data-ending-style:opacity-0 data-starting-style:opacity-0 data-ending-style:translate-y-3 data-starting-style:translate-y-3 data-ending-style:scale-[0.98]"
       >
         <DialogClose
           aria-label="Fechar onboarding"
@@ -74,8 +73,8 @@ function TenantOnboardingDialogInner({ onboarding }: TenantOnboardingDialogProps
           <X className="size-4" weight="bold" />
         </DialogClose>
 
-        <div className="flex max-h-[calc(100vh-48px-3rem)] flex-col gap-0 overflow-y-auto">
-          <div className="grid gap-6 p-6 sm:grid-cols-2">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          <div className="grid gap-6 p-5 sm:grid-cols-2 sm:p-6">
             <OnboardingHero
               steps={onboarding.steps}
               onDismiss={handleDismiss}
@@ -84,13 +83,13 @@ function TenantOnboardingDialogInner({ onboarding }: TenantOnboardingDialogProps
             <OnboardingBenefits />
           </div>
 
-          <div className="px-6 pb-6">
+          <div className="px-5 pb-5 sm:px-6 sm:pb-6">
             <OnboardingPreview />
           </div>
 
           <Separator />
 
-          <div className="p-6">
+          <div className="p-5 sm:p-6">
             <OnboardingStepList
               steps={onboarding.steps}
               onNavigate={handleNavigate}

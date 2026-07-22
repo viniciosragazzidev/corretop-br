@@ -9,7 +9,7 @@ const BENEFITS = [
 
 export function OnboardingBenefits() {
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-border bg-muted/30 p-4">
+    <div className="flex min-w-0 flex-col gap-3 rounded-xl border border-border bg-muted/30 p-4 sm:p-5">
       <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
         Benefícios
       </h3>
@@ -20,7 +20,7 @@ export function OnboardingBenefits() {
               weight="fill"
               className="mt-0.5 size-4 shrink-0 text-ct-blue"
             />
-            <span className="text-sm leading-snug text-foreground/85">
+            <span className="text-base leading-snug text-foreground/85">
               {benefit}
             </span>
           </li>

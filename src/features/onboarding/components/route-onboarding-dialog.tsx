@@ -115,7 +115,7 @@ export function RouteOnboardingDialog({ definition, initialOpen }: RouteOnboardi
         className="border-0 bg-transparent p-0 shadow-none max-w-[380px] w-full select-none focus:outline-none focus-visible:outline-none focus-visible:ring-0"
         overlayClassName="bg-slate-950/60 backdrop-blur-md dark:bg-black/80"
       >
-        <div className="relative w-full h-[280px] overflow-hidden rounded-xl p-7 border border-white/40 dark:border-white/10  bg-background  shadow-[0_32px_64px_-16px_rgba(0,0,0,0.12)] dark:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] flex flex-col justify-between focus:outline-none focus-visible:outline-none">
+        <div className="relative flex min-h-[280px] max-h-[calc(100dvh-2rem)] w-full flex-col justify-between overflow-hidden rounded-xl border border-white/40 bg-background p-6 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.12)] focus:outline-none focus-visible:outline-none dark:border-white/10 dark:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] sm:p-7">
 
           {/* Close button */}
           <DialogClose render={
@@ -130,7 +130,7 @@ export function RouteOnboardingDialog({ definition, initialOpen }: RouteOnboardi
           } />
 
           {/* Slide Content */}
-          <div className="flex-1 flex flex-col justify-center">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-1">
             <AnimatePresence custom={direction} mode="wait">
               {step === 1 && (
                 <motion.div
@@ -152,7 +152,7 @@ export function RouteOnboardingDialog({ definition, initialOpen }: RouteOnboardi
                     <DialogTitle className="mt-2 text-xl font-bold tracking-tight text-foreground leading-tight">
                       {definition.title}
                     </DialogTitle>
-                    <DialogDescription className="mt-3 text-xs leading-relaxed text-muted-foreground/80 font-normal">
+                    <DialogDescription className="mt-3 text-base leading-relaxed text-muted-foreground/80 font-normal">
                       {definition.description}
                     </DialogDescription>
                   </div>
@@ -184,7 +184,7 @@ export function RouteOnboardingDialog({ definition, initialOpen }: RouteOnboardi
                     <DialogTitle className="mt-2 text-xl font-bold tracking-tight text-foreground leading-tight">
                       O que você encontrará
                     </DialogTitle>
-                    <DialogDescription className="mt-3 text-xs leading-relaxed text-muted-foreground/80 font-normal">
+                    <DialogDescription className="mt-3 text-base leading-relaxed text-muted-foreground/80 font-normal">
                       Esta tela permite que você acompanhe o contexto da operação, encontre o próximo passo a seguir e visualize as permissões de segurança de forma rápida.
                     </DialogDescription>
                   </div>
@@ -211,7 +211,7 @@ export function RouteOnboardingDialog({ definition, initialOpen }: RouteOnboardi
                     <DialogTitle className="mt-2 text-xl font-bold tracking-tight text-foreground leading-tight">
                       Dica para começar
                     </DialogTitle>
-                    <DialogDescription className="mt-3 text-xs leading-relaxed text-muted-foreground/80 font-normal">
+                    <DialogDescription className="mt-3 text-base leading-relaxed text-muted-foreground/80 font-normal">
                       {definition.tip}
                     </DialogDescription>
                   </div>

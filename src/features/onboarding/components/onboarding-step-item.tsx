@@ -35,7 +35,7 @@ export function OnboardingStepItem({ step, onNavigate }: OnboardingStepItemProps
   return (
     <div
       className={cn(
-        "flex items-start gap-3 rounded-lg border p-3.5 transition-all duration-200",
+        "flex min-w-0 items-start gap-3 rounded-lg border p-4 transition-all duration-200",
         isCompleted && "border-success/20 bg-success/10",
         isPending && "border-border bg-card hover:border-ct-blue/30 hover:bg-accent/30",
         isUnavailable && "border-dashed border-border/40 bg-muted/20 opacity-60",
@@ -60,7 +60,7 @@ export function OnboardingStepItem({ step, onNavigate }: OnboardingStepItemProps
         <div className="flex items-center gap-2">
           <span
             className={cn(
-              "text-sm font-medium",
+              "text-base font-medium leading-snug",
               isUnavailable && "text-muted-foreground/50",
             )}
           >
@@ -74,7 +74,7 @@ export function OnboardingStepItem({ step, onNavigate }: OnboardingStepItemProps
         </div>
         <p
           className={cn(
-            "mt-0.5 text-xs leading-relaxed",
+            "mt-1 text-sm leading-relaxed",
             isUnavailable ? "text-muted-foreground/40" : "text-muted-foreground",
           )}
         >
@@ -84,14 +84,14 @@ export function OnboardingStepItem({ step, onNavigate }: OnboardingStepItemProps
 
       {/* Status + Action */}
       <div className="flex shrink-0 flex-col items-end gap-1.5">
-        <span className={cn("text-[11px] font-medium", statusColor)}>
+        <span className={cn("text-sm font-medium", statusColor)}>
           {statusLabel}
         </span>
         {isPending && step.actionLabel && step.href && (
           <button
             type="button"
             onClick={handleAction}
-            className="rounded-md bg-primary px-2.5 py-1 text-[11px] font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+            className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
           >
             {step.actionLabel}
           </button>

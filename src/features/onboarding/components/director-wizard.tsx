@@ -176,8 +176,7 @@ export function DirectorWizard({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogPopup
-        className="sm:max-w-lg data-ending-style:opacity-0 data-starting-style:opacity-0 data-ending-style:translate-y-3 data-starting-style:translate-y-3 data-ending-style:scale-[0.98] data-starting-style:scale-[0.98]"
-        style={{ maxHeight: "calc(100vh - 48px)" }}
+        className="flex max-h-[calc(100dvh-2rem)] flex-col gap-0 sm:max-w-lg data-ending-style:opacity-0 data-starting-style:opacity-0 data-ending-style:translate-y-3 data-starting-style:translate-y-3 data-ending-style:scale-[0.98] data-starting-style:scale-[0.98]"
       >
         <DialogClose
           aria-label="Fechar wizard"
@@ -196,7 +195,7 @@ export function DirectorWizard({
         </div>
 
         {/* Step content */}
-        <div className="px-6 py-5">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6">
           <AnimatePresence mode="wait">
             {step === 0 && (
               <motion.div
