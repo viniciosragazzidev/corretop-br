@@ -62,7 +62,7 @@ export function PlatformAdminShell({ children }: { children: ReactNode }) {
 
       <PlatformAdminSidebar />
 
-      <SidebarInset className="bg-background">
+      <SidebarInset className="bg-background overflow-y-auto">
         <div className="flex flex-1 flex-col">{children}</div>
       </SidebarInset>
     </SidebarProvider>

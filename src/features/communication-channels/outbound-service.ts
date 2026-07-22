@@ -6,13 +6,22 @@ import { z } from "zod";
 
 import { getDatabase, schema } from "@/shared/db";
 import { decryptChannelSecret } from "./secret-crypto";
-import { MetaCloudApiError, sendMetaCloudTemplate } from "./meta-cloud-client";
+import { MetaCloudApiError, sendMetaCloudText, sendMetaCloudTemplate } from "./meta-cloud-client";
 import { getMetaCloudServerConfig } from "./meta-cloud-config";
 import { getMetaWhatsAppTemplate, type MetaWhatsAppTemplatePurpose } from "./templates";
 import { META_CLOUD_PROVIDER } from "./types";
 
 const phoneSchema = z.string().trim().transform((value) => value.replace(/\D/g, "")).pipe(z.string().min(10).max(15));
 const variablesSchema = z.array(z.string().trim().min(1).max(512)).max(10).default([]);
+
+export function buildBrokerInvitationFallbackMessage(input: { name?: string; company?: string; role?: string; token: string }) {
+  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || process.env.BETTER_AUTH_URL || "https://corretop.vercel.app").replace(/\/$/, "");
+  const role = input.role === "manager" ? "Gestor" : input.role === "broker" ? "Corretor" : input.role || "colaborador";
+  const name = input.name?.trim() || "Olá";
+  const company = input.company?.trim() || "sua corretora";
+  const url = `${baseUrl}/primeiro-acesso?token=${encodeURIComponent(input.token)}`;
+  return `Olá, ${name}! Seu acesso ao ${company} foi criado como ${role}.\n\nAcesse o CorreTop pelo link seguro abaixo (válido por 72 horas):\n${url}\n\nSe você não esperava este convite, ignore esta mensagem.`;
+}
 
 export const whatsappOutboundStatusValues = ["pending", "queued", "processing", "sent", "delivered", "read", "failed", "cancelled", "expired"] as const;
 export type WhatsAppOutboundStatus = (typeof whatsappOutboundStatusValues)[number];
@@ -45,12 +54,39 @@ export async function enqueueMetaTemplateMessage(input: {
   const now = new Date();
   await db.insert(schema.whatsappOutboundMessages).values({
     id, tenantId: input.tenantId, channelId: channel.id, recipientType: input.recipientType, recipientId: input.recipientId ?? null,
-    destinationPhone, purpose: input.purpose, templateName: template.name, templateLanguage: template.language, variables,
+    destinationPhone, purpose: input.purpose, messageType: "template", templateName: template.name, templateLanguage: template.language, variables,
     status: input.scheduledAt && input.scheduledAt > now ? "pending" : "queued", idempotencyKey: input.idempotencyKey,
     scheduledAt: input.scheduledAt ?? null, queuedAt: now, requestedBy: input.requestedBy, createdAt: now, updatedAt: now,
   });
   await db.insert(schema.auditLogs).values({ id: randomUUID(), userId: input.requestedBy, entidade: "whatsapp_outbound_message", entidadeId: id, acao: "whatsapp_message_queued" });
   return { id, status: "queued" as const, duplicate: false };
+}
+
+async function enqueueBrokerInvitationTextFallback(input: {
+  tenantId: string;
+  channelId: string;
+  recipientId: string;
+  destinationPhone: string;
+  variables: string[];
+  requestedBy: string;
+}) {
+  const db = getDatabase();
+  const idempotencyKey = `team-invitation-text:${input.recipientId}`;
+  const [existing] = await db.select().from(schema.whatsappOutboundMessages).where(and(
+    eq(schema.whatsappOutboundMessages.tenantId, input.tenantId),
+    eq(schema.whatsappOutboundMessages.idempotencyKey, idempotencyKey),
+  )).limit(1);
+  if (existing) return { id: existing.id, duplicate: true };
+  const now = new Date();
+  const id = randomUUID();
+  await db.insert(schema.whatsappOutboundMessages).values({
+    id, tenantId: input.tenantId, channelId: input.channelId, recipientType: "user", recipientId: input.recipientId,
+    destinationPhone: phoneSchema.parse(input.destinationPhone), purpose: "brokerInvitation", messageType: "text",
+    templateName: "__text_fallback__", templateLanguage: "pt_BR", variables: variablesSchema.parse(input.variables),
+    status: "queued", idempotencyKey, queuedAt: now, requestedBy: input.requestedBy, createdAt: now, updatedAt: now,
+  });
+  await db.insert(schema.auditLogs).values({ id: randomUUID(), userId: input.requestedBy, entidade: "whatsapp_outbound_message", entidadeId: id, acao: "whatsapp_invite_text_fallback_queued" });
+  return { id, duplicate: false };
 }
 
 export async function processMetaOutboundBatch(limit = 10) {
@@ -67,15 +103,27 @@ export async function processMetaOutboundBatch(limit = 10) {
     try {
       const [channel] = await db.select().from(schema.communicationChannels).where(and(eq(schema.communicationChannels.id, row.channelId), eq(schema.communicationChannels.tenantId, row.tenantId), eq(schema.communicationChannels.provider, META_CLOUD_PROVIDER), eq(schema.communicationChannels.status, "active"))).limit(1);
       if (!channel?.phoneNumberId || !channel.accessTokenCiphertext) throw new Error("Canal corporativo incompleto.");
+      const phoneNumberId = channel.phoneNumberId;
       const accessToken = decryptChannelSecret(channel.accessTokenCiphertext, getMetaCloudServerConfig().tokenEncryptionKey);
       let urlButtonParameter: string | undefined;
+      let invitation: { tokenCiphertext: string | null; expiresAt: Date; status: string } | undefined;
       if (row.purpose === "brokerInvitation" && row.recipientId) {
-        const [invitation] = await db.select({ tokenCiphertext: schema.brokerInvitations.tokenCiphertext, expiresAt: schema.brokerInvitations.expiresAt, status: schema.brokerInvitations.status }).from(schema.brokerInvitations).where(and(eq(schema.brokerInvitations.id, row.recipientId), eq(schema.brokerInvitations.tenantId, row.tenantId))).limit(1);
+        const [loadedInvitation] = await db.select({ tokenCiphertext: schema.brokerInvitations.tokenCiphertext, expiresAt: schema.brokerInvitations.expiresAt, status: schema.brokerInvitations.status }).from(schema.brokerInvitations).where(and(eq(schema.brokerInvitations.id, row.recipientId), eq(schema.brokerInvitations.tenantId, row.tenantId))).limit(1);
+        invitation = loadedInvitation;
         const invitationKey = process.env.INVITATION_TOKEN_ENCRYPTION_KEY?.trim() || process.env.META_WHATSAPP_TOKEN_ENCRYPTION_KEY?.trim();
         if (!invitation || invitation.status !== "PENDING" || invitation.expiresAt <= new Date() || !invitation.tokenCiphertext || !invitationKey) throw new Error("Convite indisponível para entrega.");
         urlButtonParameter = decryptChannelSecret(invitation.tokenCiphertext, invitationKey);
       }
-      const response = await sendMetaCloudTemplate({ phoneNumberId: channel.phoneNumberId, accessToken, to: row.destinationPhone, templateName: row.templateName, languageCode: row.templateLanguage, variables: Array.isArray(row.variables) ? row.variables.filter((value): value is string => typeof value === "string") : [], urlButtonParameter });
+      const variables = Array.isArray(row.variables) ? row.variables.filter((value): value is string => typeof value === "string") : [];
+      const response = await (row.messageType === "text"
+        ? await (async () => {
+          const invitationKey = process.env.INVITATION_TOKEN_ENCRYPTION_KEY?.trim() || process.env.META_WHATSAPP_TOKEN_ENCRYPTION_KEY?.trim();
+          const ciphertext = invitation?.tokenCiphertext;
+          if (!row.recipientId || !ciphertext || !invitationKey) throw new Error("Convite indisponível para entrega.");
+          const token = decryptChannelSecret(ciphertext, invitationKey);
+          return sendMetaCloudText({ phoneNumberId, accessToken, to: row.destinationPhone, body: buildBrokerInvitationFallbackMessage({ name: variables[0], company: variables[1], role: variables[2], token }) });
+        })()
+        : sendMetaCloudTemplate({ phoneNumberId, accessToken, to: row.destinationPhone, templateName: row.templateName, languageCode: row.templateLanguage, variables, urlButtonParameter }));
       const providerMessageId = response.messages?.[0]?.id;
       if (!providerMessageId) throw new Error("A Meta não retornou o identificador da mensagem.");
       await db.update(schema.whatsappOutboundMessages).set({ status: "sent", providerMessageId, sentAt: new Date(), updatedAt: new Date(), providerErrorCode: null, providerErrorMessage: null }).where(eq(schema.whatsappOutboundMessages.id, row.id));
@@ -89,7 +137,21 @@ export async function processMetaOutboundBatch(limit = 10) {
       const safeCode = error instanceof MetaCloudApiError && error.code ? String(error.code) : "outbound_delivery_failed";
       const nextAttemptAt = shouldRetry ? new Date(Date.now() + Math.min(3_600_000, 30_000 * 2 ** row.attempts)) : null;
       await db.update(schema.whatsappOutboundMessages).set({ status: shouldRetry ? "queued" : "failed", nextAttemptAt, failedAt: shouldRetry ? null : new Date(), providerErrorCode: safeCode, providerErrorMessage: "Falha de entrega; consulte o histórico operacional.", updatedAt: new Date() }).where(eq(schema.whatsappOutboundMessages.id, row.id));
-      if (row.purpose === "brokerInvitation" && row.recipientId && !shouldRetry) {
+      const templateDidNotRespond = error instanceof Error && error.message.includes("identificador");
+      if (!shouldRetry && row.messageType === "template" && row.purpose === "brokerInvitation" && row.recipientId && (error instanceof MetaCloudApiError || templateDidNotRespond)) {
+        if (!row.requestedBy) throw new Error("Convite sem solicitante para auditoria.");
+        const fallback = await enqueueBrokerInvitationTextFallback({
+          tenantId: row.tenantId,
+          channelId: row.channelId,
+          recipientId: row.recipientId,
+          destinationPhone: row.destinationPhone,
+          variables: Array.isArray(row.variables) ? row.variables.filter((value): value is string => typeof value === "string") : [],
+          requestedBy: row.requestedBy,
+        });
+        await db.update(schema.brokerInvitations).set({ deliveryStatus: "queued", deliveryAttempts: row.attempts + 1, deliveryError: "O modelo aprovado não respondeu; tentando mensagem alternativa." }).where(and(eq(schema.brokerInvitations.id, row.recipientId), eq(schema.brokerInvitations.tenantId, row.tenantId)));
+        if (row.requestedBy) await db.insert(schema.auditLogs).values({ id: randomUUID(), userId: row.requestedBy, entidade: "whatsapp_outbound_message", entidadeId: row.id, acao: fallback.duplicate ? "whatsapp_invite_text_fallback_reused" : "whatsapp_invite_template_failed" });
+      }
+      if (row.purpose === "brokerInvitation" && row.recipientId && !shouldRetry && row.messageType === "text") {
         await db.update(schema.brokerInvitations).set({ deliveryStatus: "failed", deliveryAttempts: row.attempts + 1, deliveryError: "Falha de entrega; consulte o histórico operacional." }).where(and(eq(schema.brokerInvitations.id, row.recipientId), eq(schema.brokerInvitations.tenantId, row.tenantId)));
       }
       if (shouldRetry) retried += 1; else failed += 1;

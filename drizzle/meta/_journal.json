@@ -176,6 +176,13 @@
       "when": 1784815800000,
       "tag": "0072_add_passkey_table",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1784815900000,
+      "tag": "0073_whatsapp_invite_text_fallback",
+      "breakpoints": true
     }
   ]
 }

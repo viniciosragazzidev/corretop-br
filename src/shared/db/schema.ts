@@ -1608,6 +1608,7 @@ export const whatsappOutboundMessages = pgTable(
     recipientId: text("recipient_id"),
     destinationPhone: text("destination_phone").notNull(),
     purpose: text("purpose").notNull(),
+    messageType: text("message_type", { enum: ["template", "text"] }).notNull().default("template"),
     templateName: text("template_name").notNull(),
     templateLanguage: text("template_language").notNull().default("pt_BR"),
     variables: jsonb("variables").notNull().default([]),

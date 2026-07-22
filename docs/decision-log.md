@@ -166,3 +166,9 @@ pela matriz. Canais por unidade permanecem compatíveis no schema, mas não fica
 expostos no Embedded Signup até uma decisão específica. Envios de negócio usam
 modelos aprovados, ledger idempotente e processamento assíncrono; o cron do Vercel
 Hobby serve apenas como recuperação diária, não como garantia de latência.
+## DEC-046 — Fallback de texto para convites de primeiro acesso
+
+- **Status:** aprovado
+- **Decisão:** quando o template oficial de convite pelo WhatsApp falhar de forma não transitória, o outbox cria uma segunda tentativa idempotente de mensagem de texto com o link direto de primeiro acesso.
+- **Proteções:** o link é montado no worker a partir do token cifrado; nenhum token ou corpo da mensagem é registrado em logs; o fallback é limitado ao propósito `brokerInvitation`, mantém escopo do tenant e permanece auditável.
+- **Limitação conhecida:** a Meta pode rejeitar texto fora de uma janela de atendimento válida. Nessa situação o acesso continua criado e o link manual exibido no CRM é a recuperação oficial.

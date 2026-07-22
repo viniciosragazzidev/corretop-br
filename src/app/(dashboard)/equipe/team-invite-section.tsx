@@ -86,7 +86,7 @@ export function TeamInviteSection({ branches, canInviteManager }: Props) {
               O perfil profissional foi criado com sucesso. Como não utilizamos senhas padrões, envie o link de ativação exclusivo abaixo para o colaborador:
             </DialogDescription>
             <div className={`rounded-lg border p-3 text-sm ${whatsappStatus === "queued" ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-amber-200 bg-amber-50 text-amber-900"}`}>
-              {whatsappStatus === "queued" ? "Convite enfileirado para envio pelo WhatsApp corporativo." : whatsappStatus === "failed" ? "O convite foi criado, mas o envio pelo WhatsApp falhou. Use o link abaixo ou tente novamente depois." : "O WhatsApp corporativo ainda não está disponível. Envie o link abaixo manualmente."}
+              {whatsappStatus === "queued" ? "Convite enfileirado para envio pelo WhatsApp corporativo. Se o modelo da Meta não estiver disponível, uma mensagem alternativa com o link será tentada automaticamente." : whatsappStatus === "failed" ? "O convite foi criado, mas não foi possível concluir o envio pelo WhatsApp. Use o link abaixo ou tente novamente depois." : "O WhatsApp corporativo ainda não está disponível. Envie o link abaixo manualmente."}
             </div>
             <div className="flex items-center gap-2 rounded-lg border border-border bg-muted p-3 text-xs font-mono select-all break-all text-muted-foreground">
               {createdLink}
