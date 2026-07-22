@@ -108,7 +108,7 @@ export async function runSlaSweep(tenantId?: string): Promise<SlaSweepResult> {
         });
 
         // Trigger real-time push and WS notifications in background
-        void notifyNewLead(lead.id, tenant.id, lead.branchId, nextBrokerId, lead.nome).catch(console.error);
+        await notifyNewLead(lead.id, tenant.id, lead.branchId, nextBrokerId, lead.nome).catch(console.error);
 
         // Notify the previous broker that they lost the lead
         if (previousOwnerId && previousOwnerId !== nextBrokerId) {

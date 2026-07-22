@@ -12,6 +12,8 @@ Validar que a entrega de notificações continua rápida e sem duplicidade quand
 - o claim transacional do outbox continua sendo a proteção contra dois workers enviarem o mesmo WhatsApp;
 - retries e fallbacks permanecem contabilizados e podem ser processados na segunda passagem do lote;
 - push e WhatsApp usam a mesma primitiva de concorrência, evitando loops seriais em picos.
+- o caminho síncrono que cria uma nova oferta aguarda o processamento da outbox antes de
+  retornar a Server Action, evitando que uma função serverless seja encerrada com trabalho pendente.
 
 ## Como executar
 

@@ -66,9 +66,12 @@ export async function createManualLead(rawInput: unknown) {
   await db.insert(schema.leadInteractions).values({ id: randomUUID(), leadId, userId: context.userId, tipo: assigned ? "system_alert" : "note", conteudo: assigned ? "Lead criado e distribuído automaticamente para um corretor disponível." : "Lead criado manualmente; aguardando corretor disponível." });
   await db.insert(schema.auditLogs).values({ id: randomUUID(), userId: context.userId, entidade: "lead", entidadeId: leadId, acao: "criou" });
   
-  // Trigger push notifications in background
+  // Keep WhatsApp outbox processing inside the server action. Vercel can
+  // terminate a function immediately after returning, dropping unawaited work.
   void notifyLeadArrived(leadId, context.tenantId, context.branchId, input.nome).catch(console.error);
-  void notifyNewLead(leadId, context.tenantId, context.branchId, corretorId, input.nome).catch(console.error);
+  await notifyNewLead(leadId, context.tenantId, context.branchId, corretorId, input.nome).catch((error) => {
+    console.error("[createManualLead] notification delivery failed:", error);
+  });
 
   // Enqueue distribution job if lead was queued (no broker available immediately)
   if (!assigned) {

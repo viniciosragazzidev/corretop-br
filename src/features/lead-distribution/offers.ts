@@ -126,7 +126,7 @@ export async function createLeadOffersForBrokers(input: {
 
   // Trigger outbound processing batch
   if (createdOffers.length > 0) {
-    void processMetaOutboundBatch(10, input.tenantId).catch((err: unknown) => {
+    await processMetaOutboundBatch(10, input.tenantId).catch((err: unknown) => {
       console.error("[createLeadOffersForBrokers] Error processing outbound batch:", err);
     });
   }

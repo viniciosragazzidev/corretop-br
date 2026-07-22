@@ -65,7 +65,7 @@ export async function publishNotification(input: {
 
 export async function notifyNewLead(leadId: string, tenantId: string, branchId: string | null, corretorId: string | null, leadName: string) {
   if (corretorId) {
-    void createLeadOffersForBrokers({
+    await createLeadOffersForBrokers({
       tenantId,
       leadId,
       brokerIds: [corretorId],

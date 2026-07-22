@@ -46,7 +46,7 @@ export async function reassignLeadAction(_prev: ManagementActionState, formData:
     });
 
     // Trigger push notifications in background
-    void notifyNewLead(lead.id, lead.tenantId, lead.branchId, input.brokerId, lead.nome).catch(console.error);
+    await notifyNewLead(lead.id, lead.tenantId, lead.branchId, input.brokerId, lead.nome).catch(console.error);
     // Notify the previous broker that the lead was reassigned
     if (lead.corretorId && lead.corretorId !== input.brokerId) {
       void notifyLeadReassigned(lead.id, lead.tenantId, lead.corretorId, lead.nome).catch(console.error);

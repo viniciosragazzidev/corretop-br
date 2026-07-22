@@ -126,7 +126,7 @@ export async function assignLeadToBroker(context: TenantContext, leadId: string,
     await tx.insert(schema.auditLogs).values({ id: randomUUID(), userId: context.userId, entidade: "lead_distribution", entidadeId: leadId, acao: "lead.assigned" });
     return true;
   });
-  if (assigned) void notifyNewLead(leadId, context.tenantId, lead.branchId, brokerId, lead.nome).catch(console.error);
+  if (assigned) await notifyNewLead(leadId, context.tenantId, lead.branchId, brokerId, lead.nome).catch(console.error);
   return assigned ? { status: "assigned", leadId, brokerId, strategy: "manual" } : { status: "conflict", leadId, reason: "Este lead já foi atribuído. Atualize a fila." };
 }
 
