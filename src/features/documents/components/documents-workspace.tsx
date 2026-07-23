@@ -3,7 +3,6 @@
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
-  FileText,
   Plus,
   Trash,
   CheckCircle,
@@ -57,6 +56,16 @@ type PendingDoc = {
   requirementName: string | null;
 };
 
+function isVersionSkewError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return /failed to find server action|older or newer deployment|version skew/i.test(message);
+}
+
+function reloadAfterDeploymentUpdate() {
+  toast.info("O sistema foi atualizado. Recarregando esta tela…");
+  window.setTimeout(() => window.location.reload(), 250);
+}
+
 export function DocumentsWorkspace({
   role,
   carriers,
@@ -78,7 +87,7 @@ export function DocumentsWorkspace({
 
   const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
   const [reqState, reqFormAction, reqPending] = useActionState(createRequirementAction, {});
-  const [pending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   useEffect(() => {
     if (reqState.success) {
@@ -104,11 +113,16 @@ export function DocumentsWorkspace({
 
   const handleReviewDoc = (docId: string, leadId: string, status: "approved" | "rejected") => {
     startTransition(async () => {
-      const res = await reviewDocumentAction({ documentId: docId, leadId, status });
-      if (res.error) toast.error(res.error);
-      else {
-        toast.success(status === "approved" ? "Documento aprovado." : "Documento rejeitado.");
-        setPendingDocs((current) => current.filter((d) => d.id !== docId));
+      try {
+        const res = await reviewDocumentAction({ documentId: docId, leadId, status });
+        if (res.error) toast.error(res.error);
+        else {
+          toast.success(status === "approved" ? "Documento aprovado." : "Documento rejeitado.");
+          setPendingDocs((current) => current.filter((d) => d.id !== docId));
+        }
+      } catch (error) {
+        if (isVersionSkewError(error)) reloadAfterDeploymentUpdate();
+        else toast.error("Não foi possível atualizar o documento. Tente novamente.");
       }
     });
   };
@@ -116,12 +130,17 @@ export function DocumentsWorkspace({
   const handleBulkReview = (status: "approved" | "rejected") => {
     if (selectedDocs.length === 0) return;
     startTransition(async () => {
-      const res = await bulkReviewDocumentsAction(selectedDocs, status);
-      if (res.error) toast.error(res.error);
-      else {
-        toast.success(`Processamento em lote concluído (${selectedDocs.length} itens).`);
-        setPendingDocs((current) => current.filter((d) => !selectedDocs.includes(d.id)));
-        setSelectedDocs([]);
+      try {
+        const res = await bulkReviewDocumentsAction(selectedDocs, status);
+        if (res.error) toast.error(res.error);
+        else {
+          toast.success(`Processamento em lote concluído (${selectedDocs.length} itens).`);
+          setPendingDocs((current) => current.filter((d) => !selectedDocs.includes(d.id)));
+          setSelectedDocs([]);
+        }
+      } catch (error) {
+        if (isVersionSkewError(error)) reloadAfterDeploymentUpdate();
+        else toast.error("Não foi possível atualizar os documentos. Tente novamente.");
       }
     });
   };
