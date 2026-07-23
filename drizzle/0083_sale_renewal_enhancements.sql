@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS "customer_renewal_reminders" (
   "scheduled_for" date NOT NULL,
   "status" text NOT NULL DEFAULT 'pending',
   "processed_at" timestamp with time zone,
-  "task_created_id" text REFERENCES "tasks"("id") ON DELETE SET NULL,
+  "task_created_id" text,
   "created_at" timestamp with time zone DEFAULT now() NOT NULL,
   "updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );

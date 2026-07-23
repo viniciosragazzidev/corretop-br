@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 
 import { DashboardHeader } from "@/components/dashboard-header";
 import { Badge } from "@/components/ui/badge";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LeadStatusSelector } from "@/features/leads/components/lead-status-selector";
@@ -153,9 +154,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
 
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             {/* Avatar overlapping cover */}
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary text-sm font-semibold text-primary-foreground">
-              {lead.nome.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase()}
-            </div>
+            <UserAvatar seed={lead.email || lead.nome} name={lead.nome} className="size-11 rounded-xl shrink-0" />
 
             <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0 space-y-1">

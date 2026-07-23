@@ -5,6 +5,7 @@ import { DashboardHeader } from "@/components/dashboard-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { ArrowLeft, Clock, FileText, UserList } from "@/components/huge-icons";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getSaleById, getCommissionSchedule } from "@/features/sales/queries";
@@ -50,11 +51,7 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
         {/* Hero Header Card */}
         <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5 shadow-sm transition-all sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <Avatar className="size-12 rounded-xl border border-primary/20 bg-primary/10 text-primary font-bold text-base shadow-xs">
-              <AvatarFallback className="rounded-xl bg-primary/10 text-primary font-heading font-semibold">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
+            <UserAvatar seed={sale.clientName ?? sale.id} name={sale.clientName ?? "Venda"} size="lg" className="size-12 rounded-xl" />
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs font-semibold uppercase tracking-wider text-primary">

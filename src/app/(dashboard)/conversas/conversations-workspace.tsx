@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState, type ReactNode } from "react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ContextNote } from "@/components/ui/context-note";
@@ -605,7 +606,7 @@ function ProfileTag({ label, tone, value }: { label: string; tone?: "success" | 
 }
 
 function ContactAvatar({ className, name }: { className?: string; name: string }) {
-  return <Avatar className={className}><AvatarFallback>{initials(name)}</AvatarFallback></Avatar>;
+  return <UserAvatar seed={name} name={name} className={className} />;
 }
 
 function documentStatusLabel(status: string) {

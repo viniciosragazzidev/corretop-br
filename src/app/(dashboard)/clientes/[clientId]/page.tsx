@@ -5,6 +5,7 @@ import Link from "next/link";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LeadTimeline } from "@/features/leads/components/lead-timeline";
@@ -158,9 +159,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ c
         <div className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
           <div className="h-28 bg-gradient-to-r from-chart-2/10 via-chart-2/5 to-transparent border-b border-border/40" />
           <div className="relative px-6 pb-6 pt-4">
-            <div className="absolute -top-10 left-6 flex size-20 items-center justify-center rounded-2xl border-4 border-card bg-chart-2 text-2xl font-bold text-white shadow-sm">
-              {client.name.split(" ").map((n: string) => n[0]).slice(0, 2).join("").toUpperCase()}
-            </div>
+            <UserAvatar seed={client.email || client.name} name={client.name} size="lg" className="absolute -top-10 left-6 size-20 rounded-2xl border-4 border-card shadow-sm" />
             <div className="flex flex-col gap-4 pl-0 pt-10 sm:flex-row sm:items-end sm:justify-between sm:pl-24 sm:pt-0">
               <div className="space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
