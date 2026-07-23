@@ -1776,6 +1776,13 @@ export const sales = pgTable(
     saleValue: numeric("sale_value", { precision: 12, scale: 2 }).notNull(),
     policyNumber: text("policy_number"),
     coverageStartDate: date("coverage_start_date", { mode: "string" }),
+    contractTermMonths: integer("contract_term_months").notNull().default(12),
+    expirationDate: date("expiration_date", { mode: "string" }),
+    renewalWindowStartDate: date("renewal_window_start_date", { mode: "string" }),
+    paymentMethod: paymentMethodEnum("payment_method").default("boleto"),
+    renewalType: renewalTypeEnum("renewal_type").default("reajuste_operadora"),
+    renewalContactPreference: text("renewal_contact_preference").default("whatsapp"),
+    postSaleNotes: text("post_sale_notes"),
     approvedValue: numeric("approved_value", { precision: 12, scale: 2 }),
     confirmationDocumentId: text("confirmation_document_id").references(() => leadDocuments.id, { onDelete: "set null" }),
     status: saleStatus("status").notNull().default("active"),
@@ -1790,6 +1797,7 @@ export const sales = pgTable(
     index("sales_tenant_idx").on(table.tenantId),
     index("sales_lead_idx").on(table.leadId),
     index("sales_broker_idx").on(table.brokerId),
+    index("sales_expiration_idx").on(table.expirationDate),
   ],
 );
 
@@ -1836,6 +1844,12 @@ export const activeCustomers = pgTable(
     status: activeCustomerStatus("status").notNull().default("active"),
     coverageStartDate: date("coverage_start_date", { mode: "string" }).notNull(),
     contractAnniversary: date("contract_anniversary", { mode: "string" }).notNull(),
+    contractTermMonths: integer("contract_term_months").notNull().default(12),
+    expirationDate: date("expiration_date", { mode: "string" }),
+    renewalWindowStartDate: date("renewal_window_start_date", { mode: "string" }),
+    renewalStatus: customerRenewalStatus("renewal_status").notNull().default("pending_window"),
+    lastRenewalAttemptAt: timestamp("last_renewal_attempt_at", { withTimezone: true }),
+    renewalNotes: text("renewal_notes"),
     cancellationDate: date("cancellation_date", { mode: "string" }),
     cancellationReason: text("cancellation_reason"),
     createdAt,
@@ -1845,6 +1859,32 @@ export const activeCustomers = pgTable(
     uniqueIndex("active_customers_sale_unique").on(table.saleId),
     index("active_customers_tenant_status_idx").on(table.tenantId, table.status),
     index("active_customers_branch_idx").on(table.branchId),
+    index("active_customers_expiration_idx").on(table.expirationDate),
+    index("active_customers_renewal_window_idx").on(table.renewalWindowStartDate),
+  ],
+);
+
+export const customerRenewalReminders = pgTable(
+  "customer_renewal_reminders",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    activeCustomerId: text("active_customer_id").notNull().references(() => activeCustomers.id, { onDelete: "cascade" }),
+    saleId: text("sale_id").notNull().references(() => sales.id, { onDelete: "cascade" }),
+    clientId: text("client_id").references(() => clients.id, { onDelete: "set null" }),
+    brokerId: text("broker_id").notNull().references(() => user.id),
+    triggerType: text("trigger_type").notNull(), // t_90 | t_60 | t_30 | t_15
+    scheduledFor: date("scheduled_for", { mode: "string" }).notNull(),
+    status: text("status").notNull().default("pending"), // pending | processed | dismissed
+    processedAt: timestamp("processed_at", { withTimezone: true }),
+    taskCreatedId: text("task_created_id").references(() => leadTasks.id, { onDelete: "set null" }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index("customer_renewal_reminders_tenant_idx").on(table.tenantId),
+    index("customer_renewal_reminders_scheduled_idx").on(table.scheduledFor),
+    index("customer_renewal_reminders_status_idx").on(table.status),
   ],
 );
 

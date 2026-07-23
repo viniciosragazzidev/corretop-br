@@ -32,6 +32,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import Link from "next/link";
+import { formatCurrency } from "@/features/quotes/utils";
 import type { FinancialDashboardData } from "@/features/financeiro/queries";
 
 type Props = {
@@ -40,15 +41,6 @@ type Props = {
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function formatCurrency(value: string): string {
-  const num = parseFloat(value);
-  if (isNaN(num)) return "0,00";
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(num);
-}
 
 function formatCurrencyCompact(value: string): string {
   const num = parseFloat(value);

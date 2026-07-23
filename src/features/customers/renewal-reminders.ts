@@ -171,5 +171,56 @@ export async function createClientRenewalReminders(now = new Date()) {
   }
 
   if (pending.length) await db.insert(schema.notifications).values(pending);
-  return { reminders: pending.length, clients: dueClients.length };
+
+  // ── 5. Process scheduled customerRenewalReminders (T-90, T-60, T-30, T-15) ──
+  const todayStr = today.toISOString().slice(0, 10);
+  const dueScheduledReminders = await db
+    .select({
+      id: schema.customerRenewalReminders.id,
+      tenantId: schema.customerRenewalReminders.tenantId,
+      activeCustomerId: schema.customerRenewalReminders.activeCustomerId,
+      saleId: schema.customerRenewalReminders.saleId,
+      clientId: schema.customerRenewalReminders.clientId,
+      brokerId: schema.customerRenewalReminders.brokerId,
+      triggerType: schema.customerRenewalReminders.triggerType,
+      scheduledFor: schema.customerRenewalReminders.scheduledFor,
+      clientName: schema.clients.nome,
+      leadId: schema.activeCustomers.leadId,
+    })
+    .from(schema.customerRenewalReminders)
+    .innerJoin(schema.activeCustomers, eq(schema.customerRenewalReminders.activeCustomerId, schema.activeCustomers.id))
+    .leftJoin(schema.clients, eq(schema.customerRenewalReminders.clientId, schema.clients.id))
+    .where(and(
+      eq(schema.customerRenewalReminders.status, "pending"),
+      lt(schema.customerRenewalReminders.scheduledFor, todayStr),
+      eq(schema.activeCustomers.status, "active"),
+    ));
+
+  for (const reminder of dueScheduledReminders) {
+    const taskId = randomUUID();
+    const triggerLabel = reminder.triggerType === "t_90" ? "90 dias (Abertura da Janela)" : reminder.triggerType === "t_60" ? "60 dias (Primeiro Contato)" : reminder.triggerType === "t_30" ? "30 dias (Proposta de Renovação)" : "15 dias (Urgente / Risco de Churn)";
+    const name = reminder.clientName ?? "Cliente";
+
+    // Insert task into leadTasks
+    await db.insert(schema.leadTasks).values({
+      id: taskId,
+      tenantId: reminder.tenantId,
+      leadId: reminder.leadId,
+      assignedTo: reminder.brokerId,
+      createdBy: reminder.brokerId,
+      title: `Renovação de Contrato — ${name} (${triggerLabel})`,
+      description: `Acompanhar renovação do contrato do cliente ${name}. Vencimento próximo em ${reminder.scheduledFor}.`,
+      priority: reminder.triggerType === "t_15" || reminder.triggerType === "t_30" ? "urgente" : "alta",
+      dueAt: new Date(now.getTime() + 24 * 60 * 60 * 1000),
+    });
+
+    // Mark reminder as processed
+    await db
+      .update(schema.customerRenewalReminders)
+      .set({ status: "processed", processedAt: now, taskCreatedId: taskId, updatedAt: now })
+      .where(eq(schema.customerRenewalReminders.id, reminder.id));
+  }
+
+  return { reminders: pending.length + dueScheduledReminders.length, clients: dueClients.length };
 }
+

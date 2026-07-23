@@ -17,6 +17,12 @@ const registerSaleInput = z.object({
   leadId: z.string().min(1),
   policyNumber: z.string().trim().min(1, "Informe o número da apólice.").max(120),
   coverageStartDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe uma data de vigência válida."),
+  contractTermMonths: z.coerce.number().int().min(1).max(120).default(12),
+  expirationDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data de vencimento.").optional(),
+  paymentMethod: z.enum(schema.paymentMethodValues).default("boleto"),
+  renewalType: z.enum(schema.renewalTypeValues).default("reajuste_operadora"),
+  renewalContactPreference: z.string().trim().max(100).default("whatsapp"),
+  postSaleNotes: z.string().trim().max(2000).optional(),
   approvedValue: z.coerce.number().finite().nonnegative("O valor aprovado não pode ser negativo."),
   confirmationDocumentId: z.string().min(1, "Anexe a confirmação da operadora."),
   carrierId: z.string().uuid("Operadora inválida.").optional(),
@@ -34,6 +40,18 @@ function addYears(value: string, years: number) {
   const date = new Date(`${value}T12:00:00Z`);
   date.setUTCFullYear(date.getUTCFullYear() + years);
   return date.toISOString().slice(0, 10);
+}
+
+function addMonths(dateStr: string, months: number): string {
+  const d = new Date(`${dateStr}T12:00:00Z`);
+  d.setUTCMonth(d.getUTCMonth() + months);
+  return d.toISOString().slice(0, 10);
+}
+
+function subtractDays(dateStr: string, days: number): string {
+  const d = new Date(`${dateStr}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - days);
+  return d.toISOString().slice(0, 10);
 }
 
 async function assertLeadScope(leadId: string) {
@@ -104,10 +122,6 @@ export async function registerSaleAction(rawInput: z.input<typeof registerSaleIn
   const missing = requirements.filter((requirement) => requirement.required && (requirement.appliesPerBeneficiary ? beneficiaries.some((beneficiary) => !documents.some((document) => document.requirementId === requirement.id && document.beneficiaryId === beneficiary.id && document.status === "approved")) : !documents.some((document) => document.requirementId === requirement.id && document.status === "approved")));
   if (missing.length) return { error: "Ainda existem documentos obrigatórios pendentes ou rejeitados." };
 
-  // Resolve the carrier plan — use lead's existing plan if it matches the
-  // selected carrier, otherwise pick the first active plan from that carrier.
-  // This allows the broker to record the carrier even when no plan was
-  // previously associated with the lead.
   let resolvedPlanId = lead.planId;
   let carrierName: string | null = null;
   if (input.carrierId) {
@@ -118,16 +132,14 @@ export async function registerSaleAction(rawInput: z.input<typeof registerSaleIn
       .limit(1);
     if (carrier) {
       carrierName = carrier.name;
-      // If the lead already has a plan from this carrier, keep it
       if (lead.planId) {
         const [plan] = await db
           .select({ id: schema.carrierPlans.id })
           .from(schema.carrierPlans)
           .where(and(eq(schema.carrierPlans.id, lead.planId), eq(schema.carrierPlans.carrierId, input.carrierId), eq(schema.carrierPlans.tenantId, context.tenantId)))
           .limit(1);
-        if (!plan) resolvedPlanId = null; // lead's plan belongs to a different carrier
+        if (!plan) resolvedPlanId = null;
       } else {
-        // Lead has no plan — pick the first active plan from this carrier
         const [firstPlan] = await db
           .select({ id: schema.carrierPlans.id })
           .from(schema.carrierPlans)
@@ -138,6 +150,10 @@ export async function registerSaleAction(rawInput: z.input<typeof registerSaleIn
     }
   }
 
+  // Calculate lifecycle dates
+  const expirationDate = input.expirationDate || addMonths(input.coverageStartDate, input.contractTermMonths);
+  const renewalWindowStartDate = subtractDays(expirationDate, 90);
+
   const now = new Date();
   const saleId = randomUUID();
   const clientId = randomUUID();
@@ -147,22 +163,101 @@ export async function registerSaleAction(rawInput: z.input<typeof registerSaleIn
   await db.transaction(async (tx) => {
     await tx.insert(schema.clients).values({ id: clientId, tenantId: context.tenantId, leadId: lead.id, branchId: lead.branchId, corretorId: lead.corretorId ?? context.userId, nome: lead.nome, telefone: lead.telefone, email: lead.email, convertedAt: now }).onConflictDoNothing({ target: schema.clients.leadId });
     const [client] = await tx.select({ id: schema.clients.id }).from(schema.clients).where(and(eq(schema.clients.leadId, lead.id), eq(schema.clients.tenantId, context.tenantId))).limit(1);
-    await tx.insert(schema.sales).values({ id: saleId, tenantId: context.tenantId, leadId: lead.id, clientId: client?.id ?? clientId, brokerId: lead.corretorId ?? context.userId, carrierPlanId: resolvedPlanId, saleDate: now, saleValue: input.approvedValue.toFixed(2), approvedValue: input.approvedValue.toFixed(2), policyNumber: input.policyNumber, coverageStartDate: input.coverageStartDate, confirmationDocumentId: input.confirmationDocumentId, status: "active", createdBy: context.userId });
+
+    await tx.insert(schema.sales).values({
+      id: saleId,
+      tenantId: context.tenantId,
+      leadId: lead.id,
+      clientId: client?.id ?? clientId,
+      brokerId: lead.corretorId ?? context.userId,
+      carrierPlanId: resolvedPlanId,
+      saleDate: now,
+      saleValue: input.approvedValue.toFixed(2),
+      approvedValue: input.approvedValue.toFixed(2),
+      policyNumber: input.policyNumber,
+      coverageStartDate: input.coverageStartDate,
+      contractTermMonths: input.contractTermMonths,
+      expirationDate,
+      renewalWindowStartDate,
+      paymentMethod: input.paymentMethod,
+      renewalType: input.renewalType,
+      renewalContactPreference: input.renewalContactPreference,
+      postSaleNotes: input.postSaleNotes ?? null,
+      confirmationDocumentId: input.confirmationDocumentId,
+      status: "active",
+      createdBy: context.userId,
+    });
+
     if (schedule.length) await tx.insert(schema.commissionSchedule).values(schedule);
-    await tx.insert(schema.activeCustomers).values({ id: activeCustomerId, tenantId: context.tenantId, saleId, clientId: client?.id ?? clientId, leadId: lead.id, brokerId: lead.corretorId ?? context.userId, branchId: lead.branchId, coverageStartDate: input.coverageStartDate, contractAnniversary: addYears(input.coverageStartDate, 1) });
+
+    await tx.insert(schema.activeCustomers).values({
+      id: activeCustomerId,
+      tenantId: context.tenantId,
+      saleId,
+      clientId: client?.id ?? clientId,
+      leadId: lead.id,
+      brokerId: lead.corretorId ?? context.userId,
+      branchId: lead.branchId,
+      coverageStartDate: input.coverageStartDate,
+      contractAnniversary: addYears(input.coverageStartDate, 1),
+      contractTermMonths: input.contractTermMonths,
+      expirationDate,
+      renewalWindowStartDate,
+      renewalStatus: "pending_window",
+      renewalNotes: input.postSaleNotes ?? null,
+    });
+
+    // Schedule renewal reminders (T-90, T-60, T-30, T-15)
+    const reminderTriggers = [
+      { type: "t_90", days: 90 },
+      { type: "t_60", days: 60 },
+      { type: "t_30", days: 30 },
+      { type: "t_15", days: 15 },
+    ];
+
+    for (const trigger of reminderTriggers) {
+      const scheduledFor = subtractDays(expirationDate, trigger.days);
+      await tx.insert(schema.customerRenewalReminders).values({
+        id: randomUUID(),
+        tenantId: context.tenantId,
+        activeCustomerId,
+        saleId,
+        clientId: client?.id ?? clientId,
+        brokerId: lead.corretorId ?? context.userId,
+        triggerType: trigger.type,
+        scheduledFor,
+        status: "pending",
+      });
+    }
+
     await tx.update(schema.leads).set({ status: "converted", stageEnteredAt: now }).where(and(eq(schema.leads.id, lead.id), eq(schema.leads.tenantId, context.tenantId)));
-    const metadata: Record<string, unknown> = { saleId, policyNumber: input.policyNumber };
+    const metadata: Record<string, unknown> = {
+      saleId,
+      policyNumber: input.policyNumber,
+      expirationDate,
+      renewalType: input.renewalType,
+    };
     if (carrierName) {
       metadata.carrierId = input.carrierId;
       metadata.carrierName = carrierName;
     }
-    await tx.insert(schema.leadInteractions).values({ id: randomUUID(), leadId: lead.id, userId: context.userId, tipo: "status_change", conteudo: carrierName ? `Venda registrada com ${carrierName}.` : "Venda registrada com confirmação da operadora.", metadata });
+    await tx.insert(schema.leadInteractions).values({
+      id: randomUUID(),
+      leadId: lead.id,
+      userId: context.userId,
+      tipo: "status_change",
+      conteudo: carrierName
+        ? `Venda registrada com ${carrierName}. Contrato de ${input.contractTermMonths} meses com vencimento em ${expirationDate}.`
+        : `Venda registrada. Contrato de ${input.contractTermMonths} meses com vencimento em ${expirationDate}.`,
+      metadata,
+    });
     await tx.insert(schema.auditLogs).values({ id: randomUUID(), userId: context.userId, entidade: "sale", entidadeId: saleId, acao: "registrou" });
-    await tx.insert(schema.notifications).values({ id: randomUUID(), tenantId: context.tenantId, recipientUserId: lead.corretorId ?? context.userId, leadId: lead.id, type: "sale_registered", title: "Venda registrada", message: `${lead.nome} foi convertido em cliente ativo.`, createdAt: now });
+    await tx.insert(schema.notifications).values({ id: randomUUID(), tenantId: context.tenantId, recipientUserId: lead.corretorId ?? context.userId, leadId: lead.id, type: "sale_registered", title: "Venda registrada", message: `${lead.nome} foi convertido em cliente ativo. Vencimento: ${expirationDate}.`, createdAt: now });
   });
 
   // Notify via push (outside transaction — non-blocking)
   if (lead.corretorId) {
+
     void publishNotification({
       capability: "lead_converted",
       tenantId: context.tenantId,
@@ -215,3 +310,67 @@ export async function updatePostSaleSettingsAction(rawInput: { chargebackWindowD
   revalidatePath("/configuracoes/comissoes");
   return { success: true };
 }
+
+export async function updateCustomerRenewalStatusAction(rawInput: {
+  activeCustomerId: string;
+  renewalStatus: "pending_window" | "in_renewal" | "renewed" | "churned";
+  renewalNotes?: string;
+}) {
+  const input = z
+    .object({
+      activeCustomerId: z.string().min(1),
+      renewalStatus: z.enum(schema.customerRenewalStatusValues),
+      renewalNotes: z.string().trim().max(1000).optional(),
+    })
+    .parse(rawInput);
+
+  const context = await getRequiredTenantContext();
+  const db = getDatabase();
+
+  const [customer] = await db
+    .select({
+      id: schema.activeCustomers.id,
+      leadId: schema.activeCustomers.leadId,
+      brokerId: schema.activeCustomers.brokerId,
+      branchId: schema.activeCustomers.branchId,
+    })
+    .from(schema.activeCustomers)
+    .where(
+      and(
+        eq(schema.activeCustomers.id, input.activeCustomerId),
+        eq(schema.activeCustomers.tenantId, context.tenantId),
+        context.role === "broker"
+          ? eq(schema.activeCustomers.brokerId, context.userId)
+          : context.role === "manager"
+          ? eq(schema.activeCustomers.branchId, context.branchId ?? "")
+          : undefined,
+      ),
+    )
+    .limit(1);
+
+  if (!customer) return { error: "Cliente não encontrado ou fora do seu escopo." };
+
+  const now = new Date();
+  await db
+    .update(schema.activeCustomers)
+    .set({
+      renewalStatus: input.renewalStatus,
+      lastRenewalAttemptAt: now,
+      renewalNotes: input.renewalNotes ?? null,
+      updatedAt: now,
+    })
+    .where(eq(schema.activeCustomers.id, customer.id));
+
+  await db.insert(schema.auditLogs).values({
+    id: randomUUID(),
+    userId: context.userId,
+    entidade: "active_customer",
+    entidadeId: customer.id,
+    acao: "alterou_status_renovacao",
+  });
+
+  revalidatePath("/clientes");
+  revalidatePath("/vendas");
+  return { success: true };
+}
+

@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { formatCurrency } from "@/features/quotes/utils";
 import {
   ArrowLeft,
   ArrowRight,
@@ -119,9 +120,7 @@ type Plan = {
 };
 
 // ──────────────────────────────────────── Helpers
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
-}
+
 
 function isOdontoRamo(ramo: string): boolean {
   return ramo.startsWith("odonto");

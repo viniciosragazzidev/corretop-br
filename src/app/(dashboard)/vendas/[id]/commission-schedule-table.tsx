@@ -31,12 +31,7 @@ export type ScheduleItem = {
   notes: string | null;
 };
 
-function formatCurrency(value: string): string {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(Number(value));
-}
+import { formatCurrency } from "@/features/quotes/utils";
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return "—";

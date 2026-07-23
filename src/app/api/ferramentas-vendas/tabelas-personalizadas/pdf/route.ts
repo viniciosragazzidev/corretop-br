@@ -4,7 +4,11 @@ import { and, eq, inArray } from "drizzle-orm";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
 
-export async function GET(request: Request) {
+function formatCurrency(value: string | number): string {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value));
+}
+
+export async function POST(request: Request) {
   const { searchParams } = new URL(request.url);
   const planIdsParam = searchParams.get("planIds");
   if (!planIdsParam) return new Response("planIds é obrigatório", { status: 400 });
@@ -173,6 +177,4 @@ export async function GET(request: Request) {
   }
 }
 
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
-}
+
