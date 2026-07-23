@@ -1,14 +1,15 @@
 name: CorreTop scheduled jobs
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Os crons foram movidos para crons nativos do Vercel Pro (vercel.json).
+# Mantido apenas para execução manual via workflow_dispatch.
+# ──────────────────────────────────────────────────────────────────────────────
+
 on:
-  schedule:
-    - cron: "*/5 * * * *"
-    - cron: "*/15 * * * *"
   workflow_dispatch:
 
 jobs:
   sla:
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '*/5 * * * *'
     runs-on: ubuntu-latest
     steps:
       - name: Run lead SLA sweep
@@ -20,7 +21,6 @@ jobs:
             https://corretop.vercel.app/api/internal/sla
 
   reminders:
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '*/15 * * * *'
     runs-on: ubuntu-latest
     steps:
       - name: Run notification reminders

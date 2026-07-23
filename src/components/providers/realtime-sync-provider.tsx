@@ -43,12 +43,27 @@ export function RealtimeSyncProvider({ children, tenantId, userId, role, branchI
   const [isOnline, setIsOnline] = useState(true);
   const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
 
+  /** Se o usuário está digitando em um campo de formulário, pula o refresh */
+  const isFormElementFocused = useCallback(() => {
+    const el = document.activeElement;
+    if (!el) return false;
+    const tag = el.tagName.toLowerCase();
+    return (
+      tag === "input" ||
+      tag === "textarea" ||
+      tag === "select" ||
+      (el as HTMLElement)?.isContentEditable ||
+      el.getAttribute("role") === "textbox" ||
+      el.closest('[role="dialog"]') !== null
+    );
+  }, []);
+
   const syncClientState = useCallback((reason: string, broadcast = true) => {
     void queryClient.invalidateQueries({ queryKey: ["local-first", tenantId, userId] });
-    router.refresh();
+    if (!isFormElementFocused()) router.refresh();
     setLastSyncedAt(Date.now());
     if (broadcast) broadcastRef.current?.postMessage({ type: "local-first.invalidate", reason });
-  }, [queryClient, router, tenantId, userId]);
+  }, [queryClient, router, tenantId, userId, isFormElementFocused]);
 
   useEffect(() => {
     import("cuelume").then((cuelume) => {
@@ -90,7 +105,7 @@ export function RealtimeSyncProvider({ children, tenantId, userId, role, branchI
     window.addEventListener("focus", handleVisibility);
     const fallback = window.setInterval(() => {
       if (document.visibilityState === "visible" && navigator.onLine) syncClientState("fallback");
-    }, 15_000);
+    }, 60_000);
     return () => {
       document.removeEventListener("visibilitychange", handleVisibility);
       window.removeEventListener("focus", handleVisibility);

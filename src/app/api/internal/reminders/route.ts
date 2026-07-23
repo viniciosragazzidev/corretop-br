@@ -3,6 +3,8 @@ import { createLeadFeedbackReminders } from "@/features/leads/feedback-reminders
 import { createClientRenewalReminders } from "@/features/customers/renewal-reminders";
 import { runTaskOverdueSweep } from "@/features/leads/task-overdue-sweep";
 
+export const maxDuration = 60;
+
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
