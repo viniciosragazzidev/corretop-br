@@ -11,7 +11,7 @@ import { LeadStatusSelector } from "@/features/leads/components/lead-status-sele
 import { LeadTimeline } from "@/features/leads/components/lead-timeline";
 import { LeadTasks } from "@/features/leads/components/lead-tasks";
 import { LeadChat } from "@/features/leads/components/lead-chat";
-import { LEAD_STATUS_LABELS } from "@/features/leads/lead-status-constants";
+import { LEAD_STATUS_LABELS, LEAD_STATUS_ORDER } from "@/features/leads/lead-status-constants";
 import { getLeadTimeline } from "@/features/leads/queries";
 import { getQuotesByLead } from "@/features/quotes/queries";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
@@ -28,7 +28,7 @@ import { LeadActionHub } from "@/features/leads/components/lead-action-hub";
 
 import { BeneficiariesSection } from "./beneficiaries-section";
 import { getLeadBeneficiaries } from "@/features/post-sale/queries";
-import { Phone, Clock, Share, Buildings, UserPlus } from "@/components/huge-icons";
+import { Phone, Clock, Share, Buildings, UserPlus, LockKey } from "@/components/huge-icons";
 import { PersonRecordDetails } from "@/features/customer-record/components/person-record-details";
 
 function getCurrentTimestamp() {
@@ -141,6 +141,14 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
   const canSeePersonalData = (context.role !== "broker" || lead.corretorId !== context.userId || lead.status !== "distributed") && !shouldMask;
   const maskedPhone = maskPhone(lead.telefone);
   const maskedEmail = lead.email ? maskEmail(lead.email) : "Não informado";
+  const stageRank = LEAD_STATUS_ORDER[lead.status] ?? 0;
+  const defaultLeadTab = lead.status === "converted" || lead.status === "lost"
+    ? "history"
+    : stageRank >= 6
+      ? "documents"
+      : stageRank >= 3
+        ? "quotes"
+        : "service";
 
   if (shouldMask) {
     lead.nome = maskName(lead.nome);
@@ -200,7 +208,8 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
         </div>
 
         {/* Main operational area */}
-        <div className="space-y-5">
+        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <section className="min-w-0 space-y-5">
           {/* Dense operational content is organized in the tabs below. */}
 
           {/* Legacy quote block retained below in the Cotações tab. */}
@@ -248,16 +257,16 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
 
 
 
-          <Tabs defaultValue="summary" className="min-h-0">
-            <TabsList aria-label="Seções do detalhe do lead" className="w-full justify-start overflow-x-auto border-b border-border/40 pb-px" variant="line">
-              <TabsTrigger value="summary">Atendimento</TabsTrigger>
-              <TabsTrigger value="quotes">Cotações {quotes.length > 0 ? `(${quotes.length})` : ""}</TabsTrigger>
-              <TabsTrigger value="documents">Documentos {leadDocs.length > 0 ? `(${leadDocs.length})` : ""}</TabsTrigger>
-              <TabsTrigger value="history">Linha do Tempo</TabsTrigger>
-              <TabsTrigger value="tasks">Tarefas ({tasks.filter(t => !t.completedAt).length})</TabsTrigger>
+          <Tabs defaultValue={defaultLeadTab} orientation="vertical" className="min-h-0 gap-5 md:grid md:grid-cols-[180px_minmax(0,1fr)]">
+            <TabsList aria-label="Etapas do atendimento" className="h-fit w-full flex-col items-stretch gap-1 rounded-xl border border-border/70 bg-muted/20 p-2" variant="line">
+              <TabsTrigger value="service" className="justify-start px-3 py-2 text-left"><span className="flex flex-col items-start gap-0.5"><span>Atendimento</span><span className="text-[11px] font-normal text-muted-foreground">Contato inicial</span></span></TabsTrigger>
+              <TabsTrigger value="quotes" disabled={stageRank < 3} className="justify-start px-3 py-2 text-left">{stageRank < 3 ? <LockKey className="size-3.5 text-muted-foreground" /> : null}<span className="flex flex-col items-start gap-0.5"><span>Cotações {quotes.length > 0 ? `(${quotes.length})` : ""}</span><span className="text-[11px] font-normal text-muted-foreground">Propostas</span></span></TabsTrigger>
+              <TabsTrigger value="documents" disabled={stageRank < 5} className="justify-start px-3 py-2 text-left">{stageRank < 5 ? <LockKey className="size-3.5 text-muted-foreground" /> : null}<span className="flex flex-col items-start gap-0.5"><span>Documentos {leadDocs.length > 0 ? `(${leadDocs.length})` : ""}</span><span className="text-[11px] font-normal text-muted-foreground">Análise cadastral</span></span></TabsTrigger>
+              <TabsTrigger value="history" className="justify-start px-3 py-2 text-left"><span className="flex flex-col items-start gap-0.5"><span>Histórico</span><span className="text-[11px] font-normal text-muted-foreground">Linha do tempo</span></span></TabsTrigger>
+              <TabsTrigger value="tasks" className="justify-start px-3 py-2 text-left"><span className="flex flex-col items-start gap-0.5"><span>Tarefas ({tasks.filter(t => !t.completedAt).length})</span><span className="text-[11px] font-normal text-muted-foreground">Próximas ações</span></span></TabsTrigger>
             </TabsList>
 
-            <TabsContent value="summary" className="mt-4 space-y-6">
+            <TabsContent value="service" className="mt-0 space-y-5">
               {isManagement && (
                 <SupervisionPanel
                   leadId={lead.id}
@@ -289,8 +298,13 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                 />
               )}
               <div className="rounded-lg border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
-                Comece pelo atendimento e use as abas para acessar propostas, documentos, histórico e tarefas sem perder o contexto do lead.
+                Esta é a etapa atual. As próximas etapas são liberadas conforme o status do lead avança.
               </div>
+              <div className="grid gap-4 lg:grid-cols-2">
+                <PersonRecordDetails kind="lead" createdAt={lead.createdAt} consentimentoLgpd={lead.consentimentoLgpd} dependents={beneficiaries} documentCount={leadDocs.length} />
+                <BeneficiariesSection leadId={lead.id} contactName={lead.nome} initialBeneficiaries={beneficiaries} />
+              </div>
+              <LeadChat phone={canSeePersonalData ? lead.telefone : null} />
             </TabsContent>
 
             <TabsContent value="quotes" className="mt-4">
@@ -344,7 +358,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
           </Tabs>
 
           {/* Info & Actions Grid — contact, management, beneficiaries */}
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="hidden">
             {/* About Contact Info Card */}
             <Card className="border-border/80 bg-card shadow-none">
               <CardHeader className="border-b border-border/60 pb-3">
@@ -445,8 +459,27 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             </div>
           </div>
 
-          {/* Chat Connection */}
-          <LeadChat phone={canSeePersonalData ? lead.telefone : null} />
+          {/* Hidden legacy composition kept out of the operational surface. */}
+          {false && <LeadChat phone={canSeePersonalData ? lead.telefone : null} />}
+          </section>
+
+          <aside className="space-y-4 xl:sticky xl:top-24">
+            <Card className="border-border/80 bg-card shadow-none">
+              <CardHeader className="border-b border-border/60 pb-3">
+                <CardTitle className="text-sm font-semibold">Dados do lead</CardTitle>
+                <CardDescription className="text-xs">Informações sempre visíveis durante o atendimento.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3 pt-4">
+                <div className="flex items-start gap-3"><div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"><Phone className="size-4" /></div><div className="min-w-0"><p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Telefone</p><p className={`mt-0.5 truncate text-sm font-medium ${shouldMask ? "blur-[3px] select-none" : ""}`}>{canSeePersonalData ? <a className="font-semibold text-primary hover:underline" href={`tel:${lead.telefone.replace(/\D/g, "")}`}>{lead.telefone}</a> : maskedPhone}</p></div></div>
+                <div className="flex items-start gap-3"><div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"><Clock className="size-4" /></div><div className="min-w-0"><p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">E-mail</p><p className={`mt-0.5 truncate text-sm font-medium ${shouldMask ? "blur-[3px] select-none" : ""}`}>{canSeePersonalData && lead.email ? <a className="font-semibold text-primary hover:underline" href={`mailto:${lead.email}`}>{lead.email}</a> : canSeePersonalData ? "Não informado" : maskedEmail}</p></div></div>
+                <div className="flex items-start gap-3"><div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"><Share className="size-4" /></div><div><p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Origem</p><p className="mt-0.5 text-sm font-medium">{lead.sourceCampaign || (lead.origem === "manual" ? "Manual" : "Webhook")}</p></div></div>
+                <div className="flex items-start gap-3"><div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"><Buildings className="size-4" /></div><div><p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Unidade</p><p className="mt-0.5 text-sm font-semibold text-primary">{lead.branchNome ?? "Geral/Sem filial"}</p></div></div>
+                <div className="flex items-start gap-3"><div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"><UserPlus className="size-4" /></div><div><p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Responsável</p><p className="mt-0.5 text-sm font-medium">{lead.corretorNome ?? "Aguardando distribuição"}</p></div></div>
+                {lead.motivoPerda && <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-xs text-destructive"><p className="font-semibold uppercase tracking-wider text-[10px]">Motivo da perda</p><p className="mt-1 font-medium">{lead.motivoPerda}</p></div>}
+                {!canSeePersonalData && <div className="rounded-lg border border-amber-300/20 bg-amber-300/5 p-3 text-xs leading-relaxed text-muted-foreground">O telefone e o e-mail serão liberados quando você iniciar o atendimento.</div>}
+              </CardContent>
+            </Card>
+          </aside>
         </div>
 
       </main>
