@@ -8,6 +8,7 @@ import { MemberStatusBadge, RoleBadge } from "@/components/status-badges";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DataTable, DataTableColumnHeader } from "@/components/ui/data-table";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { TeamMemberActions } from "./member-actions";
 
 type BranchOption = { id: string; name: string };
@@ -76,9 +77,12 @@ export function TeamMembersTable({ members, branches, currentRole, currentBranch
       cell: ({ row }) => {
         const member = row.original;
         return (
-          <div className="pl-2">
-            <p className="font-medium text-xs text-foreground">{member.name ?? "Sem nome"}</p>
-            {member.userId === currentUserId ? <p className="text-[10px] text-muted-foreground font-mono">Você</p> : null}
+          <div className="flex items-center gap-3 pl-2">
+            <UserAvatar seed={member.email || member.name || "Membro"} name={member.name ?? undefined} size="sm" className="size-8" />
+            <div>
+              <p className="font-semibold text-xs text-foreground leading-snug">{member.name ?? "Sem nome"}</p>
+              {member.userId === currentUserId ? <p className="text-[10px] text-muted-foreground font-mono">Você</p> : null}
+            </div>
           </div>
         );
       },

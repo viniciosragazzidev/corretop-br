@@ -42,6 +42,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { StatCard } from "@/components/dashboard/metric-card";
+import { formatCurrency } from "@/features/quotes/utils";
 import type { NocData } from "@/features/noc/queries";
 import { NocHeatmap } from "@/features/noc/components/noc-heatmap";
 import { NocAnomalyAlerts } from "@/features/noc/components/noc-anomaly-alerts";
@@ -65,10 +66,6 @@ function formatSeconds(s: number | null): string {
   const secs = Math.round(s % 60);
   if (m === 0) return `${secs}s`;
   return `${m}m${String(secs).padStart(2, "0")}s`;
-}
-
-function formatCurrency(v: number): string {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(v);
 }
 
 function formatDelta(delta: number, unit: string = "%"): string {
@@ -266,10 +263,10 @@ export function NocClient({ data }: NocClientProps) {
     },
     {
       label: "Ticket Médio",
-      value: formatCurrency(kpis.avgTicketMonth),
+      value: formatCurrency(kpis.avgTicketMonth, { maximumFractionDigits: 0 }),
       change: formatDelta(ticketDelta),
       trend: ticketDelta >= 0 ? "up" as const : "down" as const,
-      description: `Mês anterior: ${formatCurrency(kpis.avgTicketLastMonth)}`,
+      description: `Mês anterior: ${formatCurrency(kpis.avgTicketLastMonth, { maximumFractionDigits: 0 })}`,
     },
   ];
 

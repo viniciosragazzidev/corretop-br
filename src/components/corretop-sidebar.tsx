@@ -14,6 +14,7 @@ import { getUserDisplayInfo, type UserDisplayInfo } from "@/shared/auth/actions"
 import { hasCapability, type PermissionKey } from "@/shared/auth/permissions";
 import { signOut } from "@/shared/auth/client";
 import { CorreTopLogo } from "@/components/corretop-logo";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 type SidebarItem = { label: string; icon: typeof House; url: string; permission: PermissionKey };
 const primaryItems: SidebarItem[] = [
@@ -127,7 +128,7 @@ export function CorreTopSidebar({ logoUrl }: { logoUrl?: string | null }) {
             <DropdownMenu>
               <DropdownMenuTrigger>
                 <SidebarMenuButton size="lg" tooltip={userName}>
-                  <span className="grid size-7 place-items-center rounded-full bg-sidebar-warning text-xs font-semibold">{initials}</span>
+                  <UserAvatar seed={userName} name={userName} size="sm" className="size-7" />
                   <span className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-medium">{userName}</span>
                     <span className="truncate text-xs text-sidebar-foreground/55">{userRole}</span>
@@ -139,7 +140,7 @@ export function CorreTopSidebar({ logoUrl }: { logoUrl?: string | null }) {
                 <DropdownMenuGroup>
                   <DropdownMenuLabel>
                     <div className="flex items-center gap-2">
-                      <span className="grid size-8 place-items-center rounded-full bg-sidebar-warning text-xs font-semibold">{initials}</span>
+                      <UserAvatar seed={userName} name={userName} size="sm" className="size-8" />
                       <div className="flex flex-col">
                         <span className="text-sm font-medium leading-none">{userName}</span>
                         <span className="text-xs text-muted-foreground">{userRole}</span>

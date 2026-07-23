@@ -52,10 +52,21 @@ export function formatCurrencyCompact(value: string): string {
   return formatCurrency(value);
 }
 
-export function formatCurrency(value: string | number): string {
+export function formatCurrency(
+  value: string | number,
+  options?: Intl.NumberFormatOptions,
+): string {
   const num = typeof value === "string" ? parseFloat(value) : value;
-  if (isNaN(num)) return "R$ 0,00";
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(num);
+  if (isNaN(num)) {
+    // Se pediu sem decimais, retorna sem decimais
+    if (options?.maximumFractionDigits === 0) return "R$ 0";
+    return "R$ 0,00";
+  }
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    ...options,
+  }).format(num);
 }
 
 

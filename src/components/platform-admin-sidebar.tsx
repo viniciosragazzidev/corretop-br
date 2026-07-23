@@ -26,6 +26,7 @@ import { SidebarCollapsibleGroup } from "@/components/sidebar-collapsible-group"
 import { useSession, signOut } from "@/shared/auth/client";
 import { toast } from "sonner";
 import { CorreTopLogo } from "@/components/corretop-logo";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 export function PlatformAdminSidebar() {
   const router = useRouter();
@@ -54,9 +55,7 @@ export function PlatformAdminSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton className="h-10 hover:bg-transparent active:bg-transparent" size="lg">
-              <span className="grid size-8 place-items-center rounded-lg bg-primary/10 text-sm font-bold text-primary">
-                {userInitial}
-              </span>
+              <UserAvatar seed={session?.user?.email || userName} name={userName} size="sm" className="size-8" />
               <div className="flex flex-col text-left">
                 <span className="font-semibold tracking-tight text-sm text-foreground">Super Admin</span>
                 <CorreTopLogo className="h-4 w-24 object-contain object-left" />
@@ -221,7 +220,7 @@ export function PlatformAdminSidebar() {
                 <DropdownMenuGroup>
                   <DropdownMenuLabel>
                     <div className="flex items-center gap-2">
-                      <span className="grid size-8 place-items-center rounded-full bg-sidebar-warning text-xs font-semibold">{userInitial}</span>
+                      <UserAvatar seed={session?.user?.email || userName} name={userName} size="sm" className="size-8" />
                       <div className="flex flex-col">
                         <span className="text-sm font-medium leading-none">{userName}</span>
                         <span className="text-xs text-muted-foreground">Super Admin</span>

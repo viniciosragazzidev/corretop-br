@@ -6,7 +6,7 @@ import { ArrowRight, CalendarCheck, Handshake, TrendUp, Users } from "@/componen
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { StatCard } from "@/components/dashboard/metric-card";
 import { OwnershipContext } from "@/components/ownership-context";
 import { DataTable, DataTableColumnHeader } from "@/components/ui/data-table";
@@ -54,11 +54,7 @@ export const columns: ColumnDef<ClientItem>[] = [
 
       return (
         <div className="flex items-center gap-3 pl-2">
-          <Avatar className="size-8 rounded-lg border border-primary/20 bg-primary/10 text-primary font-bold text-xs">
-            <AvatarFallback className="rounded-lg bg-primary/10 text-primary font-heading font-semibold text-xs">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
+          <UserAvatar seed={client.email || client.name} name={client.name} size="sm" className="size-8" />
           <div>
             <p className="text-xs font-semibold text-foreground leading-snug">{client.name}</p>
             <Badge variant="outline" className="text-[9px] px-1 py-0 font-medium text-muted-foreground mt-0.5">

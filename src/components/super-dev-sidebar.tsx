@@ -36,6 +36,7 @@ import { SidebarCollapsibleGroup } from "@/components/sidebar-collapsible-group"
 import { useSession, signOut } from "@/shared/auth/client";
 import { toast } from "sonner";
 import { CorreTopLogo } from "@/components/corretop-logo";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 const superItems = [
   { label: "Visão geral", icon: House, url: "/super-dev" },
@@ -152,9 +153,7 @@ export function SuperDevSidebar() {
             <DropdownMenu>
               <DropdownMenuTrigger>
                 <SidebarMenuButton size="lg" tooltip={userName}>
-                  <span className="grid size-7 place-items-center rounded-full bg-sidebar-warning text-xs font-semibold">
-                    {initials}
-                  </span>
+                  <UserAvatar seed={session?.user?.email || userName} name={userName} size="sm" className="size-7" />
                   <span className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-medium">{userName}</span>
                     <span className="truncate text-xs text-sidebar-foreground/55">Super Administrador</span>
@@ -166,7 +165,7 @@ export function SuperDevSidebar() {
                 <DropdownMenuGroup>
                   <DropdownMenuLabel>
                     <div className="flex items-center gap-2">
-                      <span className="grid size-8 place-items-center rounded-full bg-sidebar-warning text-xs font-semibold">{initials}</span>
+                      <UserAvatar seed={session?.user?.email || userName} name={userName} size="sm" className="size-8" />
                       <div className="flex flex-col">
                         <span className="text-sm font-medium leading-none">{userName}</span>
                         <span className="text-xs text-muted-foreground">Super Administrador</span>
