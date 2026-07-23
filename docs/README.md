@@ -22,6 +22,7 @@
 | `plugin-first-architecture.md` | Direção arquitetural modular, contratos de domínio, plugins, eventos e hosts | Norma arquitetural vigente |
 | `crm-enterprise-grade.md` | Requisitos, automação e arquitetura para CRM enterprise de grandes equipes | Visão funcional & roadmap |
 | `features-log.md` | Histórico de funcionalidades adicionadas ao sistema por versão/etapa | Histórico de controle vigente |
+| `../src/utils/README.md` | Convenções do núcleo de utilitários compartilhados e seus limites | Norma de organização de código |
 | `adr/` | Decisões de arquitetura imutáveis | Criar quando houver decisão relevante |
 
 ## Processo de mudança

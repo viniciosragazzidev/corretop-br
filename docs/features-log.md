@@ -232,3 +232,20 @@ O domínio de catálogo passa a ter uma separação explícita entre a base ofic
 * **Segurança**: o endpoint `/api/webhooks/meta/whatsapp` valida challenge e HMAC; resolve o tenant pelo `phone_number_id`; o access token é cifrado no servidor e não é registrado em auditorias.
 * **Operação**: Diretor conecta ou pausa o canal pelo Embedded Signup em `/settings/whatsapp`; Super-admin controla a capacidade global e cada alteração é auditada.
 * **Transição**: envio escolhe o canal Meta ativo da unidade antes do fallback OpenWA. Texto inbound/outbound e status foram preparados; templates, mídia, janelas de conversa e fila assíncrona permanecem no roadmap N34.
+
+## 10. Organização do núcleo de utilitários
+
+O código técnico reutilizável ganhou um ponto central em `src/utils`, separado
+por categoria e com documentação local.
+
+* **Categorias**: `core`, `formatting`, `async`, `animation`, `supabase`,
+  `validation` e `plugins`.
+* **Compatibilidade**: os caminhos legados (`src/lib/utils.ts` e utilitários em
+  `src/shared`) agora funcionam como barrels de transição, evitando quebra de
+  Server Components e Client Components existentes.
+* **Limites**: autenticação, banco, armazenamento, features e serviços externos
+  continuam nos diretórios de domínio apropriados; não foram movidos para
+  `utils`.
+* **Validação**: type-check, 118 testes e build de produção concluídos. O lint
+  global continua incluindo artefatos gerados em `.vercel/output` e pendências
+  anteriores do código; não foram alterados como parte desta reorganização.
