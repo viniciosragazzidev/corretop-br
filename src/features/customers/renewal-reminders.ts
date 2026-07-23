@@ -210,7 +210,7 @@ export async function createClientRenewalReminders(now = new Date()) {
       createdBy: reminder.brokerId,
       title: `Renovação de Contrato — ${name} (${triggerLabel})`,
       description: `Acompanhar renovação do contrato do cliente ${name}. Vencimento próximo em ${reminder.scheduledFor}.`,
-      priority: reminder.triggerType === "t_15" || reminder.triggerType === "t_30" ? "urgente" : "alta",
+      priority: reminder.triggerType === "t_15" || reminder.triggerType === "t_30" ? "urgent" : "normal",
       dueAt: new Date(now.getTime() + 24 * 60 * 60 * 1000),
     });
 
