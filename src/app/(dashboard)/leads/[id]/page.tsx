@@ -183,6 +183,15 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                   <span>•</span>
                   <span>Unidade: <strong className="font-semibold text-foreground">{lead.branchNome ?? "Geral/Sem filial"}</strong></span>
                 </div>
+                <div className="flex max-w-full flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                  <span className="inline-flex min-w-0 items-center gap-1.5"><Phone className="size-3.5 shrink-0" />{canSeePersonalData ? <a className="truncate text-primary hover:underline" href={`tel:${lead.telefone.replace(/\D/g, "")}`}>{lead.telefone}</a> : maskedPhone}</span>
+                  <span className="hidden text-border sm:inline">•</span>
+                  <span className="inline-flex min-w-0 items-center gap-1.5"><Share className="size-3.5 shrink-0" />{canSeePersonalData && lead.email ? <a className="max-w-[220px] truncate text-primary hover:underline" href={`mailto:${lead.email}`}>{lead.email}</a> : canSeePersonalData ? "Não informado" : maskedEmail}</span>
+                  <span className="hidden text-border sm:inline">•</span>
+                  <span className="inline-flex items-center gap-1.5"><Buildings className="size-3.5 shrink-0" />{lead.sourceCampaign || (lead.origem === "manual" ? "Manual" : "Webhook")}</span>
+                  <span className="hidden text-border sm:inline">•</span>
+                  <span className="inline-flex items-center gap-1.5"><UserPlus className="size-3.5 shrink-0" />{lead.corretorNome ?? "Aguardando distribuição"}</span>
+                </div>
               </div>
 
               {/* Quick Header Actions */}
@@ -208,7 +217,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
         </div>
 
         {/* Main operational area */}
-        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0 space-y-5">
           <section className="min-w-0 space-y-5">
           {/* Dense operational content is organized in the tabs below. */}
 
@@ -257,8 +266,8 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
 
 
 
-          <Tabs defaultValue={defaultLeadTab} orientation="horizontal" className="min-h-0 gap-4 md:grid md:grid-cols-[180px_minmax(0,1fr)] md:gap-5">
-            <TabsList aria-label="Etapas do atendimento" className="h-auto w-full max-w-full flex-row items-stretch gap-1 overflow-x-auto rounded-xl border border-border/70 bg-muted/20 p-2 md:h-fit md:flex-col md:overflow-visible" variant="line">
+          <Tabs defaultValue={defaultLeadTab} orientation="horizontal" className="min-h-0 min-w-0 gap-4 overflow-hidden md:grid md:grid-cols-[180px_minmax(0,1fr)] md:gap-5">
+            <TabsList aria-label="Etapas do atendimento" className="h-auto w-full max-w-full min-w-0 flex-row items-stretch gap-1 overflow-x-auto overscroll-x-contain rounded-xl border border-border/70 bg-muted/20 p-2 touch-pan-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:h-fit md:flex-col md:overflow-visible md:[scrollbar-width:auto]" variant="line">
               <TabsTrigger value="service" className="min-w-[132px] flex-none justify-start px-3 py-2 text-left md:w-full md:min-w-0 md:flex-1"><span className="flex flex-col items-start gap-0.5"><span>Atendimento</span><span className="text-[11px] font-normal text-muted-foreground">Contato inicial</span></span></TabsTrigger>
               <TabsTrigger value="quotes" disabled={stageRank < 3} className="min-w-[132px] flex-none justify-start px-3 py-2 text-left md:w-full md:min-w-0 md:flex-1">{stageRank < 3 ? <LockKey className="size-3.5 text-muted-foreground" /> : null}<span className="flex flex-col items-start gap-0.5"><span>Cotações {quotes.length > 0 ? `(${quotes.length})` : ""}</span><span className="text-[11px] font-normal text-muted-foreground">Propostas</span></span></TabsTrigger>
               <TabsTrigger value="documents" disabled={stageRank < 5} className="min-w-[132px] flex-none justify-start px-3 py-2 text-left md:w-full md:min-w-0 md:flex-1">{stageRank < 5 ? <LockKey className="size-3.5 text-muted-foreground" /> : null}<span className="flex flex-col items-start gap-0.5"><span>Documentos {leadDocs.length > 0 ? `(${leadDocs.length})` : ""}</span><span className="text-[11px] font-normal text-muted-foreground">Análise cadastral</span></span></TabsTrigger>
@@ -463,7 +472,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
           {false && <LeadChat phone={canSeePersonalData ? lead.telefone : null} />}
           </section>
 
-          <aside className="space-y-4 xl:sticky xl:top-24">
+          {false && <aside className="space-y-4 xl:sticky xl:top-24">
             <Card className="border-border/80 bg-card shadow-none">
               <CardHeader className="border-b border-border/60 pb-3">
                 <CardTitle className="text-sm font-semibold">Dados do lead</CardTitle>
@@ -479,7 +488,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                 {!canSeePersonalData && <div className="rounded-lg border border-amber-300/20 bg-amber-300/5 p-3 text-xs leading-relaxed text-muted-foreground">O telefone e o e-mail serão liberados quando você iniciar o atendimento.</div>}
               </CardContent>
             </Card>
-          </aside>
+          </aside>}
         </div>
 
       </main>
