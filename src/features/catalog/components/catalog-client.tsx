@@ -256,7 +256,7 @@ function PlanForm({
                   className="h-8 text-xs"
                   value={String(p.monthlyPrice || "")}
                   onChange={(val) => handlePriceChange(p.ageBand, val)}
-                  placeholder="R$ 0,00"
+                  placeholder="0,00"
                 />
               </div>
             ))}

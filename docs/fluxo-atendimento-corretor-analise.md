@@ -244,7 +244,7 @@ await tx.insert(schema.sales).values({
 1. ✅ O lead vira cliente (`clients` criado)
 2. ✅ Uma venda é registrada
 3. ✅ Cronograma de comissão é gerado
-4. ❌ **O valor da venda é sempre R$ 0,00** — sem possibilidade de o corretor informar o valor real
+4. ❌ **O valor da venda é sempre 0,00** — sem possibilidade de o corretor informar o valor real
 5. ❌ **Comissão calculada sobre R$ 0** — mesmo com regras configuradas, o repasse será zero
 
 **Status do sistema:** `converted`
@@ -258,7 +258,7 @@ await tx.insert(schema.sales).values({
   - Data de assinatura do contrato
   - Condições especiais negociadas
   
-- ❌ **Comissão sempre zero** — porque `saleValue = 0`, toda comissão gerada é R$ 0,00
+- ❌ **Comissão sempre zero** — porque `saleValue = 0`, toda comissão gerada é 0,00
 - ❌ **Sem integração cotação-aceita → conversão** — a cotação pode ser "accepted" mas não dispara a conversão automaticamente
 
 ---
@@ -332,7 +332,7 @@ db.transaction:
        saleDate: now
      }
   5. generateCommissionSchedule(tenantId, saleId, lead.planId, saleValue=0)
-     → schedule com amount = R$ 0,00
+     → schedule com amount = 0,00
   6. Insert auditLog: "converted"
   7. Insert notification: "Lead convertido em cliente"
 ```

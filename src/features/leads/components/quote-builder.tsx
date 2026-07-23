@@ -221,7 +221,7 @@ export function QuoteBuilder({
                         className="h-8 text-xs"
                         value={String(item.monthlyPrice || "")}
                         onChange={(v) => updateItem(index, "monthlyPrice", parseFloat(v) || 0)}
-                        placeholder="R$ 0,00"
+                        placeholder="0,00"
                       />
                     </div>
                     <div className="flex items-end">
@@ -286,7 +286,7 @@ export function QuoteBuilder({
                           className="h-8 text-xs"
                           value={String(item.calculatedValue || "")}
                           onChange={(v) => updateLineItem(index, "calculatedValue", parseFloat(v) || 0)}
-                          placeholder="R$ 0,00"
+                          placeholder="0,00"
                         />
                       </div>
                       <div className="w-20">
