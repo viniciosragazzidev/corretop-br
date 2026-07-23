@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { Bell, WhatsappLogo } from "@phosphor-icons/react";
+import { Bell, WhatsappLogo } from "@/components/huge-icons";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -44,4 +44,3 @@ export function LeadAssignedNotificationButton({ leadId, className, compact = fa
     </Button>
   );
 }
-
