@@ -532,7 +532,10 @@ function ClientProfile({ client }: { client: ConversationItem }) {
               </Button>
               <Button className="w-full justify-center" render={<Link href={`/leads/${client.id}`} />} size="sm" variant="outline">
                 <FileText />
-                Ver tarefas e documentos
+                <p className="max-w-12.5 truncate text-ellipsis">
+                  Ver tarefas e documentos
+
+                </p>
               </Button>
               <Button className="w-full justify-center" render={<Link href={`/leads/${client.id}#documentos`} />} size="sm" variant="ghost">
                 <FileText />
