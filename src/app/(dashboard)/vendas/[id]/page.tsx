@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { StatCard } from "@/components/dashboard/metric-card";
 import {
   ArrowLeft,
   CheckCircle,
@@ -104,61 +105,31 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
 
         {/* Summary KPI Cards Grid */}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Card size="sm" className="border-border bg-card shadow-xs transition-all hover:border-primary/30">
-            <CardContent className="p-4 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-muted-foreground">Valor da Venda</p>
-                <p className="mt-1 font-mono text-xl font-bold tracking-tight text-foreground">
-                  {formatCurrency(Number(sale.saleValue))}
-                </p>
-              </div>
-              <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <CreditCard className="size-5" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card size="sm" className="border-border bg-card shadow-xs transition-all hover:border-primary/30">
-            <CardContent className="p-4 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-muted-foreground">Total em Comissões</p>
-                <p className="mt-1 font-mono text-xl font-bold tracking-tight text-foreground">
-                  {formatCurrency(totalCommissions)}
-                </p>
-              </div>
-              <div className="flex size-10 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                <CurrencyCircleDollar className="size-5" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card size="sm" className="border-border bg-card shadow-xs transition-all hover:border-emerald-500/30">
-            <CardContent className="p-4 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-muted-foreground">Comissão Paga</p>
-                <p className="mt-1 font-mono text-xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">
-                  {formatCurrency(paidCommissions)}
-                </p>
-              </div>
-              <div className="flex size-10 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                <CheckCircle className="size-5" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card size="sm" className="border-border bg-card shadow-xs transition-all hover:border-amber-500/30">
-            <CardContent className="p-4 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-muted-foreground">Comissão A Pagar</p>
-                <p className="mt-1 font-mono text-xl font-bold tracking-tight text-amber-600 dark:text-amber-400">
-                  {formatCurrency(pendingCommissions)}
-                </p>
-              </div>
-              <div className="flex size-10 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                <Clock className="size-5" />
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard
+            label="Valor da Venda"
+            value={formatCurrency(Number(sale.saleValue))}
+            icon={CreditCard}
+          />
+          <StatCard
+            label="Total em Comissões"
+            value={formatCurrency(totalCommissions)}
+            icon={CurrencyCircleDollar}
+            iconClassName="bg-blue-500/10 text-blue-600 dark:text-blue-400"
+          />
+          <StatCard
+            label="Comissão Paga"
+            value={formatCurrency(paidCommissions)}
+            icon={CheckCircle}
+            iconClassName="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+            valueClassName="text-emerald-600 dark:text-emerald-400"
+          />
+          <StatCard
+            label="Comissão A Pagar"
+            value={formatCurrency(pendingCommissions)}
+            icon={Clock}
+            iconClassName="bg-amber-500/10 text-amber-600 dark:text-amber-400"
+            valueClassName="text-amber-600 dark:text-amber-400"
+          />
         </div>
 
         {/* Payout Completion Progress Indicator */}

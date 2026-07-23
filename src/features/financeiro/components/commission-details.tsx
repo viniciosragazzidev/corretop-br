@@ -21,6 +21,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { StatCard } from "@/components/dashboard/metric-card";
 import {
   Table,
   TableBody,
@@ -68,42 +69,7 @@ function normalize(value: string) {
     .toLocaleLowerCase("pt-BR");
 }
 
-// ─── Default Card ─────────────────────────────────────────────────────────
-
-function StatCard({
-  label,
-  value,
-  icon: Icon,
-}: {
-  label: string;
-  value: string;
-  icon: React.ComponentType<{ className?: string; weight?: string }>;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.18, ease: [0, 0, 0.2, 1] }}
-      whileHover={{ y: -2, transition: { duration: 0.2, ease: [0, 0, 0.2, 1] } }}
-    >
-      <Card className="group/card border-border bg-card shadow-none transition-all duration-200 hover:border-primary/25 hover:shadow-sm">
-        <CardHeader className="pb-1">
-          <div className="flex items-center justify-between">
-            <CardDescription className="transition-colors duration-200 group-hover/card:text-foreground">
-              {label}
-            </CardDescription>
-            <Icon className="size-4 text-muted-foreground transition-colors duration-200 group-hover/card:text-primary" />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <p className="text-2xl font-semibold tabular-nums tracking-tight">
-            {value}
-          </p>
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
-}
+// StatCard do @/components/dashboard/metric-card é usado abaixo
 
 // ─── Status Badge ─────────────────────────────────────────────────────────
 
@@ -171,26 +137,18 @@ export function CommissionDetails({ data }: Props) {
     <div className="space-y-6">
       {/* Summary Cards */}
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          label="Total de comissões"
-          value={formatCurrencyCompact(summary.totalCommission)}
-          icon={TrendUp}
-        />
-        <StatCard
-          label="Comissões pendentes"
-          value={formatCurrencyCompact(summary.pendingCommission)}
-          icon={ArrowsDownUp}
-        />
-        <StatCard
-          label="Comissões pagas"
-          value={formatCurrencyCompact(summary.paidCommission)}
-          icon={Calculator}
-        />
-        <StatCard
-          label="Vendas / Regras ativas"
-          value={`${summary.totalSales} / ${summary.activeRules}`}
-          icon={Calculator}
-        />
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18, ease: [0, 0, 0.2, 1] }}>
+          <StatCard label="Total de comissões" value={formatCurrencyCompact(summary.totalCommission)} icon={TrendUp} />
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18, ease: [0, 0, 0.2, 1] }}>
+          <StatCard label="Comissões pendentes" value={formatCurrencyCompact(summary.pendingCommission)} icon={ArrowsDownUp} />
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18, ease: [0, 0, 0.2, 1] }}>
+          <StatCard label="Comissões pagas" value={formatCurrencyCompact(summary.paidCommission)} icon={Calculator} />
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18, ease: [0, 0, 0.2, 1] }}>
+          <StatCard label="Vendas / Regras ativas" value={`${summary.totalSales} / ${summary.activeRules}`} icon={Calculator} />
+        </motion.div>
       </section>
 
       {/* Tabs: Brokers / Sales */}

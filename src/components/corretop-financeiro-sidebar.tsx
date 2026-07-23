@@ -7,7 +7,8 @@ import { motion } from "motion/react";
 import { toast } from "sonner";
 
 import { ArrowsDownUp, ChartBar, ChartLineUp, ClipboardText, CurrencyCircleDollar, FileArrowDown, Gear, PiggyBank, SignOut, Target, TrendDown, TrendUp } from "@/components/huge-icons";
-import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
+import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
+import { SidebarCollapsibleGroup } from "@/components/sidebar-collapsible-group";
 import { getUserDisplayInfo, type UserDisplayInfo } from "@/shared/auth/actions";
 import { hasCapability, type PermissionKey } from "@/shared/auth/permissions";
 import { signOut } from "@/shared/auth/client";
@@ -40,7 +41,7 @@ function NavigationGroup({ label, items, roleKey, jobTitle, groupIndex }: { labe
   const { isMobile, setOpenMobile } = useSidebar();
   const visibleItems = roleKey ? items.filter((item) => hasCapability(roleKey, item.permission, jobTitle)) : [];
   if (visibleItems.length === 0) return null;
-  return <motion.div initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.18, ease: [0, 0, 0.2, 1], delay: groupIndex * 0.06 }}><SidebarGroup><SidebarGroupLabel>{label}</SidebarGroupLabel><SidebarGroupContent><SidebarMenu>{visibleItems.map((item, index) => { const Icon = item.icon; const isActive = pathname === item.url || pathname.startsWith(item.url + "/"); return <motion.div key={item.label} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.15, ease: [0, 0, 0.2, 1], delay: groupIndex * 0.06 + index * 0.04 }}><SidebarMenuItem><SidebarMenuButton isActive={isActive} render={<Link href={item.url} onClick={() => isMobile && setOpenMobile(false)} prefetch />} tooltip={item.label}><Icon weight={isActive ? "fill" : "regular"} /><span>{item.label}</span></SidebarMenuButton></SidebarMenuItem></motion.div>; })}</SidebarMenu></SidebarGroupContent></SidebarGroup></motion.div>;
+  return <motion.div initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.18, ease: [0, 0, 0.2, 1], delay: groupIndex * 0.06 }}><SidebarCollapsibleGroup label={label}><SidebarMenu>{visibleItems.map((item, index) => { const Icon = item.icon; const isActive = pathname === item.url || pathname.startsWith(item.url + "/"); return <motion.div key={item.label} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.15, ease: [0, 0, 0.2, 1], delay: groupIndex * 0.06 + index * 0.04 }}><SidebarMenuItem><SidebarMenuButton isActive={isActive} render={<Link href={item.url} onClick={() => isMobile && setOpenMobile(false)} prefetch />} tooltip={item.label}><Icon weight={isActive ? "fill" : "regular"} /><span>{item.label}</span></SidebarMenuButton></SidebarMenuItem></motion.div>; })}</SidebarMenu></SidebarCollapsibleGroup></motion.div>;
 }
 
 export function CorreTopFinanceiroSidebar() {

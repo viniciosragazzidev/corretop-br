@@ -17,15 +17,13 @@ import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { SidebarCollapsibleGroup } from "@/components/sidebar-collapsible-group";
 import { useSession, signOut } from "@/shared/auth/client";
 import { toast } from "sonner";
 import { CorreTopLogo } from "@/components/corretop-logo";
@@ -61,40 +59,37 @@ function NavigationGroup({
         delay: groupIndex * 0.06,
       }}
     >
-      <SidebarGroup>
-        <SidebarGroupLabel>{label}</SidebarGroupLabel>
-        <SidebarGroupContent>
-          <SidebarMenu>
-            {items.map((item, index) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.url || (item.url !== "/super-dev" && pathname.startsWith(item.url + "/"));
-              return (
-                <motion.div
-                  key={item.label}
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{
-                    duration: 0.15,
-                    ease: [0, 0, 0.2, 1],
-                    delay: groupIndex * 0.06 + index * 0.04,
-                  }}
-                >
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      isActive={isActive}
-                      render={<Link href={item.url} onClick={() => isMobile && setOpenMobile(false)} prefetch />}
-                      tooltip={item.label}
-                    >
-                      <Icon weight={isActive ? "fill" : "regular"} />
-                      <span>{item.label}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </motion.div>
-              );
-            })}
-          </SidebarMenu>
-        </SidebarGroupContent>
-      </SidebarGroup>
+      <SidebarCollapsibleGroup label={label}>
+        <SidebarMenu>
+          {items.map((item, index) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.url || (item.url !== "/super-dev" && pathname.startsWith(item.url + "/"));
+            return (
+              <motion.div
+                key={item.label}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{
+                  duration: 0.15,
+                  ease: [0, 0, 0.2, 1],
+                  delay: groupIndex * 0.06 + index * 0.04,
+                }}
+              >
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    isActive={isActive}
+                    render={<Link href={item.url} onClick={() => isMobile && setOpenMobile(false)} prefetch />}
+                    tooltip={item.label}
+                  >
+                    <Icon weight={isActive ? "fill" : "regular"} />
+                    <span>{item.label}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </motion.div>
+            );
+          })}
+        </SidebarMenu>
+      </SidebarCollapsibleGroup>
     </motion.div>
   );
 }

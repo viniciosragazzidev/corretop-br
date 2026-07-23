@@ -8,7 +8,8 @@ import { toast } from "sonner";
 
 import { Bell, BookOpen, Buildings, ChartBar, ChatCircleText, ClipboardText, CurrencyCircleDollar, FileArrowDown, FolderSimple, Handshake, House, Megaphone, Monitor, Note, ShieldCheck, SignOut, SlidersHorizontal, Target, Users, WifiHigh } from "@/components/huge-icons";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
+import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
+import { SidebarCollapsibleGroup } from "@/components/sidebar-collapsible-group";
 import { getUserDisplayInfo, type UserDisplayInfo } from "@/shared/auth/actions";
 import { hasCapability, type PermissionKey } from "@/shared/auth/permissions";
 import { signOut } from "@/shared/auth/client";
@@ -57,7 +58,7 @@ function NavigationGroup({ label, items, roleKey, jobTitle, groupIndex }: { labe
     return hasCapability(roleKey, item.permission, jobTitle);
   }) : [];
   if (visibleItems.length === 0) return null;
-  return <motion.div initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.18, ease: [0, 0, 0.2, 1], delay: groupIndex * 0.06 }}><SidebarGroup><SidebarGroupLabel>{label}</SidebarGroupLabel><SidebarGroupContent><SidebarMenu>{visibleItems.map((item, index) => { const Icon = item.icon; const isActive = pathname === item.url || pathname.startsWith(item.url + "/"); return <motion.div key={item.label} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.15, ease: [0, 0, 0.2, 1], delay: groupIndex * 0.06 + index * 0.04 }}><SidebarMenuItem><SidebarMenuButton isActive={isActive} render={<Link href={item.url} onClick={() => isMobile && setOpenMobile(false)} prefetch />} tooltip={item.label}><Icon weight={isActive ? "fill" : "regular"} /><span>{item.label}</span></SidebarMenuButton></SidebarMenuItem></motion.div>; })}</SidebarMenu></SidebarGroupContent></SidebarGroup></motion.div>;
+  return <motion.div initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.18, ease: [0, 0, 0.2, 1], delay: groupIndex * 0.06 }}><SidebarCollapsibleGroup label={label}><SidebarMenu>{visibleItems.map((item, index) => { const Icon = item.icon; const isActive = pathname === item.url || pathname.startsWith(item.url + "/"); return <motion.div key={item.label} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.15, ease: [0, 0, 0.2, 1], delay: groupIndex * 0.06 + index * 0.04 }}><SidebarMenuItem><SidebarMenuButton isActive={isActive} render={<Link href={item.url} onClick={() => isMobile && setOpenMobile(false)} prefetch />} tooltip={item.label}><Icon weight={isActive ? "fill" : "regular"} /><span>{item.label}</span></SidebarMenuButton></SidebarMenuItem></motion.div>; })}</SidebarMenu></SidebarCollapsibleGroup></motion.div>;
 }
 
 export function CorreTopSidebar({ logoUrl }: { logoUrl?: string | null }) {

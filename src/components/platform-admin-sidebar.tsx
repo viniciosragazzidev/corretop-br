@@ -8,14 +8,12 @@ import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { SidebarCollapsibleGroup } from "@/components/sidebar-collapsible-group";
 import { useSession, signOut } from "@/shared/auth/client";
 import { toast } from "sonner";
 import { CorreTopLogo } from "@/components/corretop-logo";
@@ -60,149 +58,134 @@ export function PlatformAdminSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="px-3 pt-4">
-        <SidebarGroup>
-          <SidebarGroupLabel className="px-3.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
-            Painel Geral
-          </SidebarGroupLabel>
-          <SidebarGroupContent className="mt-1.5">
-            <SidebarMenu className="gap-1">
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  isActive={pathname === "/super-admin/integrations/whatsapp"}
-                  render={<Link href="/super-admin/integrations/whatsapp" prefetch />}
-                  tooltip="WhatsApp Oficial"
-                  className="px-3.5 py-2 text-xs font-medium"
-                >
-                  <WhatsappLogo className="size-4" />
-                  <span>WhatsApp Oficial</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  isActive={pathname === "/super-admin/whatsapp-review"}
-                  render={<Link href="/super-admin/whatsapp-review" prefetch />}
-                  tooltip="Revisão WhatsApp Meta"
-                  className="px-3.5 py-2 text-xs font-medium"
-                >
-                  <WhatsappLogo className="size-4" />
-                  <span>Revisão WhatsApp Meta</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  isActive={pathname === "/super-admin/catalogo"}
-                  render={<Link href="/super-admin/catalogo" prefetch />}
-                  tooltip="Catálogo global"
-                  className="px-3.5 py-2 text-xs font-medium"
-                >
-                  <FileText className="size-4" />
-                  <span>Catálogo global</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  isActive={pathname === "/super-admin/onboarding"}
-                  render={<Link href="/super-admin/onboarding" prefetch />}
-                  tooltip="Onboarding guiado"
-                  className="px-3.5 py-2 text-xs font-medium"
-                >
-                  <RocketLaunch className="size-4" />
-                  <span>Onboarding guiado</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  isActive={pathname === "/super-admin"}
-                  render={<Link href="/super-admin" prefetch />}
-                  tooltip="Visão Geral"
-                  className="px-3.5 py-2 text-xs font-medium"
-                >
-                  <House className="size-4" />
-                  <span>Visão Geral & DevTools</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  isActive={pathname === "/super-admin/tenants" || pathname.startsWith("/super-admin/tenants/")}
-                  render={<Link href="/super-admin/tenants" prefetch />}
-                  tooltip="Empresas"
-                  className="px-3.5 py-2 text-xs font-medium"
-                >
-                  <Buildings className="size-4" />
-                  <span>Empresas (Tenants)</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  isActive={pathname === "/super-admin/materiais-divulgacao"}
-                  render={<Link href="/super-admin/materiais-divulgacao" prefetch />}
-                  tooltip="Materiais de Divulgação"
-                  className="px-3.5 py-2 text-xs font-medium"
-                >
-                  <Megaphone className="size-4" />
-                  <span>Materiais de Divulgação</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        <SidebarCollapsibleGroup label="Painel Geral" headerClassName="px-3.5 text-[10px] font-bold uppercase tracking-wider">
+          <SidebarMenu className="gap-1">
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                isActive={pathname === "/super-admin/integrations/whatsapp"}
+                render={<Link href="/super-admin/integrations/whatsapp" prefetch />}
+                tooltip="WhatsApp Oficial"
+                className="px-3.5 py-2 text-xs font-medium"
+              >
+                <WhatsappLogo className="size-4" />
+                <span>WhatsApp Oficial</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                isActive={pathname === "/super-admin/whatsapp-review"}
+                render={<Link href="/super-admin/whatsapp-review" prefetch />}
+                tooltip="Revisão WhatsApp Meta"
+                className="px-3.5 py-2 text-xs font-medium"
+              >
+                <WhatsappLogo className="size-4" />
+                <span>Revisão WhatsApp Meta</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                isActive={pathname === "/super-admin/catalogo"}
+                render={<Link href="/super-admin/catalogo" prefetch />}
+                tooltip="Catálogo global"
+                className="px-3.5 py-2 text-xs font-medium"
+              >
+                <FileText className="size-4" />
+                <span>Catálogo global</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                isActive={pathname === "/super-admin/onboarding"}
+                render={<Link href="/super-admin/onboarding" prefetch />}
+                tooltip="Onboarding guiado"
+                className="px-3.5 py-2 text-xs font-medium"
+              >
+                <RocketLaunch className="size-4" />
+                <span>Onboarding guiado</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                isActive={pathname === "/super-admin"}
+                render={<Link href="/super-admin" prefetch />}
+                tooltip="Visão Geral"
+                className="px-3.5 py-2 text-xs font-medium"
+              >
+                <House className="size-4" />
+                <span>Visão Geral & DevTools</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                isActive={pathname === "/super-admin/tenants" || pathname.startsWith("/super-admin/tenants/")}
+                render={<Link href="/super-admin/tenants" prefetch />}
+                tooltip="Empresas"
+                className="px-3.5 py-2 text-xs font-medium"
+              >
+                <Buildings className="size-4" />
+                <span>Empresas (Tenants)</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                isActive={pathname === "/super-admin/materiais-divulgacao"}
+                render={<Link href="/super-admin/materiais-divulgacao" prefetch />}
+                tooltip="Materiais de Divulgação"
+                className="px-3.5 py-2 text-xs font-medium"
+              >
+                <Megaphone className="size-4" />
+                <span>Materiais de Divulgação</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarCollapsibleGroup>
 
-        <SidebarGroup className="mt-4">
-          <SidebarGroupLabel className="px-3.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
-            Segurança & Monitoramento
-          </SidebarGroupLabel>
-          <SidebarGroupContent className="mt-1.5">
-            <SidebarMenu className="gap-1">
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  isActive={pathname === "/super-admin/audit"}
-                  render={<Link href="/super-admin/audit" prefetch />}
-                  tooltip="Logs de Auditoria"
-                  className="px-3.5 py-2 text-xs font-medium"
-                >
-                  <ShieldWarning className="size-4" />
-                  <span>Logs de Auditoria</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  isActive={pathname === "/super-admin/sessions"}
-                  render={<Link href="/super-admin/sessions" prefetch />}
-                  tooltip="Sessões Ativas"
-                  className="px-3.5 py-2 text-xs font-medium"
-                >
-                  <Clock className="size-4" />
-                  <span>Sessões Ativas</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  isActive={pathname === "/super-admin/settings"}
-                  render={<Link href="/super-admin/settings" prefetch />}
-                  tooltip="Configurações"
-                  className="px-3.5 py-2 text-xs font-medium"
-                >
-                  <Gear className="size-4" />
-                  <span>Parâmetros do Servidor</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        <SidebarCollapsibleGroup label="Segurança & Monitoramento" headerClassName="px-3.5 text-[10px] font-bold uppercase tracking-wider" className="mt-4">
+          <SidebarMenu className="gap-1">
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                isActive={pathname === "/super-admin/audit"}
+                render={<Link href="/super-admin/audit" prefetch />}
+                tooltip="Logs de Auditoria"
+                className="px-3.5 py-2 text-xs font-medium"
+              >
+                <ShieldWarning className="size-4" />
+                <span>Logs de Auditoria</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                isActive={pathname === "/super-admin/sessions"}
+                render={<Link href="/super-admin/sessions" prefetch />}
+                tooltip="Sessões Ativas"
+                className="px-3.5 py-2 text-xs font-medium"
+              >
+                <Clock className="size-4" />
+                <span>Sessões Ativas</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                isActive={pathname === "/super-admin/settings"}
+                render={<Link href="/super-admin/settings" prefetch />}
+                tooltip="Configurações"
+                className="px-3.5 py-2 text-xs font-medium"
+              >
+                <Gear className="size-4" />
+                <span>Parâmetros do Servidor</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarCollapsibleGroup>
 
-        <SidebarGroup className="mt-4">
-          <SidebarGroupLabel className="px-3.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
-            Em preparação
-          </SidebarGroupLabel>
-          <SidebarGroupContent className="mt-1.5">
-            <SidebarMenu className="gap-1">
-              <LockedPreviewItem icon={ChatCircleText} label="Chat interno" />
-              <LockedPreviewItem icon={ChartLineUp} label="Renovações" />
-              <LockedPreviewItem icon={ShieldWarning} label="Integridade e conexões" />
-              <LockedPreviewItem icon={RoadHorizon} label="Roadmap de desenvolvimento" />
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        <SidebarCollapsibleGroup label="Em preparação" headerClassName="px-3.5 text-[10px] font-bold uppercase tracking-wider" className="mt-4">
+          <SidebarMenu className="gap-1">
+            <LockedPreviewItem icon={ChatCircleText} label="Chat interno" />
+            <LockedPreviewItem icon={ChartLineUp} label="Renovações" />
+            <LockedPreviewItem icon={ShieldWarning} label="Integridade e conexões" />
+            <LockedPreviewItem icon={RoadHorizon} label="Roadmap de desenvolvimento" />
+          </SidebarMenu>
+        </SidebarCollapsibleGroup>
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border/50 p-3">

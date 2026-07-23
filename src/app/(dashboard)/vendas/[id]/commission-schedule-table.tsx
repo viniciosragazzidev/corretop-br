@@ -2,12 +2,14 @@
 
 import { useActionState } from "react";
 import { toast } from "sonner";
-import { CheckCircle, XCircle, CalendarBlank, FileText } from "@/components/huge-icons";
+import type { ColumnDef } from "@tanstack/react-table";
+import { CheckCircle, XCircle } from "lucide-react";
+import { CalendarBlank } from "@/components/huge-icons";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { DataTable, DataTableColumnHeader } from "@/components/ui/data-table";
 import {
   markCommissionPaidAction,
   markCommissionUnpaidAction,
@@ -66,13 +68,7 @@ function ScheduleStatusBadge({ status }: { status: string }) {
   );
 }
 
-function ScheduleRow({
-  item,
-  canManage,
-}: {
-  item: ScheduleItem;
-  canManage: boolean;
-}) {
+function ActionCell({ item, canManage }: { item: ScheduleItem; canManage: boolean }) {
   const [payState, payAction, payPending] = useActionState<SaleActionState, FormData>(
     markCommissionPaidAction,
     {},
@@ -83,86 +79,44 @@ function ScheduleRow({
     {},
   );
 
-  // Show toast on state changes
   if (payState.success) toast.success("Comissão marcada como paga.");
   if (payState.error) toast.error(payState.error);
   if (unpayState.success) toast.success("Pagamento revertido.");
   if (unpayState.error) toast.error(unpayState.error);
 
+  if (!canManage) return null;
+
   return (
-    <TableRow className="hover:bg-muted/40 transition-colors">
-      <TableCell className="pl-5 font-semibold text-sm">
-        <div className="flex items-center gap-2">
-          <span className="inline-flex size-6 items-center justify-center rounded-full bg-primary/10 text-xs font-mono font-medium text-primary">
-            {item.monthNumber}
-          </span>
-          <span>{item.monthNumber}º mês</span>
-        </div>
-      </TableCell>
-      <TableCell className="text-muted-foreground font-mono text-xs">{item.referenceMonth}</TableCell>
-      <TableCell className="text-muted-foreground text-xs">{formatDate(item.dueDate)}</TableCell>
-      <TableCell className="font-mono text-xs font-medium">
-        <span className="rounded bg-muted px-1.5 py-0.5">{item.percentage}%</span>
-      </TableCell>
-      <TableCell className="text-right font-mono text-sm font-semibold tracking-tight">
-        {formatCurrency(item.amount)}
-      </TableCell>
-      <TableCell>
-        <ScheduleStatusBadge status={item.status} />
-      </TableCell>
-      <TableCell className="text-xs text-muted-foreground">
-        {item.status === "paid" ? (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger>
-                <span className="cursor-help underline decoration-dotted underline-offset-4">
-                  {item.paidByName ? item.paidByName.split(" ")[0] : "Confirmado"} em {formatDate(item.paidAt)}
-                </span>
-              </TooltipTrigger>
-              <TooltipContent className="text-xs">
-                Pago por {item.paidByName ?? "Diretoria"} em {formatDate(item.paidAt)}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        ) : item.status === "cancelled" ? (
-          "Cancelado"
-        ) : (
-          "—"
-        )}
-      </TableCell>
-      <TableCell className="pr-5 text-right">
-        {canManage && item.status === "pending" && (
-          <form action={payAction} className="inline-block">
-            <input type="hidden" name="scheduleId" value={item.id} />
-            <Button
-              type="submit"
-              size="sm"
-              variant="ghost"
-              disabled={payPending}
-              className="h-8 gap-1.5 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 font-medium transition-all"
-              aria-label={`Marcar ${item.monthNumber}º mês como pago`}
-            >
-              <CheckCircle className="size-3.5" /> {payPending ? "Salvando..." : "Marcar Paga"}
-            </Button>
-          </form>
-        )}
-        {canManage && item.status === "paid" && (
-          <form action={unpayAction} className="inline-block">
-            <input type="hidden" name="scheduleId" value={item.id} />
-            <Button
-              type="submit"
-              size="sm"
-              variant="ghost"
-              disabled={unpayPending}
-              className="h-8 gap-1.5 text-xs text-amber-600 hover:text-amber-700 hover:bg-amber-500/10 font-medium transition-all"
-              aria-label={`Reverter ${item.monthNumber}º mês`}
-            >
-              <XCircle className="size-3.5" /> {unpayPending ? "Revertendo..." : "Reverter"}
-            </Button>
-          </form>
-        )}
-      </TableCell>
-    </TableRow>
+    <div className="text-right">
+      {item.status === "pending" && (
+        <form action={payAction} className="inline-block">
+          <input type="hidden" name="scheduleId" value={item.id} />
+          <Button
+            type="submit"
+            size="sm"
+            variant="ghost"
+            disabled={payPending}
+            className="h-8 gap-1.5 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 font-medium transition-all"
+          >
+            <CheckCircle className="size-3.5" /> {payPending ? "Salvando..." : "Marcar Paga"}
+          </Button>
+        </form>
+      )}
+      {item.status === "paid" && (
+        <form action={unpayAction} className="inline-block">
+          <input type="hidden" name="scheduleId" value={item.id} />
+          <Button
+            type="submit"
+            size="sm"
+            variant="ghost"
+            disabled={unpayPending}
+            className="h-8 gap-1.5 text-xs text-amber-600 hover:text-amber-700 hover:bg-amber-500/10 font-medium transition-all"
+          >
+            <XCircle className="size-3.5" /> {unpayPending ? "Revertendo..." : "Reverter"}
+          </Button>
+        </form>
+      )}
+    </div>
   );
 }
 
@@ -173,6 +127,90 @@ export function CommissionScheduleTable({
   schedule: ScheduleItem[];
   canManage: boolean;
 }) {
+  const columns: ColumnDef<ScheduleItem>[] = [
+    {
+      accessorKey: "monthNumber",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Parcela" />
+      ),
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2 pl-2">
+          <span className="inline-flex size-6 items-center justify-center rounded-full bg-primary/10 text-xs font-mono font-medium text-primary">
+            {row.original.monthNumber}
+          </span>
+          <span className="font-semibold text-xs">{row.original.monthNumber}º mês</span>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "referenceMonth",
+      header: "Mês ref.",
+      cell: ({ row }) => (
+        <span className="text-muted-foreground font-mono text-xs">{row.original.referenceMonth}</span>
+      ),
+    },
+    {
+      accessorKey: "dueDate",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Vencimento" />
+      ),
+      cell: ({ row }) => (
+        <span className="text-muted-foreground text-xs">{formatDate(row.original.dueDate)}</span>
+      ),
+    },
+    {
+      accessorKey: "percentage",
+      header: "%",
+      cell: ({ row }) => (
+        <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs font-medium">{row.original.percentage}%</span>
+      ),
+    },
+    {
+      accessorKey: "amount",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Valor" className="justify-end" />
+      ),
+      cell: ({ row }) => (
+        <div className="text-right font-mono text-xs font-semibold tracking-tight text-foreground">
+          {formatCurrency(row.original.amount)}
+        </div>
+      ),
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => <ScheduleStatusBadge status={row.original.status} />,
+    },
+    {
+      accessorKey: "paymentInfo",
+      header: "Pagamento",
+      cell: ({ row }) => {
+        const item = row.original;
+        if (item.status === "paid") {
+          return (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <span className="cursor-help underline decoration-dotted underline-offset-4 text-xs text-muted-foreground">
+                    {item.paidByName ? item.paidByName.split(" ")[0] : "Confirmado"} em {formatDate(item.paidAt)}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent className="text-xs">
+                  Pago por {item.paidByName ?? "Diretoria"} em {formatDate(item.paidAt)}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          );
+        }
+        return <span className="text-xs text-muted-foreground">{item.status === "cancelled" ? "Cancelado" : "—"}</span>;
+      },
+    },
+    {
+      id: "actions",
+      cell: ({ row }) => <ActionCell item={row.original} canManage={canManage} />,
+    },
+  ];
+
   if (schedule.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
@@ -188,26 +226,11 @@ export function CommissionScheduleTable({
   }
 
   return (
-    <div className="overflow-x-auto">
-      <Table>
-        <TableHeader className="bg-muted/30">
-          <TableRow className="hover:bg-transparent border-b border-border/60">
-            <TableHead className="pl-5 text-xs font-semibold uppercase tracking-wider">Parcela</TableHead>
-            <TableHead className="text-xs font-semibold uppercase tracking-wider">Mês ref.</TableHead>
-            <TableHead className="text-xs font-semibold uppercase tracking-wider">Vencimento</TableHead>
-            <TableHead className="text-xs font-semibold uppercase tracking-wider">%</TableHead>
-            <TableHead className="text-right text-xs font-semibold uppercase tracking-wider">Valor</TableHead>
-            <TableHead className="text-xs font-semibold uppercase tracking-wider">Status</TableHead>
-            <TableHead className="text-xs font-semibold uppercase tracking-wider">Pagamento</TableHead>
-            <TableHead className="pr-5 text-right text-xs font-semibold uppercase tracking-wider">Ações</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {schedule.map((item) => (
-            <ScheduleRow key={item.id} item={item} canManage={canManage} />
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+    <DataTable
+      columns={columns}
+      data={schedule}
+      showColumnToggle={false}
+      showPagination={false}
+    />
   );
 }

@@ -1,19 +1,13 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import type { ColumnDef } from "@tanstack/react-table";
 import { Check, X, Loader2, Clock, CheckCircle, XCircle, Ban, Eye } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable, DataTableColumnHeader } from "@/components/ui/data-table";
 import {
   Dialog,
   DialogClose,
@@ -97,99 +91,127 @@ export function RecoveryRequestsTable({ requests }: { requests: ResetRequest[] }
     {},
   );
 
-  // Show toast feedback
   if (approveState.message) { toast.success(approveState.message); approveState.message = undefined; }
   if (approveState.error) { toast.error(approveState.error); approveState.error = undefined; }
   if (rejectState.message) { toast.success(rejectState.message); rejectState.message = undefined; }
   if (rejectState.error) { toast.error(rejectState.error); rejectState.error = undefined; }
 
+  const columns: ColumnDef<ResetRequest>[] = [
+    {
+      accessorKey: "userName",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Nome" />
+      ),
+      cell: ({ row }) => (
+        <span className="font-semibold text-xs text-foreground pl-2">{row.original.userName}</span>
+      ),
+    },
+    {
+      accessorKey: "userEmail",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="E-mail" />
+      ),
+      cell: ({ row }) => (
+        <span className="font-mono text-xs text-muted-foreground">{row.original.userEmail}</span>
+      ),
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => <StatusBadge status={row.original.status} />,
+    },
+    {
+      accessorKey: "createdAt",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Solicitada em" />
+      ),
+      cell: ({ row }) => (
+        <span className="text-xs text-muted-foreground font-mono">{formatDate(row.original.createdAt)}</span>
+      ),
+    },
+    {
+      accessorKey: "reviewedAt",
+      header: "Análise",
+      cell: ({ row }) => {
+        const req = row.original;
+        return (
+          <div className="text-xs text-muted-foreground">
+            {req.reviewedAt ? formatDate(req.reviewedAt) : "—"}
+            {req.directorNotes && (
+              <button
+                type="button"
+                onClick={() => setDetailsDialog(req)}
+                className="ml-2 inline-flex items-center gap-1 text-xs text-primary hover:underline cursor-pointer"
+              >
+                <Eye className="size-3" />
+                Ver justificativa
+              </button>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      id: "actions",
+      cell: ({ row }) => {
+        const req = row.original;
+        return (
+          <div className="text-right pr-2">
+            {req.status === "requested" ? (
+              <div className="flex items-center justify-end gap-2">
+                <form action={approveAction}>
+                  <input type="hidden" name="requestId" value={req.id} />
+                  <Button
+                    type="submit"
+                    size="sm"
+                    variant="default"
+                    disabled={approvePending}
+                    className="h-8 gap-1 text-xs"
+                  >
+                    {approvePending ? (
+                      <Loader2 className="size-3 animate-spin" />
+                    ) : (
+                      <Check className="size-3" />
+                    )}
+                    Aprovar
+                  </Button>
+                </form>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 gap-1 text-xs text-red-600 hover:text-red-700"
+                  onClick={() => setRejectDialog({ id: req.id, email: req.userEmail })}
+                >
+                  <X className="size-3" />
+                  Rejeitar
+                </Button>
+              </div>
+            ) : (
+              <span className="text-xs text-muted-foreground">
+                {req.status === "approved" ? "Link enviado" :
+                 req.status === "completed" ? "Senha redefinida" :
+                 req.status === "rejected" ? (req.directorNotes ? "Com justificativa" : "Sem justificativa") :
+                 "—"}
+              </span>
+            )}
+          </div>
+        );
+      },
+    },
+  ];
+
   return (
     <>
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>E-mail</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Solicitada em</TableHead>
-              <TableHead>Análise</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {requests.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                  Nenhuma solicitação de recuperação encontrada.
-                </TableCell>
-              </TableRow>
-            ) : (
-              requests.map((req) => (
-                <TableRow key={req.id} className={req.status === "requested" ? "bg-amber-50/40 dark:bg-amber-950/10" : undefined}>
-                  <TableCell className="font-medium">{req.userName}</TableCell>
-                  <TableCell className="text-muted-foreground">{req.userEmail}</TableCell>
-                  <TableCell><StatusBadge status={req.status} /></TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{formatDate(req.createdAt)}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {req.reviewedAt ? formatDate(req.reviewedAt) : "—"}
-                    {req.directorNotes && (
-                      <button
-                        type="button"
-                        onClick={() => setDetailsDialog(req)}
-                        className="ml-2 inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                      >
-                        <Eye className="size-3" />
-                        Ver justificativa
-                      </button>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {req.status === "requested" ? (
-                      <div className="flex items-center justify-end gap-2">
-                        <form action={approveAction}>
-                          <input type="hidden" name="requestId" value={req.id} />
-                          <Button
-                            type="submit"
-                            size="sm"
-                            variant="default"
-                            disabled={approvePending}
-                            className="h-8 gap-1"
-                          >
-                            {approvePending ? (
-                              <Loader2 className="size-3 animate-spin" />
-                            ) : (
-                              <Check className="size-3" />
-                            )}
-                            Aprovar
-                          </Button>
-                        </form>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className="h-8 gap-1 text-red-600 hover:text-red-700"
-                          onClick={() => setRejectDialog({ id: req.id, email: req.userEmail })}
-                        >
-                          <X className="size-3" />
-                          Rejeitar
-                        </Button>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">
-                        {req.status === "approved" ? "Link enviado" :
-                         req.status === "completed" ? "Senha redefinida" :
-                         req.status === "rejected" ? (req.directorNotes ? "Com justificativa" : "Sem justificativa") :
-                         "—"}
-                      </span>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <DataTable
+        columns={columns}
+        data={requests}
+        searchKey="userName"
+        searchPlaceholder="Buscar por nome ou e-mail..."
+        showColumnToggle={true}
+        showPagination={true}
+        pageSize={10}
+      />
 
       {/* Reject dialog with reason */}
       <Dialog open={!!rejectDialog} onOpenChange={(open) => { if (!open) { setRejectDialog(null); setRejectReason(""); } }}>

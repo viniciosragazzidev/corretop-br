@@ -1,14 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { motion } from "motion/react";
+import type { ColumnDef } from "@tanstack/react-table";
 import { UsersThree } from "@/components/huge-icons";
 
-import { Badge } from "@/components/ui/badge";
 import { MemberStatusBadge, RoleBadge } from "@/components/status-badges";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DataTable, DataTableColumnHeader } from "@/components/ui/data-table";
 import { TeamMemberActions } from "./member-actions";
 
 type BranchOption = { id: string; name: string };
@@ -32,33 +31,11 @@ type Props = {
   currentUserId: string;
 };
 
-const roleLabel: Record<TeamMember["role"], string> = {
-  director: "Diretor",
-  manager: "Gestor",
-  broker: "Corretor",
-};
-
-const statusLabel: Record<TeamMember["status"], string> = {
-  active: "Ativo",
-  pending: "Pendente",
-  disabled: "Desativado",
-};
-
-const jobTitleLabel: Record<string, string> = {
-  director: "Diretor",
-  manager: "Gestor",
-  broker: "Corretor",
-  marketing: "Marketing",
-  finance: "Financeiro",
-  operations: "Operações",
-  support: "Suporte",
-};
-
 export function TeamMembersTable({ members, branches, currentRole, currentBranchId, currentUserId }: Props) {
   const [branchFilter, setBranchFilter] = useState("all");
   const [statusOverrides, setStatusOverrides] = useState<Record<string, TeamMember["status"]>>({});
+
   const handleStatusChange = useCallback((memberId: string, status: TeamMember["status"] | null) => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setStatusOverrides((current) => {
       const next = { ...current };
       if (status) next[memberId] = status;
@@ -66,14 +43,14 @@ export function TeamMembersTable({ members, branches, currentRole, currentBranch
       return next;
     });
   }, []);
+
   const displayedMembers = useMemo(
     () => members.map((member) => ({ ...member, status: statusOverrides[member.id] ?? member.status })),
     [members, statusOverrides],
   );
+
   useEffect(() => {
-    // Drop an optimistic value only after the server-rendered row catches up.
     const serverStatusById = new Map(members.map((member) => [member.id, member.status]));
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setStatusOverrides((current) => {
       const next = { ...current };
       for (const [id, status] of Object.entries(current)) {
@@ -82,86 +59,116 @@ export function TeamMembersTable({ members, branches, currentRole, currentBranch
       return next;
     });
   }, [members]);
+
   const visibleMembers = useMemo(
     () => branchFilter === "all" ? displayedMembers : displayedMembers.filter((member) => member.branchId === branchFilter),
     [branchFilter, displayedMembers],
   );
+
   const activeCount = displayedMembers.filter((member) => member.status === "active").length;
 
+  const columns: ColumnDef<TeamMember>[] = [
+    {
+      accessorKey: "name",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Membro" />
+      ),
+      cell: ({ row }) => {
+        const member = row.original;
+        return (
+          <div className="pl-2">
+            <p className="font-medium text-xs text-foreground">{member.name ?? "Sem nome"}</p>
+            {member.userId === currentUserId ? <p className="text-[10px] text-muted-foreground font-mono">Você</p> : null}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "email",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="E-mail" />
+      ),
+      cell: ({ row }) => (
+        <span className="font-mono text-xs text-muted-foreground">{row.original.email}</span>
+      ),
+    },
+    {
+      accessorKey: "role",
+      header: "Papel",
+      cell: ({ row }) => <RoleBadge role={row.original.role} />,
+    },
+    {
+      accessorKey: "branchName",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Filial" />
+      ),
+      cell: ({ row }) => (
+        <span className="text-xs text-muted-foreground">{row.original.branchName ?? "Sem filial"}</span>
+      ),
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => <MemberStatusBadge status={row.original.status} />,
+    },
+    {
+      id: "actions",
+      cell: ({ row }) => (
+        <div className="text-right pr-2">
+          <TeamMemberActions
+            branches={branches}
+            currentBranchId={currentBranchId}
+            currentRole={currentRole}
+            currentUserId={currentUserId}
+            member={row.original}
+            allMembers={members}
+            onStatusChange={handleStatusChange}
+          />
+        </div>
+      ),
+    },
+  ];
+
   return (
-    <Card className="border-border bg-card shadow-none">
-      <CardHeader className="border-b border-border">
-        <CardTitle className="flex items-center gap-2">
-          <UsersThree size={17} />
-          Acessos vinculados
-        </CardTitle>
-        {currentRole === "director" ? <Select value={branchFilter} onValueChange={(value) => setBranchFilter(value ?? "all")} labels={{ all: "Todas as unidades", ...Object.fromEntries(branches.map((b) => [b.id, b.name])) }}><SelectTrigger aria-label="Filtrar colaboradores por unidade" className="w-full sm:w-56"><SelectValue placeholder="Todas as unidades" /></SelectTrigger><SelectContent><SelectItem value="all">Todas as unidades</SelectItem>{branches.map((branch) => <SelectItem key={branch.id} value={branch.id}>{branch.name}</SelectItem>)}</SelectContent></Select> : null}
-        <CardDescription>{activeCount} acesso(s) ativo(s) · convites pendentes ficam sinalizados ate o primeiro login.</CardDescription>
+    <Card className="border-border bg-card shadow-xs">
+      <CardHeader className="border-b border-border/50 p-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <UsersThree size={17} />
+              Acessos vinculados
+            </CardTitle>
+            <CardDescription className="text-xs mt-1">
+              {activeCount} acesso(s) ativo(s) · convites pendentes ficam sinalizados até o primeiro login.
+            </CardDescription>
+          </div>
+          {currentRole === "director" ? (
+            <Select value={branchFilter} onValueChange={(value) => setBranchFilter(value ?? "all")}>
+              <SelectTrigger aria-label="Filtrar por unidade" className="w-full sm:w-52 h-9 text-xs">
+                <SelectValue placeholder="Todas as unidades" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as unidades</SelectItem>
+                {branches.map((branch) => (
+                  <SelectItem key={branch.id} value={branch.id}>
+                    {branch.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : null}
+        </div>
       </CardHeader>
       <CardContent className="p-0">
-        {members.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 p-12 text-center">
-            <p className="text-sm font-medium">Nenhum membro por enquanto</p>
-            <p className="text-xs text-muted-foreground">Convide o primeiro gestor ou corretor para comecar a montar sua equipe.</p>
-          </div>
-        ) : (
-          visibleMembers.length === 0 ? <div className="p-10 text-center text-sm text-muted-foreground">Nenhum colaborador nesta unidade.</div> : <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="pl-5">Membro</TableHead>
-                <TableHead>E-mail</TableHead>
-                <TableHead>Papel</TableHead>
-                <TableHead>Filial</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="pr-5 text-right">Acoes</TableHead>
-              </TableRow>
-            </TableHeader>
-            <motion.tbody
-              initial="hidden"
-              animate="visible"
-            >
-              {visibleMembers.map((member, i) => (
-                <motion.tr
-                  key={member.id}
-                  custom={i}
-                  variants={{
-                    hidden: { opacity: 0, x: -8 },
-                    visible: (index: number) => ({
-                      opacity: 1,
-                      x: 0,
-                      transition: { duration: 0.15, ease: [0, 0, 0.2, 1], delay: Math.min(index * 0.03, 0.25) },
-                    }),
-                  }}
-                  className="group/card cursor-default transition-colors duration-200 hover:bg-[var(--sidebar-warning)]"
-                >
-                  <TableCell className="pl-5">
-                    <p className="font-medium">{member.name ?? "Sem nome"}</p>
-                    {member.userId === currentUserId ? <p className="text-xs text-muted-foreground">Você</p> : null}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground transition-colors duration-200 group-hover/card:text-foreground">{member.email}</TableCell>
-                  <TableCell>
-                    <RoleBadge role={member.role} />
-                  </TableCell>
-                  <TableCell className="text-muted-foreground transition-colors duration-200 group-hover/card:text-foreground">{member.branchName ?? "Sem filial"}</TableCell>
-                  <TableCell>
-                    <MemberStatusBadge status={member.status} />
-                  </TableCell>
-                  <TableCell className="pr-5">
-                    <TeamMemberActions
-                      branches={branches}
-                      currentBranchId={currentBranchId}
-                      currentRole={currentRole}
-                      currentUserId={currentUserId}
-                      member={member}
-                      allMembers={members}
-                      onStatusChange={handleStatusChange}
-                    />
-                  </TableCell>
-                </motion.tr>
-              ))}
-            </motion.tbody>
-          </Table>
-        )}
+        <DataTable
+          columns={columns}
+          data={visibleMembers}
+          searchKey="name"
+          searchPlaceholder="Buscar colaborador por nome ou email..."
+          showColumnToggle={true}
+          showPagination={true}
+          pageSize={10}
+        />
       </CardContent>
     </Card>
   );

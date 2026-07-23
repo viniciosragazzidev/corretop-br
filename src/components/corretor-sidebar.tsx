@@ -21,14 +21,12 @@ import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { SidebarCollapsibleGroup } from "@/components/sidebar-collapsible-group";
 import { signOut } from "@/shared/auth/client";
 import { toast } from "sonner";
 import { getUserDisplayInfo, type UserDisplayInfo } from "@/shared/auth/actions";
@@ -77,37 +75,34 @@ function NavigationGroup({
     return hasCapability(role, item.permission, jobTitle);
   });
   return (
-    <SidebarGroup>
-      <SidebarGroupLabel>{label}</SidebarGroupLabel>
-      <SidebarGroupContent>
-        <SidebarMenu>
-          {visibleItems.map((item) => {
-            const Icon = item.icon;
-            const count = badges?.[item.label];
-            return (
-              <SidebarMenuItem key={item.label}>
-                <SidebarMenuButton
-                  isActive={pathname === item.url || pathname.startsWith(item.url + "/")}
-                  render={<Link href={item.url} prefetch />}
-                  tooltip={item.label}
-                >
-                  <Icon weight={item.label === "Resumo" ? "fill" : "regular"} />
-                  <span className="flex-1">{item.label}</span>
-                  {count !== undefined && count > 0 && (
-                    <Badge
-                      variant="warning"
-                      className="ml-auto h-5 min-w-5 rounded-full px-1.5 text-[9px] font-bold leading-none"
-                    >
-                      {count > 99 ? "99+" : count}
-                    </Badge>
-                  )}
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            );
-          })}
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
+    <SidebarCollapsibleGroup label={label}>
+      <SidebarMenu>
+        {visibleItems.map((item) => {
+          const Icon = item.icon;
+          const count = badges?.[item.label];
+          return (
+            <SidebarMenuItem key={item.label}>
+              <SidebarMenuButton
+                isActive={pathname === item.url || pathname.startsWith(item.url + "/")}
+                render={<Link href={item.url} prefetch />}
+                tooltip={item.label}
+              >
+                <Icon weight={item.label === "Resumo" ? "fill" : "regular"} />
+                <span className="flex-1">{item.label}</span>
+                {count !== undefined && count > 0 && (
+                  <Badge
+                    variant="warning"
+                    className="ml-auto h-5 min-w-5 rounded-full px-1.5 text-[9px] font-bold leading-none"
+                  >
+                    {count > 99 ? "99+" : count}
+                  </Badge>
+                )}
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          );
+        })}
+      </SidebarMenu>
+    </SidebarCollapsibleGroup>
   );
 }
 
