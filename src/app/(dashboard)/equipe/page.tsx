@@ -34,17 +34,17 @@ export default async function TeamPage() {
       .orderBy(asc(schema.branches.name)),
     getDatabase()
       .select({
-        id: schema.brokerProfiles.id,
+        id: sql<string>`coalesce(${schema.tenantMemberships.id}, ${schema.brokerProfiles.id})`,
         userId: schema.brokerProfiles.userId,
         name: schema.brokerProfiles.professionalName,
         email: schema.brokerProfiles.invitedEmail,
         role: sql<"broker">`'broker'`,
         jobTitle: sql<string>`'broker'`,
         status: sql<"pending" | "active" | "disabled">`
-          case 
-            when ${schema.brokerProfiles.lifecycleStatus} = 'ACTIVE' then 'active'::user_status
-            when ${schema.brokerProfiles.lifecycleStatus} = 'INVITED' then 'pending'::user_status
-            else 'disabled'::user_status
+          case
+            when ${schema.user.status} = 'pending' or ${schema.brokerProfiles.lifecycleStatus} = 'INVITED' then 'pending'::user_status
+            when ${schema.user.status} = 'disabled' or ${schema.tenantMemberships.status} = 'inactive' then 'disabled'::user_status
+            else 'active'::user_status
           end
         `,
         branchId: schema.brokerProfiles.branchId,
@@ -52,6 +52,11 @@ export default async function TeamPage() {
       })
       .from(schema.brokerProfiles)
       .leftJoin(schema.branches, eq(schema.brokerProfiles.branchId, schema.branches.id))
+      .leftJoin(schema.user, eq(schema.brokerProfiles.userId, schema.user.id))
+      .leftJoin(schema.tenantMemberships, and(
+        eq(schema.tenantMemberships.userId, schema.brokerProfiles.userId),
+        eq(schema.tenantMemberships.tenantId, context.tenantId),
+      ))
       .where(and(
         eq(schema.brokerProfiles.tenantId, context.tenantId),
         context.role === "manager" && context.branchId ? eq(schema.brokerProfiles.branchId, context.branchId) : undefined
@@ -64,7 +69,13 @@ export default async function TeamPage() {
         email: schema.user.email,
         role: schema.tenantMemberships.role,
         jobTitle: schema.tenantMemberships.jobTitle,
-        status: schema.user.status,
+        status: sql<"pending" | "active" | "disabled">`
+          case
+            when ${schema.user.status} = 'pending' then 'pending'::user_status
+            when ${schema.user.status} = 'disabled' or ${schema.tenantMemberships.status} = 'inactive' then 'disabled'::user_status
+            else 'active'::user_status
+          end
+        `,
         branchId: schema.tenantMemberships.branchId,
         branchName: schema.branches.name,
       })

@@ -12,6 +12,7 @@ import {
   ShieldCheck,
 } from "@/components/huge-icons";
 import { Badge } from "@/components/ui/badge";
+import { normalizeTeamMemberStatus, teamMemberStatusLabels } from "@/features/team/status";
 
 export function LeadStatusBadge({ status }: { status: string }) {
   switch (status) {
@@ -84,7 +85,7 @@ export function LeadStatusBadge({ status }: { status: string }) {
 }
 
 export function MemberStatusBadge({ status }: { status: "active" | "pending" | "inactive" | string }) {
-  switch (status) {
+  switch (normalizeTeamMemberStatus(status)) {
     case "active":
       return (
         <Badge variant="success" className="gap-1.5 px-2.5 py-0.5 border-emerald-500/15">
@@ -99,15 +100,15 @@ export function MemberStatusBadge({ status }: { status: "active" | "pending" | "
           Pendente
         </Badge>
       );
-    case "inactive":
+    case "disabled":
       return (
         <Badge variant="destructive" className="gap-1.5 px-2.5 py-0.5 border-red-500/15">
           <XCircle className="size-3 text-red-500" />
-          Inativo
+          {teamMemberStatusLabels.disabled}
         </Badge>
       );
     default:
-      return <Badge variant="outline" className="px-2.5 py-0.5">{status}</Badge>;
+      return <Badge variant="outline" className="px-2.5 py-0.5">{teamMemberStatusLabels.disabled}</Badge>;
   }
 }
 

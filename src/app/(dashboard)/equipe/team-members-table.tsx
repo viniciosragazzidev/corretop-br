@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { UsersThree } from "@/components/huge-icons";
 
@@ -56,11 +56,37 @@ const jobTitleLabel: Record<string, string> = {
 
 export function TeamMembersTable({ members, branches, currentRole, currentBranchId, currentUserId }: Props) {
   const [branchFilter, setBranchFilter] = useState("all");
-  const visibleMembers = useMemo(
-    () => branchFilter === "all" ? members : members.filter((member) => member.branchId === branchFilter),
-    [branchFilter, members],
+  const [statusOverrides, setStatusOverrides] = useState<Record<string, TeamMember["status"]>>({});
+  const handleStatusChange = useCallback((memberId: string, status: TeamMember["status"] | null) => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setStatusOverrides((current) => {
+      const next = { ...current };
+      if (status) next[memberId] = status;
+      else delete next[memberId];
+      return next;
+    });
+  }, []);
+  const displayedMembers = useMemo(
+    () => members.map((member) => ({ ...member, status: statusOverrides[member.id] ?? member.status })),
+    [members, statusOverrides],
   );
-  const activeCount = members.filter((member) => member.status === "active").length;
+  useEffect(() => {
+    // Drop an optimistic value only after the server-rendered row catches up.
+    const serverStatusById = new Map(members.map((member) => [member.id, member.status]));
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setStatusOverrides((current) => {
+      const next = { ...current };
+      for (const [id, status] of Object.entries(current)) {
+        if (serverStatusById.get(id) === status) delete next[id];
+      }
+      return next;
+    });
+  }, [members]);
+  const visibleMembers = useMemo(
+    () => branchFilter === "all" ? displayedMembers : displayedMembers.filter((member) => member.branchId === branchFilter),
+    [branchFilter, displayedMembers],
+  );
+  const activeCount = displayedMembers.filter((member) => member.status === "active").length;
 
   return (
     <Card className="border-border bg-card shadow-none">
@@ -128,6 +154,7 @@ export function TeamMembersTable({ members, branches, currentRole, currentBranch
                       currentUserId={currentUserId}
                       member={member}
                       allMembers={members}
+                      onStatusChange={handleStatusChange}
                     />
                   </TableCell>
                 </motion.tr>

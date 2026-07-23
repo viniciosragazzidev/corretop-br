@@ -34,6 +34,7 @@ type Props = {
   currentBranchId: string | null;
   currentUserId: string;
   allMembers?: TeamMember[];
+  onStatusChange?: (memberId: string, status: TeamMember["status"] | null) => void;
 };
 
 const roleLabel: Record<TeamMember["role"], string> = {
@@ -309,6 +310,7 @@ export function TeamMemberActions({
   currentBranchId,
   currentUserId,
   allMembers = [],
+  onStatusChange,
 }: Props) {
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -317,20 +319,42 @@ export function TeamMemberActions({
     TeamActionState,
     FormData
   >(toggleTeamMemberStatusAction, {});
+  const [displayStatus, setDisplayStatus] = useState(member.status);
+  const previousStatusRef = useRef(member.status);
   const [resendState, resendAction, resendPending] = useActionState<TeamActionState, FormData>(resendInviteAction, {});
   const router = useRouter();
 
   useEffect(() => {
     if (toggleState.success) {
+      if (toggleState.status) onStatusChange?.(member.id, toggleState.status);
       toast.success(
-        member.status === "active"
+        toggleState.status === "disabled"
           ? "Membro desativado."
           : "Membro reativado.",
       );
       router.refresh();
     }
-    if (toggleState.error) toast.error(toggleState.error);
-  }, [member.status, router, toggleState.error, toggleState.success]);
+    if (toggleState.error) {
+      onStatusChange?.(member.id, null);
+      setDisplayStatus(previousStatusRef.current);
+      toast.error(toggleState.error);
+    }
+  }, [member.id, onStatusChange, router, toggleState.error, toggleState.status, toggleState.success]);
+
+  useEffect(() => {
+    // Keep the optimistic badge while the server refresh catches up. This
+    // prevents the old prop value from flashing between action completion and
+    // the revalidated team query.
+    if (member.status === displayStatus) {
+      previousStatusRef.current = member.status;
+      return;
+    }
+    if (!toggleState.success && !togglePending) {
+      // Reconcile the local optimistic badge with the server-rendered row.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setDisplayStatus(member.status);
+    }
+  }, [displayStatus, member.status, togglePending, toggleState.success]);
 
   useEffect(() => {
     if (resendState.success) {
@@ -349,8 +373,8 @@ export function TeamMemberActions({
 
   const canEdit = currentUserId !== member.userId && member.role !== "director";
   const canDelete = canEdit;
-  const canToggle = canEdit;
-  const toggleLabel = member.status === "active" ? "Desativar" : "Ativar";
+  const canToggle = canEdit && member.userId !== null;
+  const toggleLabel = displayStatus === "active" ? "Desativar" : "Ativar";
   const canManageInvite = canEdit && (member.role === "broker" || member.role === "manager");
 
   return (
@@ -368,7 +392,10 @@ export function TeamMemberActions({
           </Button>
         ) : null}
         {canToggle ? (
-          <form action={toggleAction}>
+          <form action={toggleAction} onSubmit={() => {
+            previousStatusRef.current = displayStatus;
+            setDisplayStatus(displayStatus === "active" ? "disabled" : "active");
+          }}>
             <input name="memberId" type="hidden" value={member.id} />
             <Button
               aria-label={`${toggleLabel} ${member.name ?? member.email}`}

@@ -25,7 +25,7 @@ type PendingInvite = {
   name: string | null;
 };
 
-export type TeamActionState = { success?: boolean; error?: string; token?: string; invitationId?: string; whatsappStatus?: "queued" | "not_available" | "failed" | "sent" };
+export type TeamActionState = { success?: boolean; error?: string; token?: string; invitationId?: string; whatsappStatus?: "queued" | "not_available" | "failed" | "sent"; status?: "active" | "disabled" };
 
 const memberRole = z.enum(["manager", "broker"]);
 const memberJobTitle = z.enum(schema.teamJobTitleValues);
@@ -211,7 +211,7 @@ export async function toggleTeamMemberStatusAction(
     });
 
     revalidatePath("/equipe");
-    return { success: true };
+    return { success: true, status: nextActive ? "active" : "disabled" };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Erro desconhecido ao atualizar o status.";
     return { success: false, error: message };
