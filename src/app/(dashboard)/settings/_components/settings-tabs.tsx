@@ -5,10 +5,10 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Building06Icon, LinkSquare01Icon, SecurityCheckIcon, UserIcon, Store01Icon, Message01Icon } from "@hugeicons/core-free-icons";
 
-export type TabId = "conta" | "empresa" | "unidade" | "whatsapp" | "integracoes" | "seguranca" | "atendimento" | "passkey";
+export type TabId = "conta" | "empresa" | "unidade" | "whatsapp" | "integracoes" | "seguranca" | "atendimento" | "ia" | "passkey";
 type Tab = { id: TabId; label: string; icon: typeof UserIcon };
 
-export function SettingsTabs({ account, company, unit, whatsapp, integrations, security, atendimento, tabIds }: { account: ReactNode; company?: ReactNode; unit?: ReactNode; whatsapp: ReactNode; integrations?: ReactNode; security: ReactNode; atendimento?: ReactNode; tabIds: TabId[] }) {
+export function SettingsTabs({ account, company, unit, whatsapp, integrations, security, atendimento, ai, tabIds }: { account: ReactNode; company?: ReactNode; unit?: ReactNode; whatsapp: ReactNode; integrations?: ReactNode; security: ReactNode; atendimento?: ReactNode; ai?: ReactNode; tabIds: TabId[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -17,6 +17,7 @@ export function SettingsTabs({ account, company, unit, whatsapp, integrations, s
     { id: "empresa", label: "Empresa", icon: Building06Icon },
     { id: "unidade", label: "Unidade", icon: Store01Icon },
     { id: "atendimento", label: "Atendimento", icon: Message01Icon },
+    { id: "ia", label: "Atendimento inteligente", icon: Message01Icon },
     { id: "whatsapp", label: "WhatsApp", icon: LinkSquare01Icon },
     { id: "integracoes", label: "Integrações", icon: LinkSquare01Icon },
     { id: "seguranca", label: "Segurança", icon: SecurityCheckIcon },
@@ -42,5 +43,5 @@ export function SettingsTabs({ account, company, unit, whatsapp, integrations, s
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   }
 
-  return <div className="grid gap-4 lg:grid-cols-[13rem_1fr]"><nav className="flex gap-1 overflow-x-auto lg:flex-col">{tabs.map((tab) => <button key={tab.id} type="button" onClick={() => selectTab(tab.id)} className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${active === tab.id ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}><HugeiconsIcon icon={tab.icon} size={16} />{tab.label}</button>)}</nav><div className="min-w-0">{active === "conta" ? account : null}{active === "empresa" ? company : null}{active === "unidade" ? unit : null}{active === "whatsapp" ? whatsapp : null}{active === "integracoes" ? integrations : null}{active === "atendimento" ? atendimento : null}{active === "seguranca" ? security : null}</div></div>;
+  return <div className="grid gap-4 lg:grid-cols-[13rem_1fr]"><nav className="flex gap-1 overflow-x-auto lg:flex-col">{tabs.map((tab) => <button key={tab.id} type="button" onClick={() => selectTab(tab.id)} className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${active === tab.id ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}><HugeiconsIcon icon={tab.icon} size={16} />{tab.label}</button>)}</nav><div className="min-w-0">{active === "conta" ? account : null}{active === "empresa" ? company : null}{active === "unidade" ? unit : null}{active === "whatsapp" ? whatsapp : null}{active === "integracoes" ? integrations : null}{active === "atendimento" ? atendimento : null}{active === "ia" ? ai : null}{active === "seguranca" ? security : null}</div></div>;
 }

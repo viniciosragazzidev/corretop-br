@@ -432,6 +432,7 @@ function HistoryEmptyState({ phone }: { phone: string }) {
   return (
     <div className="flex min-h-0 flex-1 items-center justify-center p-5 sm:p-8">
       <EmptyState
+        animated
         icon={ChatCircleText}
         title="Nenhuma mensagem sincronizada"
         description="Este atendimento ainda não possui histórico no CorreTop. Continue o contato pelo WhatsApp e o histórico aparecerá quando a sincronização estiver disponível."
@@ -464,6 +465,7 @@ function ConversationChannelNotice({ phone }: { phone: string }) {
 function EmptyConversationList({ hasQuery }: { hasQuery: boolean }) {
   return (
     <EmptyState
+      animated
       icon={MagnifyingGlass}
       title="Nenhum atendimento encontrado"
       description={hasQuery ? "Ajuste a busca ou os filtros para encontrar outro atendimento." : "Os atendimentos disponíveis no seu escopo aparecerão aqui."}
@@ -476,6 +478,7 @@ function EmptyConversation() {
   return (
     <div className="flex flex-1 flex-col items-center justify-center p-6">
       <EmptyState
+        animated
         variant="ghost"
         icon={ChatCircleText}
         title="Selecione um atendimento"

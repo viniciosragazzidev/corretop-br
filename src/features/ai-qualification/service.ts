@@ -54,7 +54,11 @@ async function getOrCreateConfig(tenantId: string) {
 export async function startAiQualificationForLead(input: { tenantId: string; leadId: string; actorUserId: string }) {
   const db = getDatabase();
   const config = await getOrCreateConfig(input.tenantId);
-  if (!config?.enabled || !(await qualificationEnabled())) return { started: false, reason: "disabled" as const };
+  const globalEnabled = await qualificationEnabled();
+  if (!globalEnabled || !config) return { started: false, reason: "disabled" as const };
+  if (config && !config.enabled) {
+    await db.update(schema.aiQualificationConfigs).set({ enabled: true, updatedAt: new Date() }).where(and(eq(schema.aiQualificationConfigs.id, config.id), eq(schema.aiQualificationConfigs.tenantId, input.tenantId)));
+  }
   const [lead] = await db.select({ id: schema.leads.id, phone: schema.leads.telefone }).from(schema.leads).where(and(eq(schema.leads.id, input.leadId), eq(schema.leads.tenantId, input.tenantId))).limit(1);
   if (!lead?.phone) return { started: false, reason: "missing_phone" as const };
   const [channel] = await db.select({ id: schema.communicationChannels.id }).from(schema.communicationChannels).where(and(eq(schema.communicationChannels.tenantId, input.tenantId), eq(schema.communicationChannels.provider, "meta_cloud_api"), eq(schema.communicationChannels.status, "active"), isNull(schema.communicationChannels.branchId), eq(schema.communicationChannels.isDefault, true))).limit(1);

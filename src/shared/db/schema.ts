@@ -399,6 +399,19 @@ export const aiQualificationConfigs = pgTable(
     enabled: boolean("enabled").notNull().default(false),
     assistantName: text("assistant_name").notNull().default("Assistente CorreTop"),
     initialMessage: text("initial_message").notNull(),
+    finalMessage: text("final_message").notNull().default("Obrigado! Um corretor continuará seu atendimento em seguida."),
+    handoffMessage: text("handoff_message").notNull().default("Vou encaminhar você para um corretor da equipe agora."),
+    outOfHoursMessage: text("out_of_hours_message").notNull().default("Recebemos sua mensagem. Nossa equipe responderá no próximo horário de atendimento."),
+    absenceMessage: text("absence_message").notNull().default("No momento não há um corretor disponível. Deixaremos seu atendimento na fila."),
+    language: text("language").notNull().default("pt-BR"),
+    tone: text("tone").notNull().default("friendly"),
+    useEmojis: boolean("use_emojis").notNull().default(false),
+    formOfAddress: text("form_of_address").notNull().default("voce"),
+    maxConversationMinutes: integer("max_conversation_minutes").notNull().default(30),
+    maxQuestions: integer("max_questions").notNull().default(4),
+    objectives: jsonb("objectives").notNull().default(["understand_need", "route_to_broker"]),
+    businessContext: text("business_context"),
+    version: integer("version").notNull().default(1),
     timeoutMinutes: integer("timeout_minutes").notNull().default(30),
     maxRetries: integer("max_retries").notNull().default(2),
     updatedBy: text("updated_by").references(() => user.id, { onDelete: "set null" }),
@@ -1548,6 +1561,15 @@ export const goalScope = pgEnum("goal_scope", goalScopeValues);
 export const goalTargetType = pgEnum("goal_target_type", goalTargetTypeValues);
 export const saleStatus = pgEnum("sale_status", saleStatusValues);
 export const activeCustomerStatus = pgEnum("active_customer_status", activeCustomerStatusValues);
+
+export const paymentMethodValues = ["boleto", "debito_automatico", "cartao_credito", "desconto_folha", "outro"] as const;
+export const renewalTypeValues = ["reajuste_operadora", "portabilidade", "manutencao", "nova_contratacao"] as const;
+export const customerRenewalStatusValues = ["pending_window", "in_renewal", "renewed", "churned"] as const;
+
+export const paymentMethodEnum = pgEnum("payment_method", paymentMethodValues);
+export const renewalTypeEnum = pgEnum("renewal_type", renewalTypeValues);
+export const customerRenewalStatus = pgEnum("customer_renewal_status", customerRenewalStatusValues);
+
 
 export const documentStatusValues = ["pending", "approved", "rejected"] as const;
 export const documentStatus = pgEnum("document_status", documentStatusValues);

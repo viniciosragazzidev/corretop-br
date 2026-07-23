@@ -16,6 +16,8 @@ import {
 import { Search } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
+import { EmptyState } from "@/components/empty-state";
+import { MagnifyingGlass } from "@/components/huge-icons";
 import {
   Table,
   TableBody,
@@ -159,11 +161,15 @@ export function DataTable<TData, TValue>({
                 ))
               ) : (
                 <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className="h-32 text-center text-xs text-muted-foreground"
-                  >
-                    {emptyState || "Nenhum resultado encontrado."}
+                  <TableCell colSpan={columns.length} className="p-0">
+                    {emptyState || (
+                      <EmptyState
+                        animated
+                        icon={MagnifyingGlass}
+                        title="Nenhum resultado encontrado."
+                        className="py-8"
+                      />
+                    )}
                   </TableCell>
                 </TableRow>
               )}

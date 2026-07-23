@@ -4,23 +4,13 @@ import Link from "next/link";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { StatCard } from "@/components/dashboard/metric-card";
-import {
-  ArrowLeft,
-  CheckCircle,
-  Clock,
-  CreditCard,
-  CurrencyCircleDollar,
-  FileText,
-  UserList,
-  Handshake,
-} from "@/components/huge-icons";
+import { ArrowLeft, Clock, FileText, UserList } from "@/components/huge-icons";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getSaleById, getCommissionSchedule } from "@/features/sales/queries";
+import { formatCurrency } from "@/features/quotes/utils";
 import { SaleDetailsTabs } from "./sale-details-tabs";
+import { SaleStatsCards } from "./sale-stats-cards";
 
 export default async function SaleDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -42,6 +32,8 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
     .reduce((sum, item) => sum + Number(item.amount), 0);
 
   const paidPercentage = totalCommissions > 0 ? Math.round((paidCommissions / totalCommissions) * 100) : 0;
+  const paidCount = schedule.filter((i) => i.status === "paid").length;
+  const pendingCount = schedule.filter((i) => i.status === "pending").length;
   const initials = sale.leadName
     ? sale.leadName
         .split(" ")
@@ -103,61 +95,17 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
           </div>
         </div>
 
-        {/* Summary KPI Cards Grid */}
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            label="Valor da Venda"
-            value={formatCurrency(Number(sale.saleValue))}
-            icon={CreditCard}
-            animated
-          />
-          <StatCard
-            label="Total em Comissões"
-            value={formatCurrency(totalCommissions)}
-            icon={CurrencyCircleDollar}
-            iconClassName="bg-blue-500/10 text-blue-600 dark:text-blue-400"
-            animated
-            animationDelay={0.06}
-          />
-          <StatCard
-            label="Comissão Paga"
-            value={formatCurrency(paidCommissions)}
-            icon={CheckCircle}
-            iconClassName="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-            valueClassName="text-emerald-600 dark:text-emerald-400"
-            animated
-            animationDelay={0.12}
-          />
-          <StatCard
-            label="Comissão A Pagar"
-            value={formatCurrency(pendingCommissions)}
-            icon={Clock}
-            iconClassName="bg-amber-500/10 text-amber-600 dark:text-amber-400"
-            valueClassName="text-amber-600 dark:text-amber-400"
-            animated
-            animationDelay={0.18}
-          />
-        </div>
-
-        {/* Payout Completion Progress Indicator */}
-        {totalCommissions > 0 && (
-          <Card size="sm" className="border-border/60 bg-muted/20 shadow-xs">
-            <CardContent className="p-4 space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-medium text-foreground flex items-center gap-1.5">
-                  <Handshake className="size-4 text-primary" />
-                  Progresso do Repasse de Comissões
-                </span>
-                <span className="font-mono font-semibold text-primary">{paidPercentage}% Concluído</span>
-              </div>
-              <Progress value={paidPercentage} className="h-2 bg-muted" />
-              <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-0.5">
-                <span>{schedule.filter((i) => i.status === "paid").length} de {schedule.length} parcelas liberadas</span>
-                <span>{schedule.filter((i) => i.status === "pending").length} parcelas restantes</span>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {/* Summary KPI Cards + Progress */}
+        <SaleStatsCards
+          saleValue={formatCurrency(Number(sale.saleValue))}
+          totalCommissions={totalCommissions}
+          paidCommissions={paidCommissions}
+          pendingCommissions={pendingCommissions}
+          paidPercentage={paidPercentage}
+          scheduleLength={schedule.length}
+          paidCount={paidCount}
+          pendingCount={pendingCount}
+        />
 
         {/* Main Details & Schedule Tabs */}
         <SaleDetailsTabs
@@ -177,9 +125,4 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
   );
 }
 
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(value);
-}
+

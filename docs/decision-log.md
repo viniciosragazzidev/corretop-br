@@ -7,6 +7,16 @@ contrato. Uma pendência marcada como **bloqueante** não deve ser implementada 
 suposição. Quando decidida, mova para "Decididas" com data, responsável e referência
 para ADR se aplicável.
 
+## DEC-051 - Centro de configurações de IA em duas camadas
+
+**Estado:** Aceita  
+**Data:** 2026-07-23
+
+As configurações que alteram a experiência da corretora ficam em uma aba amigável,
+isolada por tenant, editável pelo Diretor, validada no servidor, versionada e auditada.
+Provedor, modelo, credenciais, prompt técnico e ativação global permanecem no painel
+do Super-admin. Editor de fluxo, RAG, A/B e rollback são etapas posteriores.
+
 ## Decididas
 
 > DEC-041 — Documentos são opcionais e podem ser vinculados ao lead, cliente, titular ou dependente. O checklist orienta o atendimento, mas nunca bloqueia distribuição, conversão ou pós-venda. Arquivos usam armazenamento privado, acesso temporário autorizado, auditoria e exclusão lógica.
@@ -231,3 +241,15 @@ O CorreTop adota o fluxo de ofertas em duas etapas para distribuição de novos 
 3. **Template de Confirmação (`lead_assignment_confirmed`):** Enviado somente após confirmação do aceite, com o link direto para o atendimento no CRM (`https://corretop.vercel.app/leads/{{lead_id}}`).
 4. **Resolução de Disputas e Expiração:** Corretores que perderem a disputa recebem o modelo `lead_assignment_unavailable`. Ofertas não respondidas dentro do SLA expiram (`lead_assignment_expired`) e o lead retorna para a fila de distribuição.
 5. **Resiliência e Fallbacks:** Todos os 4 modelos contam com geradores automáticos de mensagens de texto alternativas caso a entrega do modelo oficial falhe. Toda transição é registrada nos logs de auditoria.
+## DEC-050 - Qualificação inicial opcional por IA no canal oficial
+
+**Estado:** Aceita  
+**Data:** 2026-07-23
+
+O CorreTop pode iniciar uma sessão curta de qualificação para novos leads quando o
+motor de IA global, o canal Meta Cloud do tenant e a capacidade
+`feature_ai_whatsapp_qualification_enabled` estiverem ativos. A sessão é única por
+lead, guarda apenas respostas operacionais, não solicita documentos/segredos e pode
+ser transferida ao atendimento humano. O envio usa o mesmo outbox idempotente do
+WhatsApp; texto fora da janela da Meta pode ser rejeitado até que um template inicial
+seja aprovado. Desativar a capacidade interrompe novas sessões sem apagar histórico.

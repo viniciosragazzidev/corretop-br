@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { toast } from "sonner";
 
-import { Bell, BookOpen, Buildings, ChartBar, ChatCircleText, ClipboardText, CurrencyCircleDollar, FileArrowDown, FolderSimple, Handshake, House, Megaphone, Monitor, Note, ShieldCheck, SignOut, SlidersHorizontal, Target, Users, WifiHigh } from "@/components/huge-icons";
+import { Bell, BookOpen, Buildings, ChartBar, ChatCircleText, ClipboardText, CurrencyCircleDollar, FileArrowDown, FolderSimple, Gear, Handshake, HelpCircle, House, Megaphone, Monitor, Note, ShieldCheck, SignOut, SlidersHorizontal, Target, Users, WifiHigh } from "@/components/huge-icons";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
 import { SidebarCollapsibleGroup } from "@/components/sidebar-collapsible-group";
@@ -47,7 +47,9 @@ const systemItems: SidebarItem[] = [
 ];
 const supportItems: SidebarItem[] = [{ label: "Guia do sistema", icon: BookOpen, url: "/guia", permission: "acessar_guia" }];
 
-function NavigationGroup({ label, items, roleKey, jobTitle, groupIndex }: { label: string; items: SidebarItem[]; roleKey: UserDisplayInfo["roleKey"]; jobTitle: UserDisplayInfo["jobTitle"]; groupIndex: number }) {
+type GroupIcon = typeof House;
+
+function NavigationGroup({ label, icon, items, roleKey, jobTitle, groupIndex }: { label: string; icon?: GroupIcon; items: SidebarItem[]; roleKey: UserDisplayInfo["roleKey"]; jobTitle: UserDisplayInfo["jobTitle"]; groupIndex: number }) {
   const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
   const visibleItems = roleKey ? items.filter((item) => {
@@ -59,7 +61,7 @@ function NavigationGroup({ label, items, roleKey, jobTitle, groupIndex }: { labe
   if (visibleItems.length === 0) return null;
   return (
     <motion.div initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.18, ease: [0, 0, 0.2, 1], delay: groupIndex * 0.06 }}>
-      <SidebarCollapsibleGroup label={label}>
+      <SidebarCollapsibleGroup label={label} icon={icon as unknown as React.ComponentType<React.SVGProps<SVGSVGElement> & { weight?: string; className?: string }>}>
         <SidebarMenu>
           {visibleItems.map((item, index) => {
             const Icon = item.icon;
@@ -113,11 +115,11 @@ export function CorreTopSidebar({ logoUrl }: { logoUrl?: string | null }) {
         </div>
       </SidebarHeader>
       <SidebarContent>
-        <NavigationGroup items={primaryItems} label="Operação" roleKey={roleKey} jobTitle={user?.jobTitle ?? null} groupIndex={0} />
-        <NavigationGroup items={managementItems} label="Gestão" roleKey={roleKey} jobTitle={user?.jobTitle ?? null} groupIndex={1} />
-        <NavigationGroup items={operationItems} label="NOC & Alertas" roleKey={roleKey} jobTitle={user?.jobTitle ?? null} groupIndex={2} />
-        <NavigationGroup items={systemItems} label="Administração" roleKey={roleKey} jobTitle={user?.jobTitle ?? null} groupIndex={3} />
-        <NavigationGroup items={supportItems} label="Ajuda" roleKey={roleKey} jobTitle={user?.jobTitle ?? null} groupIndex={4} />
+        <NavigationGroup items={primaryItems} label="Operação" icon={ChatCircleText} roleKey={roleKey} jobTitle={user?.jobTitle ?? null} groupIndex={0} />
+        <NavigationGroup items={managementItems} label="Gestão" icon={ChartBar} roleKey={roleKey} jobTitle={user?.jobTitle ?? null} groupIndex={1} />
+        <NavigationGroup items={operationItems} label="NOC & Alertas" icon={Monitor} roleKey={roleKey} jobTitle={user?.jobTitle ?? null} groupIndex={2} />
+        <NavigationGroup items={systemItems} label="Administração" icon={Gear} roleKey={roleKey} jobTitle={user?.jobTitle ?? null} groupIndex={3} />
+        <NavigationGroup items={supportItems} label="Ajuda" icon={HelpCircle} roleKey={roleKey} jobTitle={user?.jobTitle ?? null} groupIndex={4} />
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>

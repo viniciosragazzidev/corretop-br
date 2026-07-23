@@ -697,7 +697,7 @@ export function NotificationPopover() {
                 ) : loading && !data ? (
                   <PopoverSkeleton />
                 ) : (
-                  <EmptyState variant="ghost" icon={Bell} title="Nenhuma notificação" description="Você verá aqui alertas de leads e tarefas." />
+                  <EmptyState animated variant="ghost" icon={Bell} title="Nenhuma notificação" description="Você verá aqui alertas de leads e tarefas." />
                 )}
               </ScrollArea>
 

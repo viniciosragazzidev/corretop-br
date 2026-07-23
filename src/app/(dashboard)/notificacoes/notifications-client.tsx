@@ -95,7 +95,7 @@ function EmptyStateContent({ filter }: { filter: FilterType }) {
     : filter === "urgent"
       ? ["Nada urgente", "Não há alertas que exijam uma ação imediata."]
       : ["Nenhuma notificação", "Alertas de leads, tarefas e atualizações aparecerão aqui."];
-  return <EmptyState icon={Bell} title={copy[0]} description={copy[1]} />;
+  return <EmptyState animated icon={Bell} title={copy[0]} description={copy[1]} />;
 }
 
 export function NotificationsClient({ notifications }: { notifications: NotificationItem[] }) {
