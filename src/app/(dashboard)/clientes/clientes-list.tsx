@@ -14,8 +14,9 @@ import {
 } from "@/components/huge-icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { MiniDonut } from "@/components/dashboard/mini-donut";
 import { OwnershipContext } from "@/components/ownership-context";
 import { cn } from "@/lib/utils";
@@ -50,7 +51,7 @@ type ClientsMetrics = {
   totalBrokers: number;
 };
 
-/* ─── Metric Card ─── */
+/* ─── Refined Metric Card ─── */
 
 function MetricCard({
   icon: Icon,
@@ -59,7 +60,7 @@ function MetricCard({
   sublabel,
   trend,
   chart,
-  color,
+  iconColor,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
@@ -67,32 +68,32 @@ function MetricCard({
   sublabel: string;
   trend?: "up" | "down";
   chart?: { total: string | number; label: string; segments: Array<{ name: string; value: number; color: string }> };
-  color?: string;
+  iconColor?: string;
 }) {
   return (
-    <Card className="rounded-xl border-border/70 bg-card shadow-none transition-all duration-200 hover:border-primary/25 hover:shadow-sm hover:shadow-primary/5">
-      <CardHeader className="pb-1">
-        <div className="flex items-center justify-between gap-3">
+    <Card className="group/card rounded-xl border-border bg-card shadow-xs transition-all duration-200 hover:border-primary/30 hover:shadow-sm">
+      <CardHeader className="p-4 pb-2">
+        <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <div className={cn("flex size-7 items-center justify-center rounded-lg", color ? `${color}/10` : "bg-primary/10")}>
-              <Icon className={cn("size-3.5", color ?? "text-primary")} />
+            <div className={cn("flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary", iconColor)}>
+              <Icon className="size-4" />
             </div>
-            <span className="text-xs text-muted-foreground">{label}</span>
+            <span className="text-xs font-semibold text-muted-foreground">{label}</span>
           </div>
           {trend && (
-            <Badge className="rounded-md text-[10px]" variant={trend === "up" ? "success" : "destructive"}>
-              <TrendUp className="size-2.5" />
-              {trend === "up" ? "+" : "-"}
+            <Badge className="rounded-md text-[10px] px-1.5 py-0.5" variant={trend === "up" ? "success" : "destructive"}>
+              <TrendUp className="mr-0.5 size-2.5" />
+              {trend === "up" ? "Alta" : "Atenção"}
             </Badge>
           )}
         </div>
       </CardHeader>
-      <CardContent className="flex items-end justify-between gap-3">
+      <CardContent className="p-4 pt-1 flex items-end justify-between gap-3">
         <div>
-          <p className="text-2xl font-semibold tracking-tight tabular-nums">{value}</p>
-          <p className="mt-1 text-[11px] text-muted-foreground">{sublabel}</p>
+          <p className="text-2xl font-bold tracking-tight font-mono text-foreground">{value}</p>
+          <p className="mt-1 text-[11px] text-muted-foreground leading-tight">{sublabel}</p>
         </div>
-        {chart ? <MiniDonut {...chart} /> : null}
+        {chart ? <MiniDonut size="md" {...chart} /> : null}
       </CardContent>
     </Card>
   );
@@ -108,11 +109,11 @@ function EmptyState() {
       transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
       className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border/60 bg-muted/20 px-6 py-12 text-center"
     >
-      <div className="flex size-12 items-center justify-center rounded-full bg-muted/50">
+      <div className="flex size-12 items-center justify-center rounded-full bg-muted/60">
         <Handshake className="size-6 text-muted-foreground/50" />
       </div>
       <div>
-        <p className="text-sm font-medium text-foreground">Nenhum cliente encontrado</p>
+        <p className="text-sm font-semibold text-foreground">Nenhum cliente encontrado</p>
         <p className="mt-0.5 text-xs text-muted-foreground">Os leads convertidos aparecerão aqui automaticamente.</p>
       </div>
     </motion.div>
@@ -144,11 +145,12 @@ export function ClientesList({
   }, [clients, search]);
 
   return (
-    <div className="flex flex-col gap-5">
-      <section aria-label="Indicadores de clientes" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <div className="flex flex-col gap-6">
+      {/* Metrics Section */}
+      <section aria-label="Indicadores de clientes" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard
           icon={Handshake}
-          label="Total de clientes"
+          label="Total de Clientes"
           value={String(metrics.totalClients)}
           sublabel={`${metrics.recentConversions} convertidos nos últimos 30 dias`}
           chart={{
@@ -159,133 +161,158 @@ export function ClientesList({
               { name: "demais", value: Math.max(0, metrics.totalClients - metrics.recentConversions), color: "var(--primary)" },
             ]
           }}
-          color="text-primary"
+          iconColor="bg-primary/10 text-primary"
         />
         <MetricCard
           icon={TrendUp}
-          label="Taxa de conversão"
+          label="Taxa de Conversão"
           value={`${metrics.conversionRate}%`}
-          sublabel={`${metrics.totalClients} cliente${metrics.totalClients !== 1 ? "s" : ""} convertidos`}
+          sublabel={`${metrics.totalClients} cliente(s) convertidos no pipeline`}
           trend={Number.parseFloat(metrics.conversionRate) > 10 ? "up" : "down"}
           chart={{
             total: `${metrics.conversionRate}%`,
-            label: "conversão",
+            label: "taxa",
             segments: [
-              { name: "convertidos", value: Number.parseFloat(metrics.conversionRate), color: "var(--chart-4)" },
+              { name: "convertidos", value: Number.parseFloat(metrics.conversionRate), color: "hsl(217 91% 60%)" },
               { name: "restante", value: Math.max(0, 100 - Number.parseFloat(metrics.conversionRate)), color: "var(--muted)" },
             ]
           }}
-          color="text-chart-4"
+          iconColor="bg-blue-500/10 text-blue-600 dark:text-blue-400"
         />
         <MetricCard
           icon={Users}
-          label="Média por corretor"
+          label="Média por Corretor"
           value={String(metrics.avgClientsPerBroker)}
-          sublabel={`${metrics.totalBrokers} corretor${metrics.totalBrokers !== 1 ? "es" : ""} com clientes`}
+          sublabel={`${metrics.totalBrokers} corretor(es) com carteira ativa`}
           chart={{
             total: metrics.avgClientsPerBroker,
             label: "média",
             segments: [
-              { name: "corretores", value: metrics.totalBrokers, color: "var(--chart-3)" },
+              { name: "carteira", value: metrics.avgClientsPerBroker, color: "hsl(270 60% 60%)" },
             ]
           }}
-          color="text-chart-3"
+          iconColor="bg-purple-500/10 text-purple-600 dark:text-purple-400"
         />
         <MetricCard
           icon={CalendarCheck}
-          label="Renovações próximas"
+          label="Renovações Próximas"
           value={String(metrics.upcomingRenewals)}
-          sublabel="aniversário de contrato nos próximos 30 dias"
+          sublabel="Aniversário de contrato nos próximos 30 dias"
           trend={metrics.upcomingRenewals > 0 ? "up" : "down"}
           chart={{
             total: metrics.upcomingRenewals,
-            label: "renovações",
+            label: "aniversário",
             segments: metrics.upcomingRenewals > 0
-              ? [{ name: "pendentes", value: metrics.upcomingRenewals, color: "var(--warning)" }]
+              ? [{ name: "pendentes", value: metrics.upcomingRenewals, color: "hsl(38 92% 50%)" }]
               : []
           }}
-          color="text-warning"
+          iconColor="bg-amber-500/10 text-amber-600 dark:text-amber-400"
         />
       </section>
 
-      <div className="flex items-center justify-between gap-3">
-        <div className="relative max-w-xs flex-1">
-          <MagnifyingGlass className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            aria-label="Buscar clientes"
-            className="h-8 bg-muted/50 pl-8 text-xs"
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por nome, email, telefone, corretor..."
-            value={search}
-          />
-        </div>
-        <p className="shrink-0 text-[11px] tabular-nums text-muted-foreground/60">
-          {filtered.length} de {clients.length} cliente{clients.length !== 1 ? "s" : ""}
-        </p>
-      </div>
+      {/* Search and Table Container */}
+      <Card className="border-border bg-card shadow-xs">
+        <CardHeader className="border-b border-border/50 p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="relative w-full max-w-sm">
+              <MagnifyingGlass className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                aria-label="Buscar clientes"
+                className="h-9 bg-muted/40 pl-9 text-xs"
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar por nome, e-mail, telefone, corretor..."
+                value={search}
+              />
+            </div>
+            <p className="shrink-0 text-xs font-mono text-muted-foreground">
+              {filtered.length} de {clients.length} cliente{clients.length !== 1 ? "s" : ""}
+            </p>
+          </div>
+        </CardHeader>
 
-      <Card className="border-border/70 bg-card shadow-none">
         <CardContent className="p-0">
           {filtered.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="pl-5">Nome</TableHead>
-                  <TableHead>Contato</TableHead>
-                  <TableHead>Responsável</TableHead>
-                  <TableHead>Data Conversão</TableHead>
-                  <TableHead className="w-[80px] pr-5 text-right"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((client) => {
-                  const convertedDate = new Intl.DateTimeFormat("pt-BR", {
-                    day: "2-digit",
-                    month: "short",
-                    year: "numeric",
-                  }).format(client.convertedAt);
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-muted/30">
+                  <TableRow className="hover:bg-transparent border-b border-border/60">
+                    <TableHead className="pl-5 text-xs font-semibold uppercase tracking-wider">Cliente</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Contato</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Responsável / Filial</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Data Conversão</TableHead>
+                    <TableHead className="pr-5 text-right text-xs font-semibold uppercase tracking-wider">Ação</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((client) => {
+                    const initials = client.name
+                      ? client.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .slice(0, 2)
+                          .join("")
+                          .toUpperCase()
+                      : "CL";
 
-                  return (
-                    <TableRow key={client.id} className="group/row hover:bg-muted/30">
-                      <TableCell className="pl-5 py-3 font-medium">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-foreground">{client.name}</span>
-                          <Badge variant="outline" className="rounded-full px-1.5 py-0 text-[9px] font-medium text-muted-foreground/60">
-                            Cliente
-                          </Badge>
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-3">
-                        <div className="flex flex-col text-xs text-muted-foreground">
-                          {client.email && <span className="truncate max-w-[200px]">{client.email}</span>}
-                          <span>{client.phone}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-3">
-                        <OwnershipContext
-                          brokerName={client.brokerName}
-                          branchName={client.branchName}
-                          className="text-xs text-muted-foreground/75"
-                        />
-                      </TableCell>
-                      <TableCell className="py-3 text-xs text-muted-foreground/60 tabular-nums">
-                        {convertedDate}
-                      </TableCell>
-                      <TableCell className="pr-5 py-3 text-right">
-                        <Button
-                          render={<Link href={`/clientes/${client.id}`} />}
-                          size="xs"
-                          variant="ghost"
-                          className="opacity-0 group-hover/row:opacity-100 transition-all duration-150"
-                        >
-                          <ArrowRight className="size-3.5" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                    const convertedDate = new Intl.DateTimeFormat("pt-BR", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    }).format(new Date(client.convertedAt));
+
+                    return (
+                      <TableRow key={client.id} className="group/row hover:bg-muted/30 transition-colors">
+                        <TableCell className="pl-5 py-3.5 font-medium">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="size-9 rounded-lg border border-primary/20 bg-primary/10 text-primary font-bold text-xs">
+                              <AvatarFallback className="rounded-lg bg-primary/10 text-primary font-heading font-semibold text-xs">
+                                {initials}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="text-sm font-semibold text-foreground leading-snug">{client.name}</p>
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-medium text-muted-foreground mt-0.5">
+                                Cliente Ativo
+                              </Badge>
+                            </div>
+                          </div>
+                        </TableCell>
+
+                        <TableCell className="py-3.5">
+                          <div className="flex flex-col text-xs text-muted-foreground">
+                            {client.email && <span className="font-mono text-foreground/80 truncate max-w-[220px]">{client.email}</span>}
+                            <span className="font-mono">{client.phone}</span>
+                          </div>
+                        </TableCell>
+
+                        <TableCell className="py-3.5">
+                          <OwnershipContext
+                            brokerName={client.brokerName}
+                            branchName={client.branchName}
+                            className="text-xs text-muted-foreground"
+                          />
+                        </TableCell>
+
+                        <TableCell className="py-3.5 text-xs text-muted-foreground font-mono">
+                          {convertedDate}
+                        </TableCell>
+
+                        <TableCell className="pr-5 py-3.5 text-right">
+                          <Button
+                            render={<Link href={`/clientes/${client.id}`} />}
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 gap-1 text-xs opacity-80 group-hover/row:opacity-100 transition-all"
+                          >
+                            Ver Perfil <ArrowRight className="size-3.5" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           ) : (
             <EmptyState />
           )}
