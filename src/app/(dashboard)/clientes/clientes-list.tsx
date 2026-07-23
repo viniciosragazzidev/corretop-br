@@ -14,7 +14,7 @@ import {
 } from "@/components/huge-icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { MiniDonut } from "@/components/dashboard/mini-donut";
@@ -51,7 +51,7 @@ type ClientsMetrics = {
   totalBrokers: number;
 };
 
-/* ─── Refined Metric Card ─── */
+/* ─── Standardized Metric Card ─── */
 
 function MetricCard({
   icon: Icon,
@@ -59,7 +59,7 @@ function MetricCard({
   value,
   sublabel,
   trend,
-  chart,
+  chartSegments,
   iconColor,
 }: {
   icon: React.ComponentType<{ className?: string }>;
@@ -67,7 +67,7 @@ function MetricCard({
   value: string;
   sublabel: string;
   trend?: "up" | "down";
-  chart?: { total: string | number; label: string; segments: Array<{ name: string; value: number; color: string }> };
+  chartSegments?: Array<{ name: string; value: number; color: string }>;
   iconColor?: string;
 }) {
   return (
@@ -93,7 +93,9 @@ function MetricCard({
           <p className="text-2xl font-bold tracking-tight font-mono text-foreground">{value}</p>
           <p className="mt-1 text-[11px] text-muted-foreground leading-tight">{sublabel}</p>
         </div>
-        {chart ? <MiniDonut size="md" {...chart} /> : null}
+        {chartSegments && chartSegments.length > 0 ? (
+          <MiniDonut size="md" segments={chartSegments} showCenterText={false} />
+        ) : null}
       </CardContent>
     </Card>
   );
@@ -153,14 +155,10 @@ export function ClientesList({
           label="Total de Clientes"
           value={String(metrics.totalClients)}
           sublabel={`${metrics.recentConversions} convertidos nos últimos 30 dias`}
-          chart={{
-            total: metrics.totalClients,
-            label: "clientes",
-            segments: [
-              { name: "recentes", value: metrics.recentConversions, color: "var(--chart-2)" },
-              { name: "demais", value: Math.max(0, metrics.totalClients - metrics.recentConversions), color: "var(--primary)" },
-            ]
-          }}
+          chartSegments={[
+            { name: "recentes", value: metrics.recentConversions, color: "var(--chart-2)" },
+            { name: "demais", value: Math.max(0, metrics.totalClients - metrics.recentConversions), color: "var(--primary)" },
+          ]}
           iconColor="bg-primary/10 text-primary"
         />
         <MetricCard
@@ -169,14 +167,10 @@ export function ClientesList({
           value={`${metrics.conversionRate}%`}
           sublabel={`${metrics.totalClients} cliente(s) convertidos no pipeline`}
           trend={Number.parseFloat(metrics.conversionRate) > 10 ? "up" : "down"}
-          chart={{
-            total: `${metrics.conversionRate}%`,
-            label: "taxa",
-            segments: [
-              { name: "convertidos", value: Number.parseFloat(metrics.conversionRate), color: "hsl(217 91% 60%)" },
-              { name: "restante", value: Math.max(0, 100 - Number.parseFloat(metrics.conversionRate)), color: "var(--muted)" },
-            ]
-          }}
+          chartSegments={[
+            { name: "convertidos", value: Number.parseFloat(metrics.conversionRate), color: "hsl(217 91% 60%)" },
+            { name: "restante", value: Math.max(0, 100 - Number.parseFloat(metrics.conversionRate)), color: "var(--muted)" },
+          ]}
           iconColor="bg-blue-500/10 text-blue-600 dark:text-blue-400"
         />
         <MetricCard
@@ -184,13 +178,9 @@ export function ClientesList({
           label="Média por Corretor"
           value={String(metrics.avgClientsPerBroker)}
           sublabel={`${metrics.totalBrokers} corretor(es) com carteira ativa`}
-          chart={{
-            total: metrics.avgClientsPerBroker,
-            label: "média",
-            segments: [
-              { name: "carteira", value: metrics.avgClientsPerBroker, color: "hsl(270 60% 60%)" },
-            ]
-          }}
+          chartSegments={[
+            { name: "carteira", value: metrics.avgClientsPerBroker, color: "hsl(270 60% 60%)" },
+          ]}
           iconColor="bg-purple-500/10 text-purple-600 dark:text-purple-400"
         />
         <MetricCard
@@ -199,13 +189,11 @@ export function ClientesList({
           value={String(metrics.upcomingRenewals)}
           sublabel="Aniversário de contrato nos próximos 30 dias"
           trend={metrics.upcomingRenewals > 0 ? "up" : "down"}
-          chart={{
-            total: metrics.upcomingRenewals,
-            label: "aniversário",
-            segments: metrics.upcomingRenewals > 0
+          chartSegments={
+            metrics.upcomingRenewals > 0
               ? [{ name: "pendentes", value: metrics.upcomingRenewals, color: "hsl(38 92% 50%)" }]
-              : []
-          }}
+              : [{ name: "sem_pendencias", value: 1, color: "var(--muted)" }]
+          }
           iconColor="bg-amber-500/10 text-amber-600 dark:text-amber-400"
         />
       </section>

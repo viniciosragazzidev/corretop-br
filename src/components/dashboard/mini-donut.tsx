@@ -4,23 +4,23 @@ import { cn } from "@/lib/utils";
 
 type MiniDonutProps = {
   segments: Array<{ name: string; value: number; color: string }>;
-  total: string | number;
+  total?: string | number;
   label?: string;
   size?: "sm" | "md" | "lg";
+  showCenterText?: boolean;
   className?: string;
 };
 
 export function MiniDonut({
   segments,
   total,
-  label = "",
   size = "md",
+  showCenterText = false,
   className,
 }: MiniDonutProps) {
   // Filter out zero-value segments
   const activeSegments = segments.filter((s) => s.value > 0);
 
-  // If no active segments, show a single fallback empty segment
   const sum = activeSegments.reduce((acc, s) => acc + s.value, 0);
   const data =
     activeSegments.length > 0
@@ -28,13 +28,16 @@ export function MiniDonut({
       : [{ name: "empty", value: 1, color: "var(--muted)" }];
 
   const dimensionMap = {
-    sm: { box: "size-14", px: 56, textTotal: "text-xs", textLabel: "text-[9px]" },
-    md: { box: "size-18", px: 72, textTotal: "text-sm font-bold", textLabel: "text-[10px]" },
-    lg: { box: "size-24", px: 96, textTotal: "text-base font-bold", textLabel: "text-xs" },
+    sm: { box: "size-11", radius: 18, stroke: 4, centerText: "text-[11px] font-bold" },
+    md: { box: "size-14", radius: 22, stroke: 5, centerText: "text-xs font-bold" },
+    lg: { box: "size-16", radius: 26, stroke: 5, centerText: "text-sm font-bold" },
   };
 
   const currentSize = dimensionMap[size];
-  const radius = 28;
+  const radius = currentSize.radius;
+  const stroke = currentSize.stroke;
+  const viewBoxSize = (radius + stroke) * 2;
+  const center = viewBoxSize / 2;
   const circumference = 2 * Math.PI * radius;
 
   let accumulatedPercent = 0;
@@ -42,18 +45,20 @@ export function MiniDonut({
   return (
     <div
       className={cn("relative flex shrink-0 items-center justify-center", currentSize.box, className)}
-      aria-label={`${total} ${label}`}
     >
-      <svg className={`${currentSize.box} -rotate-90`} viewBox="0 0 72 72">
+      <svg
+        className={`${currentSize.box} -rotate-90`}
+        viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`}
+      >
         {/* Background track circle */}
         <circle
-          cx="36"
-          cy="36"
+          cx={center}
+          cy={center}
           r={radius}
           fill="transparent"
           stroke="var(--muted)"
-          strokeWidth="6"
-          className="opacity-40"
+          strokeWidth={stroke}
+          className="opacity-30"
         />
 
         {/* Data segments */}
@@ -69,31 +74,28 @@ export function MiniDonut({
           return (
             <circle
               key={segment.name || index}
-              cx="36"
-              cy="36"
+              cx={center}
+              cy={center}
               r={radius}
               fill="transparent"
               stroke={segment.color}
-              strokeWidth="6"
+              strokeWidth={stroke}
               strokeLinecap="round"
               strokeDasharray={strokeDasharray}
               strokeDashoffset={strokeDashoffset}
-              transform={`rotate(${rotation} 36 36)`}
+              transform={`rotate(${rotation} ${center} ${center})`}
               className="transition-all duration-300 ease-out"
             />
           );
         })}
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-1 pointer-events-none">
-        <span className={cn("font-mono tracking-tight text-foreground leading-none", currentSize.textTotal)}>
-          {total}
-        </span>
-        {label && (
-          <span className={cn("mt-0.5 max-w-[56px] truncate text-muted-foreground leading-tight font-medium select-none", currentSize.textLabel)}>
-            {label}
+      {showCenterText && total !== undefined && (
+        <div className="absolute inset-0 flex items-center justify-center text-center pointer-events-none">
+          <span className={cn("font-mono tracking-tight text-foreground", currentSize.centerText)}>
+            {total}
           </span>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
