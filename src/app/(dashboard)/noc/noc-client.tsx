@@ -42,6 +42,8 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import type { NocData } from "@/features/noc/queries";
+import { NocHeatmap } from "@/features/noc/components/noc-heatmap";
+import { NocAnomalyAlerts } from "@/features/noc/components/noc-anomaly-alerts";
 
 // ─── Static "services" (infra mock) ──────────────────────────────────────────
 
@@ -356,6 +358,12 @@ export function NocClient({ data }: NocClientProps) {
           <NocMetricCard key={metric.label} {...metric} delay={i * 80} />
         ))}
       </section>
+
+      {/* Operational Anomaly Alerts */}
+      <NocAnomalyAlerts branches={branchHealth} />
+
+      {/* Enterprise Heatmap Command Center */}
+      <NocHeatmap branches={branchHealth} />
 
       <BranchHealthTable branches={branchHealth} />
 

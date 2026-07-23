@@ -10,6 +10,7 @@ import { LeadsWorkspace } from "./leads-workspace";
 import { WifiHigh, Plus } from "@/components/huge-icons";
 import { Button } from "@/components/ui/button";
 import { DashboardHeader } from "@/components/dashboard-header";
+import { NextUrgentLeadButton } from "@/components/next-urgent-lead-button";
 import { ContextNote } from "@/components/ui/context-note";
 import { getSystemSetting } from "@/features/system-settings/queries";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
@@ -127,7 +128,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
 
   return (
     <>
-      <DashboardHeader breadcrumb="Operação comercial" title="Leads" />
+      <DashboardHeader breadcrumb="Operação comercial" title="Leads" rightSlot={<NextUrgentLeadButton />} />
       <main className="flex min-h-0 flex-1 flex-col gap-6 bg-background p-4 lg:p-6">
 
         {/* Header Section */}

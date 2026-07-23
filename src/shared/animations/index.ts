@@ -1,24 +1,2 @@
-export {
-  motionTokens,
-  ease,
-  spring,
-  fastTransition,
-  baseTransition,
-  enterTransition,
-  exitTransition,
-  fadeVariants,
-  fadeUpVariants,
-  fadeDownVariants,
-  fadeLeftVariants,
-  scaleInVariants,
-  scaleSlideVariants,
-  sidebarItemVariants,
-  cardGridVariants,
-  cardItemVariants,
-  listItemVariants,
-  collapseVariants,
-  badgePopVariants,
-  shakeVariants,
-  pageTransitionVariants,
-  pressScale,
-} from "./variants";
+/** @deprecated Use `@/utils/animation`. */
+export * from "@/utils/animation/variants";
