@@ -35,7 +35,7 @@ export default async function SettingsPage() {
   }).from(schema.tenants).where(eq(schema.tenants.id, context.tenantId)).limit(1);
 
   const integrations = context.role === "director" ? await getIntegrationsData() : null;
-  const tabIds: TabId[] = context.role === "director" ? ["conta", "empresa", "unidade", "atendimento", "whatsapp", "integracoes", "seguranca"] : context.role === "manager" ? ["conta", "unidade", "atendimento", "whatsapp", "seguranca"] : ["conta", "whatsapp", "seguranca"];
+  const tabIds: TabId[] = context.role === "director" ? ["conta", "empresa", "unidade", "atendimento", "whatsapp", "integracoes", "seguranca"] : context.role === "manager" ? ["conta", "unidade", "atendimento", "whatsapp", "seguranca"] : ["conta", "seguranca"];
 
   const canEditFeedback = context.role === "director" || context.role === "manager";
 

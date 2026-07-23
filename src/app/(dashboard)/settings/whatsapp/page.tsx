@@ -1,4 +1,5 @@
 import { DashboardHeader } from "@/components/dashboard-header";
+import { redirect } from "next/navigation";
 import { getMetaCloudConfigurationState } from "@/features/communication-channels/meta-cloud-config";
 import { isMetaCloudWhatsAppEnabled } from "@/features/communication-channels/service";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
@@ -9,6 +10,7 @@ import { WhatsAppPage } from "../whatsapp-page";
 
 export default async function WhatsAppSettingsPage({ searchParams }: { searchParams: Promise<{ returnTo?: string }> }) {
   const context = await getRequiredTenantContext();
+  if (context.role === "broker") redirect("/settings");
   const { returnTo: requestedReturnTo } = await searchParams;
   const returnTo = requestedReturnTo?.startsWith("/") && !requestedReturnTo.startsWith("//") ? requestedReturnTo : undefined;
   const db = getDatabase();

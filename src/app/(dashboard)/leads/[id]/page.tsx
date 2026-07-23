@@ -13,14 +13,11 @@ import { LeadTasks } from "@/features/leads/components/lead-tasks";
 import { LeadChat } from "@/features/leads/components/lead-chat";
 import { LEAD_STATUS_LABELS, LEAD_STATUS_ORDER } from "@/features/leads/lead-status-constants";
 import { getLeadTimeline } from "@/features/leads/queries";
-import { getQuotesByLead } from "@/features/quotes/queries";
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
 import { getDatabase, schema } from "@/shared/db";
 import { StartServiceButton } from "./start-service-button";
 import { SupervisionPanel } from "./supervision-panel";
 import { CotarButton } from "./cotar-button";
-import { QuoteBuilder } from "@/features/leads/components/quote-builder";
-import { QuoteCard } from "@/features/leads/components/quote-card";
 
 import { getRequirementsForLead, getLeadDocuments, getLeadDocumentChecklist } from "@/features/documents/actions";
 import { LeadDocumentsSection } from "@/features/documents/components/lead-documents-section";
@@ -102,7 +99,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
   const remainingMinutes = Math.max(0, slaMinutes - elapsedMinutes);
   const slaUrgent = remainingMinutes <= Math.max(5, Math.round(slaMinutes * 0.25));
 
-  const [interactions, tasks, requirements, leadDocs, checklist, beneficiaries, quotes, plans, carriers] = await Promise.all([
+  const [interactions, tasks, requirements, leadDocs, checklist, beneficiaries, carriers] = await Promise.all([
     getLeadTimeline(id),
     getDatabase().select({ id: schema.leadTasks.id, title: schema.leadTasks.title, description: schema.leadTasks.description, priority: schema.leadTasks.priority, dueAt: schema.leadTasks.dueAt, completedAt: schema.leadTasks.completedAt, createdAt: schema.leadTasks.createdAt, assignedTo: schema.leadTasks.assignedTo, assigneeName: schema.user.name })
       .from(schema.leadTasks).leftJoin(schema.user, eq(schema.leadTasks.assignedTo, schema.user.id)).where(and(eq(schema.leadTasks.tenantId, context.tenantId), eq(schema.leadTasks.leadId, id)))
@@ -111,11 +108,6 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
     getLeadDocuments(id),
     getLeadDocumentChecklist(id),
     getLeadBeneficiaries(id),
-    getQuotesByLead(id),
-    getDatabase().select({ id: schema.globalPlans.id, name: schema.globalPlans.name })
-      .from(schema.globalPlans)
-      .where(eq(schema.globalPlans.status, "published"))
-      .orderBy(schema.globalPlans.name),
     getDatabase().select({ id: schema.carriers.id, name: schema.carriers.name })
       .from(schema.carriers)
       .where(and(eq(schema.carriers.tenantId, context.tenantId), eq(schema.carriers.status, "active")))
@@ -132,10 +124,6 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
     : [];
 
   const isManagement = context.role === "manager" || context.role === "director";
-  const shouldShowQuotes = isManagement
-    ? lead.status !== "distributed"
-    : (context.userId === lead.corretorId && lead.status !== "distributed" && lead.status !== "lost");
-
   const shouldMask = isMarketing && lead.branchId !== context.branchId;
 
   const canSeePersonalData = (context.role !== "broker" || lead.corretorId !== context.userId || lead.status !== "distributed") && !shouldMask;
@@ -146,9 +134,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
     ? "history"
     : stageRank >= 6
       ? "documents"
-      : stageRank >= 3
-        ? "quotes"
-        : "service";
+      : "service";
 
   if (shouldMask) {
     lead.nome = maskName(lead.nome);
@@ -269,7 +255,6 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
           <Tabs defaultValue={defaultLeadTab} orientation="horizontal" className="min-h-0 min-w-0 gap-4 overflow-hidden md:grid md:grid-cols-[180px_minmax(0,1fr)] md:gap-5">
             <TabsList aria-label="Etapas do atendimento" className="h-auto w-full max-w-full min-w-0 flex-row items-stretch gap-1 overflow-x-auto overscroll-x-contain rounded-xl border border-border/70 bg-muted/20 p-2 touch-pan-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:h-fit md:flex-col md:overflow-visible md:[scrollbar-width:auto]" variant="line">
               <TabsTrigger value="service" className="min-w-[132px] flex-none justify-start px-3 py-2 text-left md:w-full md:min-w-0 md:flex-1"><span className="flex flex-col items-start gap-0.5"><span>Atendimento</span><span className="text-[11px] font-normal text-muted-foreground">Contato inicial</span></span></TabsTrigger>
-              <TabsTrigger value="quotes" disabled={stageRank < 3} className="min-w-[132px] flex-none justify-start px-3 py-2 text-left md:w-full md:min-w-0 md:flex-1">{stageRank < 3 ? <LockKey className="size-3.5 text-muted-foreground" /> : null}<span className="flex flex-col items-start gap-0.5"><span>Cotações {quotes.length > 0 ? `(${quotes.length})` : ""}</span><span className="text-[11px] font-normal text-muted-foreground">Propostas</span></span></TabsTrigger>
               <TabsTrigger value="documents" disabled={stageRank < 5} className="min-w-[132px] flex-none justify-start px-3 py-2 text-left md:w-full md:min-w-0 md:flex-1">{stageRank < 5 ? <LockKey className="size-3.5 text-muted-foreground" /> : null}<span className="flex flex-col items-start gap-0.5"><span>Documentos {leadDocs.length > 0 ? `(${leadDocs.length})` : ""}</span><span className="text-[11px] font-normal text-muted-foreground">Análise cadastral</span></span></TabsTrigger>
               <TabsTrigger value="history" className="min-w-[132px] flex-none justify-start px-3 py-2 text-left md:w-full md:min-w-0 md:flex-1"><span className="flex flex-col items-start gap-0.5"><span>Histórico</span><span className="text-[11px] font-normal text-muted-foreground">Linha do tempo</span></span></TabsTrigger>
               <TabsTrigger value="tasks" className="min-w-[132px] flex-none justify-start px-3 py-2 text-left md:w-full md:min-w-0 md:flex-1"><span className="flex flex-col items-start gap-0.5"><span>Tarefas ({tasks.filter(t => !t.completedAt).length})</span><span className="text-[11px] font-normal text-muted-foreground">Próximas ações</span></span></TabsTrigger>
@@ -295,7 +280,6 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
               {!isManagement && (
                 <LeadActionHub
                   hasPendingDocuments={leadDocs.some((document) => document.status === "pending" || document.status === "rejected")}
-                  hasQuotes={quotes.length > 0}
                   leadId={lead.id}
                   currentOwner={lead.corretorNome}
                   nextTask={(() => { const task = tasks.find((item) => !item.completedAt); return task ? { title: task.title, dueAt: task.dueAt?.toISOString() ?? null, priority: task.priority, assigneeName: task.assigneeName } : null; })()}
@@ -314,25 +298,6 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                 <BeneficiariesSection leadId={lead.id} contactName={lead.nome} initialBeneficiaries={beneficiaries} />
               </div>
               <LeadChat phone={canSeePersonalData ? lead.telefone : null} />
-            </TabsContent>
-
-            <TabsContent value="quotes" className="mt-4">
-              {shouldShowQuotes ? (
-                <Card className="border-border bg-card shadow-sm" id="cotacao">
-                  <CardHeader className="border-b border-border/40 pb-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Cotações</CardTitle>
-                        <CardDescription className="text-xs font-normal">{isManagement ? "Propostas montadas para o cliente (somente leitura)." : "Monte propostas e compartilhe com o cliente."}</CardDescription>
-                      </div>
-                      {!isManagement && <QuoteBuilder leadId={lead.id} leadName={lead.nome} leadPhone={canSeePersonalData ? lead.telefone : null} beneficiaries={beneficiaries.map((b) => ({ id: b.id, name: b.name }))} plans={plans.map((p) => ({ id: p.id, name: p.name }))} />}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3 pt-4">
-                    {quotes.length === 0 ? <p className="py-8 text-center text-xs text-muted-foreground">Nenhuma cotação criada ainda.</p> : quotes.map((quote) => <QuoteCard key={quote.id} quote={quote} leadName={lead.nome} leadPhone={canSeePersonalData ? lead.telefone : null} />)}
-                  </CardContent>
-                </Card>
-              ) : <Card className="border-border bg-card shadow-sm"><CardContent className="py-10 text-center text-sm text-muted-foreground">As cotações ficam disponíveis para o responsável pelo atendimento e para a gestão.</CardContent></Card>}
             </TabsContent>
 
             <TabsContent value="documents" className="mt-4">

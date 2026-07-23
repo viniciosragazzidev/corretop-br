@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 
-import { ArrowRight, ArrowSquareOut, Calculator, ChatCircleText, CheckCircle, Clock, ClipboardText, FileText, ListChecks, Phone, Plus, WhatsappLogo } from "@/components/huge-icons";
+import { ArrowRight, ArrowSquareOut, ChatCircleText, CheckCircle, Clock, ClipboardText, FileText, ListChecks, Phone, Plus, WhatsappLogo } from "@/components/huge-icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LeadProgressStepper } from "@/features/leads/components/lead-progress-stepper";
@@ -13,14 +13,13 @@ import { LeadQuickNote } from "@/features/leads/components/lead-quick-note";
 import { InlineFeedbackForm } from "@/app/(dashboard)/leads/[id]/inline-feedback-form";
 
 type NextTask = { title: string; dueAt: string | null; priority: "low" | "normal" | "urgent"; assigneeName: string | null };
-type LeadActionHubProps = { leadId: string; status: string; currentOwner: string | null; hasQuotes: boolean; hasPendingDocuments: boolean; nextTask: NextTask | null; isOwner: boolean; phone: string | null; canSeePersonalData: boolean; showFeedback?: boolean };
+type LeadActionHubProps = { leadId: string; status: string; currentOwner: string | null; hasPendingDocuments: boolean; nextTask: NextTask | null; isOwner: boolean; phone: string | null; canSeePersonalData: boolean; showFeedback?: boolean };
 type Action = { href: string; label: string; icon: typeof FileText };
 
 function getCurrentTimestamp() { return Date.now(); }
-function getFallbackAction({ leadId, status, hasQuotes, hasPendingDocuments }: Pick<LeadActionHubProps, "leadId" | "status" | "hasQuotes" | "hasPendingDocuments">): Action {
+function getFallbackAction({ leadId, status, hasPendingDocuments }: Pick<LeadActionHubProps, "leadId" | "status" | "hasPendingDocuments">): Action {
   if (hasPendingDocuments) return { href: "#documentos", label: "Revisar documentos", icon: FileText };
   if (status === "distributed" || status === "new") return { href: "#lead-actions", label: "Ver ação do atendimento", icon: ChatCircleText };
-  if (status === "quote_sent" && hasQuotes) return { href: "#cotacao", label: "Ver cotações", icon: Calculator };
   if (status === "converted") return { href: "/clientes", label: "Acompanhar cliente", icon: CheckCircle };
   return { href: "/conversas?leadId=" + leadId, label: "Abrir conversa", icon: ChatCircleText };
 }
@@ -32,13 +31,13 @@ function formatDueAt(value: string | null) {
   return date.getTime() < Date.now() ? "Vencida em " + formatted : "Até " + formatted;
 }
 
-export function LeadActionHub({ leadId, status, currentOwner, hasQuotes, hasPendingDocuments, nextTask, isOwner, phone, canSeePersonalData, showFeedback = false }: LeadActionHubProps) {
+export function LeadActionHub({ leadId, status, currentOwner, hasPendingDocuments, nextTask, isOwner, phone, canSeePersonalData, showFeedback = false }: LeadActionHubProps) {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackDone, setFeedbackDone] = useState(false);
 
   if (!isOwner) return null;
 
-  const fallbackAction = getFallbackAction({ leadId, status, hasQuotes, hasPendingDocuments });
+  const fallbackAction = getFallbackAction({ leadId, status, hasPendingDocuments });
   const primaryAction: Action = nextTask ? { href: "/tarefas?leadId=" + leadId, label: "Abrir tarefa", icon: ListChecks } : fallbackAction;
   const Icon = primaryAction.icon;
   const isOverdue = Boolean(nextTask?.dueAt && new Date(nextTask.dueAt).getTime() < getCurrentTimestamp());
@@ -80,7 +79,6 @@ export function LeadActionHub({ leadId, status, currentOwner, hasQuotes, hasPend
         <LeadQuickNote leadId={leadId} />
         <Button className="h-8 px-2.5 text-xs" render={<Link href={"/tarefas?leadId=" + leadId} />} size="sm" variant="outline"><ListChecks /> Tarefas</Button>
         <LeadReminder leadId={leadId} />
-        <Button className="h-8 px-2.5 text-xs" render={<Link href="#cotacao" />} size="sm" variant="outline"><Calculator /> Cotação</Button>
         <Button className="h-8 px-2.5 text-xs" render={<Link href="#documentos" />} size="sm" variant="outline"><FileText /> Documentos{hasPendingDocuments ? " · pendentes" : ""}</Button>
       </nav>
 
