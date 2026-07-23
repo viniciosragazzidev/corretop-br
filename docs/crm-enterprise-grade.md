@@ -123,6 +123,26 @@ Equipes grandes usam muitas ferramentas. O CRM precisa ser o centro, não mais u
 
 ---
 
+## 9. 🤖 Copilot de IA para Atendimento de Saúde
+
+IA generativa integrada ao contexto do atendimento sem complicar a jornada.
+
+- **Resumo inteligente de interações:** sintetiza conversas de WhatsApp do lead em 3 tópicos (*Perfil, Orçamento, Carências*).
+- **Recomendação de planos:** sugere a melhor operadora/modalidade com base na idade dos dependentes e tabela vigente.
+- **Detecção de sentimentos:** sinaliza leads insatisfeitos ou com alto risco de churn antes da perda da proposta.
+
+---
+
+## 10. 🏦 Governança & Auditabilidade de Repasses Financeiros
+
+Controle rígido e transparente sobre pagamentos de comissões para diretorias e corretores.
+
+- **Log imutável de repasse:** registro completo de quem marcou ou reverteu cada parcela de comissão com timestamp e IP.
+- **Alertas de estagnação de pagamento:** notificação para a diretoria caso vendas ativas fiquem com parcelas vencidas há mais de 30 dias.
+- **Relatório exportável auditável:** download de comprovantes de pagamento e demonstrativos mensais em PDF/Excel.
+
+---
+
 ## ⚡ Matriz de Implementação e Impacto
 
 | Prioridade | O que fazer | Impacto Esperado | Estado |
@@ -130,8 +150,11 @@ Equipes grandes usam muitas ferramentas. O CRM precisa ser o centro, não mais u
 | 🔥 **P0** | NOC com heatmap por unidade (cores) + alertas automáticos | Diretor enxerga a operação em 5s | ✅ **Implementado** |
 | 🔥 **P0** | Timeline de ação esperada no lead (*"Aguardando cotação há 2 dias"*) | Corretor nunca "perde" o lead | ✅ **Implementado** |
 | 🔥 **P0** | Botão *"Próximo lead"* no header que já abre o lead mais urgente | Reduz atrito a zero | ✅ **Implementado** |
+| 📈 **P2** | Sugestão de próximo status automática (`NextStatusSuggestion`) | Acelera pipeline com 1 clique | ✅ **Implementado** |
 | ⭐ **P1** | Pareamento inteligente (região + especialidade) | Aumenta conversão | 🔄 Planejado |
 | ⭐ **P1** | Modo foco do corretor (esconde gestão) | Reduz distração | 🔄 Planejado |
 | 📈 **P2** | Ranking de unidades com tendência | Cria competição saudável | 🔄 Planejado |
-| 📈 **P2** | Sugestão de próximo status automática | Acelera pipeline | 🔄 Planejado |
+| 🤖 **P3** | Copilot de IA para resumo e recomendação de planos | Reduz tempo de atendimento em 40% | 🔄 Planejado |
+| 🏦 **P3** | Auditabilidade e alertas de repasse financeiro de comissão | Compliance total e zero atrito | 🔄 Planejado |
+
 

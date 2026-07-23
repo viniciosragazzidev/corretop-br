@@ -34,6 +34,7 @@ import {
 } from "@/features/leads/lead-status-constants";
 import { LeadFeedbackDialog } from "./lead-feedback-dialog";
 import { RegisterSalePanel } from "@/app/(dashboard)/leads/[id]/register-sale-panel";
+import { NextStatusSuggestion } from "./next-status-suggestion";
 
 type ConfirmationDocument = { id: string; filename: string; status: string };
 type CarrierOption = { id: string; name: string };
@@ -72,7 +73,7 @@ export function LeadStatusSelector({
     {},
   );
 
-  // Optimistic UI state - safe to read during render, no refs needed
+  // Optimistic UI state
   const [optimisticStatus, addOptimisticStatus] = useOptimistic(
     currentStatus,
     (_current, newStatus: string) => newStatus,
@@ -84,11 +85,8 @@ export function LeadStatusSelector({
     (role === "broker" && isOwner);
 
   const canReopen = role === "manager" || role === "director";
-
-  // Use optimistic status when pending, actual status otherwise
   const displayedStatus = pending ? optimisticStatus : currentStatus;
 
-  // Side effects only (toasts, navigation)
   useEffect(() => {
     if (state.success) {
       toast.success("Status alterado com sucesso.");
@@ -142,7 +140,6 @@ export function LeadStatusSelector({
     setMotivoPerda("");
   };
 
-  // Build available statuses from VALID_TRANSITIONS
   const availableStatuses = (() => {
     if (displayedStatus === "lost") {
       if (canReopen) return VALID_TRANSITIONS.lost as string[];
@@ -156,46 +153,47 @@ export function LeadStatusSelector({
     return null;
   }
 
-  if (availableStatuses.length === 0) {
-    return null;
-  }
-
   return (
     <>
-      <div className="flex items-center gap-2">
-      <Badge
-        variant={displayedStatus === "lost" ? "destructive" : "outline"}
-        className={`transition-opacity ${state.error ? "t-sync-error" : ""} ${pending ? "t-sync-local" : "t-sync-confirmed"}`}
-      >
-        {pending ? "Sincronizando" : statusLabel(displayedStatus)}
-      </Badge>
-      <Select value={undefined} onValueChange={handleStatusSelect}>
-        <SelectTrigger className="w-[180px]" disabled={pending}>
-          <SelectValue placeholder="Alterar status..." />
-        </SelectTrigger>
-        <SelectContent>
-          {displayedStatus === "lost" && canReopen && (
-            <SelectItem value="reopen-placeholder" disabled>
-              Reabrir lead
-            </SelectItem>
-          )}
-          {availableStatuses.filter((s) => s !== "lost").map(
-            (status) => (
-              <SelectItem key={status} value={status}>
-                {statusLabel(status)}
-              </SelectItem>
-            ),
-          )}
-          {availableStatuses.includes("lost") && (
-            <>
-              <SelectSeparator />
-              <SelectItem value="lost" className="text-destructive">
-                Perdido
-              </SelectItem>
-            </>
-          )}
-        </SelectContent>
-      </Select>
+      <div className="flex flex-wrap items-center gap-2">
+        <NextStatusSuggestion
+          currentStatus={displayedStatus}
+          onSelectStatus={handleStatusSelect}
+          disabled={pending}
+        />
+        <Badge
+          variant={displayedStatus === "lost" ? "destructive" : "outline"}
+          className={`transition-opacity ${state.error ? "t-sync-error" : ""} ${pending ? "t-sync-local" : "t-sync-confirmed"}`}
+        >
+          {pending ? "Sincronizando" : statusLabel(displayedStatus)}
+        </Badge>
+        {availableStatuses.length > 0 && (
+          <Select value={undefined} onValueChange={handleStatusSelect}>
+            <SelectTrigger className="w-[180px]" disabled={pending}>
+              <SelectValue placeholder="Alterar status..." />
+            </SelectTrigger>
+            <SelectContent>
+              {displayedStatus === "lost" && canReopen && (
+                <SelectItem value="reopen-placeholder" disabled>
+                  Reabrir lead
+                </SelectItem>
+              )}
+              {availableStatuses.filter((s) => s !== "lost").map((status) => (
+                <SelectItem key={status} value={status}>
+                  {statusLabel(status)}
+                </SelectItem>
+              ))}
+              {availableStatuses.includes("lost") && (
+                <>
+                  <SelectSeparator />
+                  <SelectItem value="lost" className="text-destructive">
+                    Perdido
+                  </SelectItem>
+                </>
+              )}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {/* Confirmation dialog for lost leads */}
@@ -224,18 +222,10 @@ export function LeadStatusSelector({
                   ))}
                 </select>
                 <div className="flex justify-end gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={cancelLost}
-                    disabled={pending}
-                  >
+                  <Button variant="outline" onClick={cancelLost} disabled={pending}>
                     Cancelar
                   </Button>
-                  <Button
-                    variant="destructive"
-                    onClick={confirmLost}
-                    disabled={!motivoPerda || pending}
-                  >
+                  <Button variant="destructive" onClick={confirmLost} disabled={!motivoPerda || pending}>
                     {pending ? "Salvando..." : "Confirmar Perda"}
                   </Button>
                 </div>
