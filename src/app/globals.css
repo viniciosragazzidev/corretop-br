@@ -584,12 +584,12 @@ body {
   background: color-mix(in srgb, var(--muted-foreground) 10%, transparent);
 }
 
-.ct-toaster [data-sonner-toast].ct-toast--warning .ct-toast__icon,
-.ct-toaster [data-sonner-toast].ct-toast--warning .ct-toast__content::before {
+.ct-toaster [data-sonner-toast].ct-toast--success .ct-toast__icon,
+.ct-toaster [data-sonner-toast].ct-toast--success .ct-toast__content::before {
   color: var(--success);
 }
 
-.ct-toaster [data-sonner-toast].ct-toast--warning .ct-toast__content::before {
+.ct-toaster [data-sonner-toast].ct-toast--success .ct-toast__content::before {
   background: color-mix(in srgb, var(--success) 12%, transparent);
   content: "Sucesso";
 }

@@ -4,6 +4,7 @@ import {
   House,
   Buildings,
   Monitor,
+  ShieldCheck,
   SignOut,
   SlidersHorizontal,
   ShieldStar
@@ -35,6 +36,7 @@ const superItems = [
   { label: "Auditoria & Logs", icon: Monitor, url: "/super-dev/audit" },
   { label: "Sessões Ativas", icon: ShieldStar, url: "/super-dev/sessions" },
   { label: "Configurações", icon: SlidersHorizontal, url: "/super-dev/settings" },
+  { label: "Integridade", icon: ShieldCheck, url: "/super-dev/integridade" },
 ];
 
 function NavigationGroup({

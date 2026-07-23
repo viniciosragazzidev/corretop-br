@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { toast } from "sonner";
 
-import { Bell, BookOpen, Buildings, ChartBar, ChatCircleText, ClipboardText, CreditCard, CurrencyCircleDollar, FileArrowDown, FolderSimple, Handshake, House, Megaphone, Monitor, Note, ShieldCheck, SignOut, SlidersHorizontal, SquaresFour, Target, Users, WifiHigh } from "@/components/huge-icons";
+import { Bell, BookOpen, Buildings, ChartBar, ChatCircleText, ClipboardText, CurrencyCircleDollar, FileArrowDown, FolderSimple, Handshake, House, Megaphone, Monitor, Note, ShieldCheck, SignOut, SlidersHorizontal, Target, Users, WifiHigh } from "@/components/huge-icons";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
 import { getUserDisplayInfo, type UserDisplayInfo } from "@/shared/auth/actions";
@@ -24,9 +24,7 @@ const primaryItems: SidebarItem[] = [
   { label: "Vendas", icon: CurrencyCircleDollar, url: "/vendas", permission: "acessar_vendas" },
   { label: "Materiais de Divulgação", icon: Megaphone, url: "/materiais-divulgacao", permission: "acessar_materiais_divulgacao" },
 ];
-const toolsItems: SidebarItem[] = [
-  { label: "Tabelas Personalizadas", icon: SquaresFour, url: "/ferramentas-vendas/tabelas-personalizadas", permission: "acessar_ferramentas_vendas" },
-];
+
 const managementItems: SidebarItem[] = [
   { label: "Resumo", icon: House, url: "/dashboard", permission: "acessar_dashboard" },
   { label: "Equipe", icon: Users, url: "/equipe", permission: "convidar_corretor" },
@@ -39,14 +37,12 @@ const managementItems: SidebarItem[] = [
 ];
 const operationItems: SidebarItem[] = [
   { label: "NOC", icon: Monitor, url: "/noc", permission: "ver_dashboard_equipe" },
-  { label: "Integridade", icon: ShieldCheck, url: "/integridade", permission: "ver_painel_integridade" },
   { label: "Notificações", icon: Bell, url: "/notificacoes", permission: "acessar_notificacoes" },
 ];
 const systemItems: SidebarItem[] = [
   { label: "Importações Meta", icon: FileArrowDown, url: "/marketing/importacoes", permission: "ver_importacoes_meta" },
   { label: "Catálogo", icon: FolderSimple, url: "/catalogo", permission: "acessar_catalogo" },
   { label: "Comissões", icon: CurrencyCircleDollar, url: "/configuracoes/comissoes", permission: "gerenciar_comissoes" },
-  { label: "Assinatura", icon: CreditCard, url: "/assinatura", permission: "configurar_white_label" },
   { label: "Configurações", icon: SlidersHorizontal, url: "/settings", permission: "acessar_configuracoes_pessoais" },
 ];
 const supportItems: SidebarItem[] = [{ label: "Guia do sistema", icon: BookOpen, url: "/guia", permission: "acessar_guia" }];
@@ -55,7 +51,7 @@ function NavigationGroup({ label, items, roleKey, jobTitle, groupIndex }: { labe
   const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
   const visibleItems = roleKey ? items.filter((item) => {
-    if (jobTitle === "marketing" && ["/conversas", "/tarefas", "/documentos", "/clientes", "/vendas", "/checklist", "/minha-fila", "/dashboard", "/corretor", "/metas", "/relatorios", "/noc", "/integridade", "/assinatura", "/filiais", "/unidades", "/gestor", "/diretor"].some(path => item.url === path || item.url.startsWith(path + "/"))) {
+    if (jobTitle === "marketing" && ["/conversas", "/tarefas", "/documentos", "/clientes", "/vendas", "/checklist", "/minha-fila", "/dashboard", "/corretor", "/metas", "/relatorios", "/noc", "/filiais", "/unidades", "/gestor", "/diretor"].some(path => item.url === path || item.url.startsWith(path + "/"))) {
       return false;
     }
     return hasCapability(roleKey, item.permission, jobTitle);
@@ -79,5 +75,5 @@ export function CorreTopSidebar({ logoUrl }: { logoUrl?: string | null }) {
     catch (error) { toast.error(error instanceof Error ? error.message : "Não foi possível sair agora."); }
   }
 
-  return <Sidebar collapsible="icon" variant="sidebar" rail><SidebarHeader><Link href="/dashboard" prefetch className="block px-2 pt-2"><CorreTopLogo src={logoUrl} className="h-8 w-full rounded-md object-contain object-left" /></Link></SidebarHeader><SidebarContent><NavigationGroup items={primaryItems} label="Operação" roleKey={roleKey} jobTitle={user?.jobTitle ?? null} groupIndex={0} /><NavigationGroup items={toolsItems} label="Ferramentas" roleKey={roleKey} jobTitle={user?.jobTitle ?? null} groupIndex={1} /><NavigationGroup items={managementItems} label="Gestão" roleKey={roleKey} jobTitle={user?.jobTitle ?? null} groupIndex={2} /><NavigationGroup items={operationItems} label="Operação" roleKey={roleKey} jobTitle={user?.jobTitle ?? null} groupIndex={3} /><NavigationGroup items={systemItems} label="Administração" roleKey={roleKey} jobTitle={user?.jobTitle ?? null} groupIndex={4} /><NavigationGroup items={supportItems} label="Ajuda" roleKey={roleKey} jobTitle={user?.jobTitle ?? null} groupIndex={5} /></SidebarContent><SidebarFooter><SidebarMenu><SidebarMenuItem><DropdownMenu><DropdownMenuTrigger render={<SidebarMenuButton size="lg" tooltip={userName}><span className="grid size-7 place-items-center rounded-full bg-sidebar-warning text-xs font-semibold">{initials}</span><span className="grid flex-1 text-left text-sm leading-tight"><span className="truncate font-medium">{userName}</span><span className="truncate text-xs text-sidebar-foreground/55">{userRole}</span></span><SignOut className="ml-auto size-4 shrink-0 text-sidebar-foreground/55 group-data-[collapsible=icon]:hidden" /></SidebarMenuButton>} /><DropdownMenuContent side="top" align="start" sideOffset={8} className="w-[var(--sidebar-width)]"><DropdownMenuGroup><DropdownMenuLabel><div className="flex items-center gap-2"><span className="grid size-8 place-items-center rounded-full bg-sidebar-warning text-xs font-semibold">{initials}</span><div className="flex flex-col"><span className="text-sm font-medium leading-none">{userName}</span><span className="text-xs text-muted-foreground">{userRole}</span></div></div></DropdownMenuLabel></DropdownMenuGroup><DropdownMenuSeparator />{roleKey && hasCapability(roleKey, "acessar_configuracoes", user?.jobTitle ?? null) ? <DropdownMenuItem render={<Link href="/settings" prefetch />}><SlidersHorizontal className="size-4" />Configurações</DropdownMenuItem> : null}<DropdownMenuSeparator /><DropdownMenuItem variant="destructive" onClick={handleLogout}><SignOut className="size-4" />Sair</DropdownMenuItem></DropdownMenuContent></DropdownMenu></SidebarMenuItem></SidebarMenu></SidebarFooter></Sidebar>;
+  return <Sidebar collapsible="icon" variant="sidebar" rail><SidebarHeader><Link href="/dashboard" prefetch className="block px-2 pt-2"><CorreTopLogo src={logoUrl} className="h-8 w-full rounded-md object-contain object-left" /></Link></SidebarHeader><SidebarContent><NavigationGroup items={primaryItems} label="Operação" roleKey={roleKey} jobTitle={user?.jobTitle ?? null} groupIndex={0} /><NavigationGroup items={managementItems} label="Gestão" roleKey={roleKey} jobTitle={user?.jobTitle ?? null} groupIndex={1} /><NavigationGroup items={operationItems} label="Operação" roleKey={roleKey} jobTitle={user?.jobTitle ?? null} groupIndex={2} /><NavigationGroup items={systemItems} label="Administração" roleKey={roleKey} jobTitle={user?.jobTitle ?? null} groupIndex={3} /><NavigationGroup items={supportItems} label="Ajuda" roleKey={roleKey} jobTitle={user?.jobTitle ?? null} groupIndex={4} /></SidebarContent><SidebarFooter><SidebarMenu><SidebarMenuItem><DropdownMenu><DropdownMenuTrigger render={<SidebarMenuButton size="lg" tooltip={userName}><span className="grid size-7 place-items-center rounded-full bg-sidebar-warning text-xs font-semibold">{initials}</span><span className="grid flex-1 text-left text-sm leading-tight"><span className="truncate font-medium">{userName}</span><span className="truncate text-xs text-sidebar-foreground/55">{userRole}</span></span><SignOut className="ml-auto size-4 shrink-0 text-sidebar-foreground/55 group-data-[collapsible=icon]:hidden" /></SidebarMenuButton>} /><DropdownMenuContent side="top" align="start" sideOffset={8} className="w-[var(--sidebar-width)]"><DropdownMenuGroup><DropdownMenuLabel><div className="flex items-center gap-2"><span className="grid size-8 place-items-center rounded-full bg-sidebar-warning text-xs font-semibold">{initials}</span><div className="flex flex-col"><span className="text-sm font-medium leading-none">{userName}</span><span className="text-xs text-muted-foreground">{userRole}</span></div></div></DropdownMenuLabel></DropdownMenuGroup><DropdownMenuSeparator />{roleKey && hasCapability(roleKey, "acessar_configuracoes", user?.jobTitle ?? null) ? <DropdownMenuItem render={<Link href="/settings" prefetch />}><SlidersHorizontal className="size-4" />Configurações</DropdownMenuItem> : null}<DropdownMenuSeparator /><DropdownMenuItem variant="destructive" onClick={handleLogout}><SignOut className="size-4" />Sair</DropdownMenuItem></DropdownMenuContent></DropdownMenu></SidebarMenuItem></SidebarMenu></SidebarFooter></Sidebar>;
 }

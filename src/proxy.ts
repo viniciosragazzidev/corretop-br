@@ -6,43 +6,12 @@ import { and, eq } from "drizzle-orm";
 import { updateSession } from "@/utils/supabase/middleware";
 import { getDatabase, schema } from "@/shared/db";
 
-const protectedPathPrefixes = ["/welcome", "/dashboard", "/equipe", "/leads", "/roadmap", "/documentos", "/clientes", "/metas", "/relatorios", "/integridade", "/catalogo", "/assinatura", "/minha-fila", "/minha-meta", "/notificacoes", "/filiais", "/financeiro", "/configuracoes", "/diretor", "/gestor", "/corretor", "/super-admin", "/checklist", "/materiais-divulgacao", "/marketing"] as const;
+const protectedPathPrefixes = ["/welcome", "/dashboard", "/equipe", "/leads", "/roadmap", "/documentos", "/clientes", "/metas", "/relatorios", "/catalogo", "/minha-fila", "/minha-meta", "/notificacoes", "/filiais", "/financeiro", "/configuracoes", "/diretor", "/gestor", "/corretor", "/super-admin", "/checklist", "/materiais-divulgacao", "/marketing"] as const;
 const publicPaths = ["/compartilhado", "/api/public"] as const;
 const authPaths = ["/login", "/verify", "/admin/login"] as const;
 
 function copyCookies(source: NextResponse, target: NextResponse) {
   source.cookies.getAll().forEach((cookie) => target.cookies.set(cookie));
-}
-
-async function isBrokerOnboardingCompleted(userId: string): Promise<boolean> {
-  try {
-    const db = getDatabase();
-    const [membership] = await db
-      .select({ role: schema.tenantMemberships.role })
-      .from(schema.tenantMemberships)
-      .where(eq(schema.tenantMemberships.userId, userId))
-      .limit(1);
-
-    if (!membership || membership.role !== "broker") {
-      return true;
-    }
-
-    const [onboarding] = await db
-      .select({ status: schema.userOnboarding.status })
-      .from(schema.userOnboarding)
-      .where(
-        and(
-          eq(schema.userOnboarding.userId, userId),
-          eq(schema.userOnboarding.status, "COMPLETED")
-        )
-      )
-      .limit(1);
-
-    return !!onboarding;
-  } catch (e) {
-    console.error("Error checking onboarding status:", e);
-    return true;
-  }
 }
 
 export async function proxy(request: NextRequest) {
@@ -56,15 +25,27 @@ export async function proxy(request: NextRequest) {
     ?? request.cookies.get("better-auth.session_token.value");
 
   let userId: string | null = null;
+  let onboardingDone = true;
+
   if (session?.value) {
     try {
       const [dbSession] = await getDatabase()
-        .select({ userId: schema.session.userId })
+        .select({
+          userId: schema.session.userId,
+          role: schema.tenantMemberships.role,
+          onboardingStatus: schema.userOnboarding.status,
+        })
         .from(schema.session)
+        .leftJoin(schema.tenantMemberships, eq(schema.tenantMemberships.userId, schema.session.userId))
+        .leftJoin(schema.userOnboarding, eq(schema.userOnboarding.userId, schema.session.userId))
         .where(eq(schema.session.token, session.value))
         .limit(1);
+
       if (dbSession) {
         userId = dbSession.userId;
+        if (dbSession.role === "broker") {
+          onboardingDone = dbSession.onboardingStatus === "COMPLETED";
+        }
       }
     } catch (e) {
       console.error("Error fetching session from DB in proxy.ts:", e);
@@ -72,7 +53,6 @@ export async function proxy(request: NextRequest) {
   }
 
   if (userId) {
-    const onboardingDone = await isBrokerOnboardingCompleted(userId);
     if (!onboardingDone && !pathname.startsWith("/onboarding") && !pathname.startsWith("/primeiro-acesso") && !pathname.startsWith("/login") && !pathname.startsWith("/api/auth")) {
       const response = NextResponse.redirect(new URL("/onboarding", request.url));
       copyCookies(supabaseResponse, response);
