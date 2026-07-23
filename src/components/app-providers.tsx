@@ -15,7 +15,13 @@ function ShortcutRegistrar() {
 export function AppProviders({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
-      queries: { staleTime: 30_000, refetchOnWindowFocus: false },
+      queries: {
+        staleTime: 30_000,
+        refetchOnWindowFocus: true,
+        refetchOnReconnect: "always",
+        networkMode: "online",
+      },
+      mutations: { networkMode: "online" },
     },
   }));
 

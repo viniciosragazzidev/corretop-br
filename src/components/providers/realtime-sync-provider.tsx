@@ -1,8 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+
 import { createClient } from "@/utils/supabase/client";
 
 interface RealtimeSyncProviderProps {
@@ -32,151 +34,140 @@ interface NotificationRow {
   message: string;
 }
 
-export function RealtimeSyncProvider({
-  children,
-  tenantId,
-  userId,
-  role,
-  branchId,
-}: RealtimeSyncProviderProps) {
+export function RealtimeSyncProvider({ children, tenantId, userId, role, branchId }: RealtimeSyncProviderProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const playSoundRef = useRef<((cue: any) => void) | null>(null);
   const seenLeadIdsRef = useRef<Set<string>>(new Set());
+  const broadcastRef = useRef<BroadcastChannel | null>(null);
+  const [isOnline, setIsOnline] = useState(true);
+  const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
+
+  const syncClientState = useCallback((reason: string, broadcast = true) => {
+    void queryClient.invalidateQueries({ queryKey: ["local-first", tenantId, userId] });
+    router.refresh();
+    setLastSyncedAt(Date.now());
+    if (broadcast) broadcastRef.current?.postMessage({ type: "local-first.invalidate", reason });
+  }, [queryClient, router, tenantId, userId]);
 
   useEffect(() => {
-    import("cuelume")
-      .then((cuelume) => {
-        playSoundRef.current = cuelume.play;
-        cuelume.bind();
-      })
-      .catch((error) => console.error("Failed to load cuelume:", error));
+    import("cuelume").then((cuelume) => {
+      playSoundRef.current = cuelume.play;
+      cuelume.bind();
+    }).catch((error) => console.error("Falha ao carregar sons de notificacao:", error));
   }, []);
 
-  const notifyNewLead = useCallback(
-    (lead: LeadRow) => {
-      const isAssignedToMe = lead.corretor_id === userId;
-      const isInMyBranch = lead.branch_id === branchId;
-      const isUnassigned = !lead.corretor_id;
-      const hasNoBranch = !lead.branch_id;
-      const canNotify =
-        isAssignedToMe ||
-        isUnassigned ||
-        hasNoBranch ||
-        role === "director" ||
-        (role === "manager" && isInMyBranch);
+  useEffect(() => {
+    const handleOnline = () => { setIsOnline(true); syncClientState("online"); };
+    const handleOffline = () => setIsOnline(false);
+    setIsOnline(navigator.onLine);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, [syncClientState]);
 
-      if (!canNotify) return;
+  useEffect(() => {
+    if (typeof BroadcastChannel === "undefined") return;
+    const channel = new BroadcastChannel(`corretop:local-first:${tenantId}:${userId}`);
+    broadcastRef.current = channel;
+    channel.onmessage = (event) => {
+      if (event.data?.type === "local-first.invalidate") syncClientState("tab", false);
+    };
+    return () => {
+      channel.close();
+      broadcastRef.current = null;
+    };
+  }, [tenantId, userId, syncClientState]);
 
-      playSoundRef.current?.("success");
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible" && navigator.onLine) syncClientState("visibility");
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("focus", handleVisibility);
+    const fallback = window.setInterval(() => {
+      if (document.visibilityState === "visible" && navigator.onLine) syncClientState("fallback");
+    }, 15_000);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("focus", handleVisibility);
+      window.clearInterval(fallback);
+    };
+  }, [syncClientState]);
 
-      const description = isAssignedToMe
-        ? `O lead "${lead.nome}" foi distribuído para você.`
-        : isUnassigned && hasNoBranch
-          ? `"${lead.nome}" chegou sem filial e está aguardando distribuição.`
-          : isUnassigned
-            ? `"${lead.nome}" chegou na sua unidade e está aguardando distribuição.`
-            : `Novo lead "${lead.nome}" foi adicionado.`;
+  const notifyNewLead = useCallback((lead: LeadRow) => {
+    const isAssignedToMe = lead.corretor_id === userId;
+    const isInMyBranch = lead.branch_id === branchId;
+    const isUnassigned = !lead.corretor_id;
+    const hasNoBranch = !lead.branch_id;
+    const canNotify = isAssignedToMe || isUnassigned || hasNoBranch || role === "director" || (role === "manager" && isInMyBranch);
+    if (!canNotify) return;
+    playSoundRef.current?.("success");
+    const description = isAssignedToMe
+      ? `O lead "${lead.nome}" foi distribuído para você.`
+      : isUnassigned && hasNoBranch
+        ? `"${lead.nome}" chegou sem filial e está aguardando distribuição.`
+        : isUnassigned
+          ? `"${lead.nome}" chegou na sua unidade e está aguardando distribuição.`
+          : `Novo lead "${lead.nome}" foi adicionado.`;
+    toast.success("Novo lead recebido!", {
+      description,
+      action: { label: "Abrir", onClick: () => router.push(`/leads/${lead.id}`) },
+      duration: 10_000,
+    });
+  }, [userId, branchId, role, router]);
 
-      toast.success("Novo lead recebido!", {
-        description,
-        action: {
-          label: "Abrir",
-          onClick: () => router.push(`/leads/${lead.id}`),
-        },
-        duration: 10_000,
-      });
-    },
-    [userId, branchId, role, router],
-  );
-
-  // ── Supabase Realtime: leads + notifications ────────────────────────
   useEffect(() => {
     const supabase = createClient();
-    const channelName = `public:leads:tenant:${tenantId}:user:${userId}`;
-
     const channel = supabase
-      .channel(channelName)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "leads",
-          filter: `tenant_id=eq.${tenantId}`,
-        },
-        (payload) => {
-          const newRow = payload.new as LeadRow | null;
-          const oldRow = payload.old as Partial<LeadRow> | null;
-
-          if (payload.eventType === "INSERT" && newRow) {
-            if (!seenLeadIdsRef.current.has(newRow.id)) {
-              seenLeadIdsRef.current.add(newRow.id);
-              notifyNewLead(newRow);
-            }
-            router.refresh();
+      .channel(`public:tenant:${tenantId}:user:${userId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "leads", filter: `tenant_id=eq.${tenantId}` }, (payload) => {
+        const newRow = payload.new as LeadRow | null;
+        const oldRow = payload.old as Partial<LeadRow> | null;
+        if (payload.eventType === "INSERT" && newRow) {
+          if (!seenLeadIdsRef.current.has(newRow.id)) {
+            seenLeadIdsRef.current.add(newRow.id);
+            notifyNewLead(newRow);
           }
-
-          if (payload.eventType === "UPDATE" && newRow) {
-            if (
-              role === "director" ||
-              (role === "manager" && (newRow.branch_id === branchId || oldRow?.branch_id === branchId)) ||
-              (role === "broker" && (
-                newRow.corretor_id === userId ||
-                oldRow?.corretor_id === userId ||
-                newRow.branch_id === branchId ||
-                oldRow?.branch_id === branchId
-              ))
-            ) {
-              router.refresh();
-            }
-          }
-
-          if (payload.eventType === "DELETE" && oldRow) {
-            if (
-              role === "director" ||
-              (role === "manager" && oldRow.branch_id === branchId) ||
-              (role === "broker" && (oldRow.corretor_id === userId || oldRow.branch_id === branchId))
-            ) {
-              router.refresh();
-            }
-          }
-        },
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "notifications",
-          filter: `recipient_user_id=eq.${userId}`,
-        },
-        (payload) => {
-          const notification = payload.new as NotificationRow | null;
-          if (!notification || notification.tenant_id !== tenantId) return;
-
-          playSoundRef.current?.("success");
-          toast.success(notification.title, {
-            description: notification.message,
-            action: notification.lead_id
-              ? {
-                  label: "Abrir",
-                  onClick: () => router.push(`/leads/${notification.lead_id}`),
-                }
-              : undefined,
-          });
-          router.refresh();
-        },
-      )
+          syncClientState("lead.insert");
+        }
+        if (payload.eventType === "UPDATE" && newRow && (role === "director" || (role === "manager" && (newRow.branch_id === branchId || oldRow?.branch_id === branchId)) || (role === "broker" && (newRow.corretor_id === userId || oldRow?.corretor_id === userId || newRow.branch_id === branchId || oldRow?.branch_id === branchId)))) syncClientState("lead.update");
+        if (payload.eventType === "DELETE" && oldRow && (role === "director" || (role === "manager" && oldRow.branch_id === branchId) || (role === "broker" && (oldRow.corretor_id === userId || oldRow.branch_id === branchId)))) syncClientState("lead.delete");
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `recipient_user_id=eq.${userId}` }, (payload) => {
+        const notification = payload.new as NotificationRow | null;
+        if (!notification || notification.tenant_id !== tenantId) return;
+        playSoundRef.current?.("success");
+        toast.success(notification.title, { description: notification.message, action: notification.lead_id ? { label: "Abrir", onClick: () => router.push(`/leads/${notification.lead_id}`) } : undefined });
+        syncClientState("notification.insert");
+      })
+      // Server components are refreshed as a fallback even when a screen has
+      // no React Query hook yet. This keeps every tenant-scoped surface live.
+      .on("postgres_changes", { event: "*", schema: "public", table: "lead_documents", filter: `tenant_id=eq.${tenantId}` }, () => syncClientState("documents"))
+      .on("postgres_changes", { event: "*", schema: "public", table: "lead_tasks", filter: `tenant_id=eq.${tenantId}` }, () => syncClientState("tasks"))
+      .on("postgres_changes", { event: "*", schema: "public", table: "clients", filter: `tenant_id=eq.${tenantId}` }, () => syncClientState("clients"))
+      .on("postgres_changes", { event: "*", schema: "public", table: "sales", filter: `tenant_id=eq.${tenantId}` }, () => syncClientState("sales"))
+      .on("postgres_changes", { event: "*", schema: "public", table: "tenant_memberships", filter: `tenant_id=eq.${tenantId}` }, () => syncClientState("team"))
       .subscribe((status, error) => {
         if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
-          console.error("Falha ao assinar atualizações em tempo real dos leads.", error);
+          setIsOnline(false);
+          console.error("Falha ao assinar atualizações em tempo real.", error);
+        }
+        if (status === "SUBSCRIBED") {
+          setIsOnline(true);
+          setLastSyncedAt(Date.now());
         }
       });
+    return () => { void supabase.removeChannel(channel); };
+  }, [tenantId, userId, role, branchId, router, notifyNewLead, syncClientState]);
 
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [tenantId, userId, role, branchId, router, notifyNewLead]);
-
-  return <>{children}</>;
+  return (
+    <>
+      {!isOnline ? <div role="status" className="fixed inset-x-0 bottom-3 z-[70] mx-auto w-fit rounded-full border border-warning/30 bg-card px-3 py-1.5 text-xs text-warning shadow-lg">Conexão perdida · as alterações serão sincronizadas assim que voltar</div> : null}
+      <div data-local-first-sync={lastSyncedAt ? new Date(lastSyncedAt).toISOString() : undefined}>{children}</div>
+    </>
+  );
 }

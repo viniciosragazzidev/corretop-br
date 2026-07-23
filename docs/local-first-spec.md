@@ -70,6 +70,28 @@ Hooks de domínio devem usar `useMutation` com `onMutate`, snapshot, `onError` p
 rollback e `onSettled` para invalidação. Nunca montar uma chave sem `tenantId` e
 `userId` vindos do contexto confiável.
 
+## Implementação transversal atual
+
+O contrato passou a ser obrigatório para novas superfícies e foi conectado ao
+shell autenticado em `src/components/providers/realtime-sync-provider.tsx` e
+`src/components/app-providers.tsx`:
+
+- Supabase Realtime invalida e atualiza leads, notificações, documentos, tarefas,
+  clientes, vendas e equipe sem depender de F5.
+- Mudanças em outra aba são propagadas por `BroadcastChannel`.
+- Retorno à aba, reconexão e uma verificação de contingência de 15 segundos
+  reconciliam o servidor automaticamente.
+- O estado de conexão é anunciado com uma mensagem acessível, sem afirmar que
+  uma operação foi persistida enquanto estiver offline.
+- `src/utils/local-first/use-local-first-mutation.ts` é o adaptador obrigatório
+  para novas mutações: aplica otimista, rollback, confirmação e invalidação.
+- Chaves de cache devem usar `localFirstQueryKey(tenantId, userId, domínio, id)`.
+
+As mutações legadas continuam funcionando com Server Actions e `revalidatePath`,
+mas novas features não devem adicionar `router.refresh()` como única estratégia.
+Cada migração de domínio precisa trocar a atualização manual pelo adaptador local
+first e adicionar teste de sucesso, rollback, permissão e reconexão.
+
 ## Definition of Done
 
 - [ ] Feedback otimista aparece antes do retorno HTTP.
