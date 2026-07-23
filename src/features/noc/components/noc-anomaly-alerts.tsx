@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { AlertCircleIcon, ArrowRight, CheckCircle, Warning } from "@/components/huge-icons";
+import { WarningCircle, ArrowRight, CheckCircle, Warning } from "@/components/huge-icons";
 import { Button } from "@/components/ui/button";
 import type { BranchHealth } from "@/features/noc/queries";
 
@@ -36,7 +36,7 @@ export function NocAnomalyAlerts({ branches }: { branches: BranchHealth[] }) {
                   isCritical ? "bg-red-500/20 text-red-600 dark:text-red-400" : "bg-amber-500/20 text-amber-600 dark:text-amber-400"
                 }`}
               >
-                {isCritical ? <AlertCircleIcon className="size-5" /> : <Warning className="size-5" />}
+                {isCritical ? <WarningCircle className="size-5" /> : <Warning className="size-5" />}
               </div>
 
               <div>

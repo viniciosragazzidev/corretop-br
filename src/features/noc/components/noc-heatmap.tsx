@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { Buildings, Users, Clock, AlertCircleIcon, CircleCheckIcon } from "@/components/huge-icons";
+import { Buildings, Users, Clock, WarningCircle, CircleCheckIcon } from "@/components/huge-icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
