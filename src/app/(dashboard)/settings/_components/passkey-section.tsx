@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { CheckCircle, Fingerprint, LockKey, PencilSimple, Plus, Trash, WarningCircle } from "@/components/huge-icons";
 
+import { formatDate } from "@/features/quotes/utils";
 import { authClient } from "@/shared/auth/client";
 import { recordSecurityAuditAction } from "../security-actions";
 import { Button } from "@/components/ui/button";
@@ -25,17 +26,7 @@ type Passkey = {
   updatedAt: string;
 };
 
-function formatDate(dateStr: string) {
-  try {
-    return new Date(dateStr).toLocaleDateString("pt-BR", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  } catch {
-    return dateStr;
-  }
-}
+
 
 const DEVICE_LABELS: Record<string, string> = {
   platform: "Biometria (Face ID / Digital)",
@@ -307,7 +298,7 @@ export function PasskeySection() {
                           </span>
                         )}
                         <span className="text-[10px] text-muted-foreground">
-                          Criado em {formatDate(pk.createdAt)}
+                          Criado em {formatDate(pk.createdAt, { day: "numeric", month: "short", year: "numeric" })}
                         </span>
                       </div>
                     </div>

@@ -32,7 +32,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatCurrency } from "@/features/quotes/utils";
+import { formatCurrency, formatCurrencyCompact, normalize } from "@/features/quotes/utils";
 import type { CommissionDetailsData } from "@/features/financeiro/queries/commission-details";
 
 type Props = {
@@ -42,25 +42,11 @@ type Props = {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function formatCurrencyCompact(value: string): string {
-  const num = parseFloat(value);
-  if (isNaN(num)) return "R$ 0";
-  if (num >= 1_000_000) return `R$ ${(num / 1_000_000).toFixed(1)}M`;
-  if (num >= 1_000) return `R$ ${(num / 1_000).toFixed(1)}K`;
-  return formatCurrency(value);
-}
 
 function formatDate(date: Date | string): string {
   return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(
     new Date(date),
   );
-}
-
-function normalize(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase("pt-BR");
 }
 
 // StatCard do @/components/dashboard/metric-card é usado abaixo

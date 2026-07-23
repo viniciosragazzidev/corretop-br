@@ -25,6 +25,7 @@ import { LeadActionHub } from "@/features/leads/components/lead-action-hub";
 
 import { BeneficiariesSection } from "./beneficiaries-section";
 import { getLeadBeneficiaries } from "@/features/post-sale/queries";
+import { maskPhone, maskName } from "@/features/quotes/utils";
 import { Phone, Clock, Share, Buildings, UserPlus, LockKey } from "@/components/huge-icons";
 import { PersonRecordDetails } from "@/features/customer-record/components/person-record-details";
 
@@ -461,23 +462,9 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
   );
 }
 
-function maskPhone(phone: string) {
-  const digits = phone.replace(/\D/g, "");
-  return digits.length > 4 ? `${"•".repeat(Math.max(0, digits.length - 4))}${digits.slice(-4)}` : "••••";
-}
-
 function maskEmail(email: string) {
   const [local, domain] = email.split("@");
   if (!local || !domain) return "••••";
   return `${local.slice(0, 1)}${"•".repeat(Math.max(2, local.length - 1))}@${domain}`;
 }
 
-function maskName(name: string) {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 0) return "";
-  const first = parts[0];
-  if (parts.length === 1) {
-    return first.slice(0, Math.ceil(first.length / 2)) + "*".repeat(Math.floor(first.length / 2));
-  }
-  return `${first} ${"*".repeat(Math.max(1, name.length - first.length - 1))}`;
-}

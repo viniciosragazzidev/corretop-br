@@ -28,11 +28,7 @@ type SaleRow = {
   createdAt: string;
 };
 
-import { formatCurrency } from "@/features/quotes/utils";
-
-function formatDate(dateStr: string): string {
-  return new Intl.DateTimeFormat("pt-BR").format(new Date(dateStr));
-}
+import { formatCurrency, formatDate } from "@/features/quotes/utils";
 
 // SaleStatusBadge compartilhado de @/components/status-badges
 

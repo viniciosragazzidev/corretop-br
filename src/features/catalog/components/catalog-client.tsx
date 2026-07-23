@@ -50,6 +50,7 @@ import {
   getPlanPrices,
   upsertPlanPricesAction,
 } from "@/features/catalog/actions";
+import { normalize } from "@/features/quotes/utils";
 import type {
   CatalogActionState,
   CarrierPlanRecord,
@@ -651,13 +652,6 @@ export function CarrierSheet({ carrier: initialCarrier }: { carrier: CarrierReco
       </SheetContent>
     </Sheet>
   );
-}
-
-function normalize(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase("pt-BR");
 }
 
 export function CarriersGrid({ carriers }: { carriers: CarrierRecord[] }) {

@@ -17,6 +17,7 @@ export type LeadRow = {
   corretorNome: string | null;
 };
 
+import { maskPhone } from "@/features/quotes/utils";
 import { LeadStatusBadge } from "@/components/status-badges";
 
 export function LeadsTableBody({ leads, contextRole }: { leads: LeadRow[]; contextRole: string }) {
@@ -62,15 +63,7 @@ export function LeadsTableBody({ leads, contextRole }: { leads: LeadRow[]; conte
   );
 }
 
-function maskPhone(phone: string) {
-  const digits = phone.replace(/\D/g, "");
-  return digits.length > 4 ? `${"?".repeat(Math.max(0, digits.length - 4))}${digits.slice(-4)}` : "????";
-}
-
 function isActiveServiceStatus(status: string) {
   return ["in_contact", "quote_sent", "negotiation", "documentation_pending", "under_analysis"].includes(status);
 }
 
-function statusLabel(status: string) {
-  return ({ new: "Novo", distributed: "Distribuido", in_contact: "Em atendimento", quote_sent: "Cotacao enviada", negotiation: "Negociacao", documentation_pending: "Documentacao pendente", under_analysis: "Em analise", converted: "Convertido", lost: "Perdido" } as Record<string, string>)[status] ?? status;
-}

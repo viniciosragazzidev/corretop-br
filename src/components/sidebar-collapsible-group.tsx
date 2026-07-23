@@ -44,7 +44,7 @@ export function SidebarCollapsibleGroup({
           </div>
         )}
         <span
-          className="text-[9px] font-bold uppercase tracking-widest text-sidebar-foreground/40 leading-none"
+          className="text-[9px] items-start justify-start flex-nowrap w-full text-ellipsis truncate  font-bold uppercase tracking-widest text-sidebar-foreground/40 leading-none"
           style={{ writingMode: "vertical-rl", textOrientation: "mixed", transform: "rotate(180deg)" }}
         >
           {label}

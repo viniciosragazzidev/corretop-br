@@ -1,5 +1,6 @@
 import "server-only";
 
+import { maskPhone } from "@/features/quotes/utils";
 import { and, desc, eq, gte, inArray, isNotNull, isNull, ne, or, sql } from "drizzle-orm";
 
 import { getRequiredTenantContext } from "@/shared/auth/tenant-context";
@@ -71,11 +72,6 @@ export async function getBrokerDashboardData(): Promise<BrokerDashboardData> {
     },
     pendingStaleness,
   };
-}
-
-function maskPhone(phone: string) {
-  const digits = phone.replace(/\D/g, "");
-  return digits.length > 4 ? `${"•".repeat(Math.max(0, digits.length - 4))}${digits.slice(-4)}` : "••••";
 }
 
 export type ManagerDashboardData = {

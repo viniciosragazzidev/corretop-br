@@ -1,5 +1,4 @@
 import { Pool } from "@neondatabase/serverless";
-import { sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-serverless";
 import { drizzle as drizzlePostgres } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
@@ -8,6 +7,16 @@ import * as schema from "./schema";
 type Database = ReturnType<typeof drizzlePostgres<typeof schema>>;
 
 let database: Database | undefined;
+
+function connectionLimit() {
+  // Static generation uses several workers and must not serialize all page-data
+  // queries through a single socket. Runtime serverless instances stay capped
+  // at one connection by default to protect Supabase's project limit.
+  if (process.env.NEXT_PHASE === "phase-production-build") return 3;
+  const configured = Number.parseInt(process.env.DB_POOL_MAX ?? "", 10);
+  if (Number.isFinite(configured) && configured >= 1 && configured <= 10) return configured;
+  return process.env.NODE_ENV === "production" ? 1 : 3;
+}
 
 function getDatabaseUrl(): string {
   const databaseUrl = process.env.SUPABASE_DB_URL ?? process.env.DATABASE_URL;
@@ -38,9 +47,10 @@ function createPostgresDatabase(databaseUrl: string): Database {
   return drizzlePostgres(
     postgres(databaseUrl, {
       prepare: false,
-      max: 3,
+      max: connectionLimit(),
       connect_timeout: 10,
-      idle_timeout: 15,
+      idle_timeout: 5,
+      max_lifetime: 60,
     }),
     { schema },
   );
@@ -55,9 +65,9 @@ export function getDatabase(): Database {
     database ??= drizzle(
       new Pool({
         connectionString: databaseUrl,
-        max: 3,
-        idleTimeoutMillis: 15000,
-        connectionTimeoutMillis: 10000,
+        max: connectionLimit(),
+        idleTimeoutMillis: 5000,
+        connectionTimeoutMillis: 5000,
       }),
       { schema },
     ) as unknown as Database;

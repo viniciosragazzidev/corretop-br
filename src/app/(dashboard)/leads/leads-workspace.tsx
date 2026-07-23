@@ -29,6 +29,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { LEAD_STATUS_LABELS } from "@/features/leads/lead-status-constants";
+import { maskPhone, maskName, formatDate } from "@/features/quotes/utils";
 import { OwnershipContext } from "@/components/ownership-context";
 import { LeadHealthBadge, computeLeadHealth } from "@/features/leads/components/lead-health-badge";
 import { LeadQuickNote } from "@/features/leads/components/lead-quick-note";
@@ -197,7 +198,7 @@ export function LeadsWorkspace({
                         <OwnershipContext brokerName={lead.corretorNome} branchName={lead.branchName} className="text-sm" />
                       </TableCell>
                       <TableCell className="hidden text-muted-foreground lg:table-cell">
-                        {formatDate(lead.createdAt)}
+                        {formatDate(lead.createdAt, { day: "2-digit", month: "short" })}
                       </TableCell>
                       <TableCell className="pr-5 text-right">
                         <Button
@@ -297,7 +298,7 @@ export function LeadsWorkspace({
                         <DetailRow label="Responsável" value={[selectedLead.corretorNome ?? "Aguardando distribuição", selectedLead.branchName ?? "Sem unidade"].join(" · ")} />
                         <DetailRow label="Tipo" value={selectedLead.tipo === "PME" ? "PME (Pessoa Jurídica)" : "PF (Pessoa Física)"} />
                         <DetailRow label="Origem" value={selectedLead.sourceCampaign || (selectedLead.origem === "manual" ? "Manual" : "Webhook")} />
-                        <DetailRow label="Entrada" value={formatDate(selectedLead.createdAt)} />
+                        <DetailRow label="Entrada" value={formatDate(selectedLead.createdAt, { day: "2-digit", month: "short" })} />
                       </dl>
                     </SheetSection>
                     <Button className="w-full" render={<Link href={`/leads/${selectedLead.id}`} />} variant="outline">
@@ -452,7 +453,7 @@ function KanbanLeadCard({
                           </span>
                           <LeadHealthBadge health={computeLeadHealth(lead, slaFirstContactMinutes, slaStagnantDays)} />
                         </div>
-                        <span className="shrink-0 text-xs text-muted-foreground">{formatDate(lead.createdAt)}</span>
+                        <span className="shrink-0 text-xs text-muted-foreground">{formatDate(lead.createdAt, { day: "2-digit", month: "short" })}</span>
                       </div>
     </button>
   );
@@ -475,25 +476,3 @@ function statusLabel(status: string) {
   return (LEAD_STATUS_LABELS as Record<string, string>)[status] ?? status;
 }
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short" }).format(
-    new Date(value),
-  );
-}
-
-function maskPhone(phone: string) {
-  const digits = phone.replace(/\D/g, "");
-  return digits.length > 4
-    ? `${"•".repeat(Math.max(0, digits.length - 4))}${digits.slice(-4)}`
-    : "••••";
-}
-
-function maskName(name: string) {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 0) return "";
-  const first = parts[0];
-  if (parts.length === 1) {
-    return first.slice(0, Math.ceil(first.length / 2)) + "*".repeat(Math.floor(first.length / 2));
-  }
-  return `${first} ${"*".repeat(Math.max(1, name.length - first.length - 1))}`;
-}

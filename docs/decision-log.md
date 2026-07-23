@@ -19,6 +19,19 @@ do Super-admin. Editor de fluxo, RAG, A/B e rollback são etapas posteriores.
 
 ## Decididas
 
+## DEC-052 - Proteção contra saturação de conexões do banco
+
+**Estado:** Aceita  
+**Data:** 2026-07-23
+
+O cliente de banco mantém um limite pequeno por processo (padrão de uma conexão em
+runtime serverless), fecha conexões ociosas rapidamente e aceita `DB_POOL_MAX` como
+parâmetro operacional entre 1 e 10. Durante o build estático o limite temporário é
+maior para permitir os workers de geração. O proxy usa uma cache de cinco segundos
+somente para a consulta de identidade da sessão; permissões e dados de negócio
+continuam sempre sendo consultados e validados no servidor. O objetivo é evitar que
+prefetch/navegação de duas máquinas consuma o limite do projeto Supabase.
+
 > DEC-041 — Documentos são opcionais e podem ser vinculados ao lead, cliente, titular ou dependente. O checklist orienta o atendimento, mas nunca bloqueia distribuição, conversão ou pós-venda. Arquivos usam armazenamento privado, acesso temporário autorizado, auditoria e exclusão lógica.
 
 | ID | Decisão | Estado | Evidência |

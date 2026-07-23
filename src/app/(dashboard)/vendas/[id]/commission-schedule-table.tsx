@@ -31,12 +31,7 @@ export type ScheduleItem = {
   notes: string | null;
 };
 
-import { formatCurrency } from "@/features/quotes/utils";
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return "—";
-  return new Intl.DateTimeFormat("pt-BR").format(new Date(dateStr));
-}
+import { formatCurrency, formatDate } from "@/features/quotes/utils";
 
 // ScheduleStatusBadge compartilhado de @/components/status-badges
 

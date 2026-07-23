@@ -15,13 +15,7 @@ export function onlyDigits(value: string): string {
   return value.replace(/\D/g, "");
 }
 
-/** Remove acentos e normaliza para minúsculo (para detecção) */
-function normalize(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase("pt-BR");
-}
+import { normalize } from "@/features/quotes/utils";
 
 // ─── Formatos ────────────────────────────────────────────────────────────────
 

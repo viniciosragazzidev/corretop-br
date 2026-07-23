@@ -32,7 +32,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import Link from "next/link";
-import { formatCurrency } from "@/features/quotes/utils";
+import { formatCurrency, formatCurrencyCompact } from "@/features/quotes/utils";
 import type { FinancialDashboardData } from "@/features/financeiro/queries";
 
 type Props = {
@@ -42,20 +42,10 @@ type Props = {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function formatCurrencyCompact(value: string): string {
-  const num = parseFloat(value);
-  if (isNaN(num)) return "R$ 0";
-  if (num >= 1_000_000) return `R$ ${(num / 1_000_000).toFixed(1)}M`;
-  if (num >= 1_000) return `R$ ${(num / 1_000).toFixed(1)}K`;
-  return formatCurrency(value);
-}
 
 function formatMonth(month: string): string {
   const [y, m] = month.split("-");
-  const months = [
-    "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
-    "Jul", "Ago", "Set", "Out", "Nov", "Dez",
-  ];
+  const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
   return `${months[parseInt(m, 10) - 1]}/${y.slice(2)}`;
 }
 

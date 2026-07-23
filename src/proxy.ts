@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { randomUUID } from "node:crypto";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 import { updateSession } from "@/utils/supabase/middleware";
 import { getDatabase, schema } from "@/shared/db";
@@ -9,6 +9,34 @@ import { getDatabase, schema } from "@/shared/db";
 const protectedPathPrefixes = ["/welcome", "/dashboard", "/equipe", "/leads", "/roadmap", "/documentos", "/clientes", "/metas", "/relatorios", "/catalogo", "/minha-fila", "/minha-meta", "/notificacoes", "/filiais", "/financeiro", "/configuracoes", "/diretor", "/gestor", "/corretor", "/super-admin", "/checklist", "/materiais-divulgacao", "/marketing"] as const;
 const publicPaths = ["/compartilhado", "/api/public"] as const;
 const authPaths = ["/login", "/verify", "/admin/login"] as const;
+
+type SessionLookup = { userId: string; role: string | null; onboardingStatus: string | null } | null;
+const sessionCache = new Map<string, { expiresAt: number; value: SessionLookup }>();
+const SESSION_CACHE_TTL_MS = 5_000;
+
+async function lookupSession(token: string): Promise<SessionLookup> {
+  const cached = sessionCache.get(token);
+  if (cached && cached.expiresAt > Date.now()) return cached.value;
+  if (cached) sessionCache.delete(token);
+  const [dbSession] = await getDatabase()
+    .select({
+      userId: schema.session.userId,
+      role: schema.tenantMemberships.role,
+      onboardingStatus: schema.userOnboarding.status,
+    })
+    .from(schema.session)
+    .leftJoin(schema.tenantMemberships, eq(schema.tenantMemberships.userId, schema.session.userId))
+    .leftJoin(schema.userOnboarding, eq(schema.userOnboarding.userId, schema.session.userId))
+    .where(eq(schema.session.token, token))
+    .limit(1);
+  const value = dbSession ?? null;
+  sessionCache.set(token, { expiresAt: Date.now() + SESSION_CACHE_TTL_MS, value });
+  if (sessionCache.size > 500) {
+    const first = sessionCache.keys().next().value;
+    if (first) sessionCache.delete(first);
+  }
+  return value;
+}
 
 function copyCookies(source: NextResponse, target: NextResponse) {
   source.cookies.getAll().forEach((cookie) => target.cookies.set(cookie));
@@ -29,17 +57,7 @@ export async function proxy(request: NextRequest) {
 
   if (session?.value) {
     try {
-      const [dbSession] = await getDatabase()
-        .select({
-          userId: schema.session.userId,
-          role: schema.tenantMemberships.role,
-          onboardingStatus: schema.userOnboarding.status,
-        })
-        .from(schema.session)
-        .leftJoin(schema.tenantMemberships, eq(schema.tenantMemberships.userId, schema.session.userId))
-        .leftJoin(schema.userOnboarding, eq(schema.userOnboarding.userId, schema.session.userId))
-        .where(eq(schema.session.token, session.value))
-        .limit(1);
+      const dbSession = await lookupSession(session.value);
 
       if (dbSession) {
         userId = dbSession.userId;
