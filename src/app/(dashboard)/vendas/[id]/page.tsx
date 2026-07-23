@@ -109,12 +109,15 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
             label="Valor da Venda"
             value={formatCurrency(Number(sale.saleValue))}
             icon={CreditCard}
+            animated
           />
           <StatCard
             label="Total em Comissões"
             value={formatCurrency(totalCommissions)}
             icon={CurrencyCircleDollar}
             iconClassName="bg-blue-500/10 text-blue-600 dark:text-blue-400"
+            animated
+            animationDelay={0.06}
           />
           <StatCard
             label="Comissão Paga"
@@ -122,6 +125,8 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
             icon={CheckCircle}
             iconClassName="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
             valueClassName="text-emerald-600 dark:text-emerald-400"
+            animated
+            animationDelay={0.12}
           />
           <StatCard
             label="Comissão A Pagar"
@@ -129,6 +134,8 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
             icon={Clock}
             iconClassName="bg-amber-500/10 text-amber-600 dark:text-amber-400"
             valueClassName="text-amber-600 dark:text-amber-400"
+            animated
+            animationDelay={0.18}
           />
         </div>
 

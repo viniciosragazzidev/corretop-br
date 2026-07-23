@@ -390,6 +390,51 @@ export const leads = pgTable(
   ],
 );
 
+/** Tenant-scoped switch and policy for the WhatsApp qualification assistant. */
+export const aiQualificationConfigs = pgTable(
+  "ai_qualification_configs",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    enabled: boolean("enabled").notNull().default(false),
+    assistantName: text("assistant_name").notNull().default("Assistente CorreTop"),
+    initialMessage: text("initial_message").notNull(),
+    timeoutMinutes: integer("timeout_minutes").notNull().default(30),
+    maxRetries: integer("max_retries").notNull().default(2),
+    updatedBy: text("updated_by").references(() => user.id, { onDelete: "set null" }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [uniqueIndex("ai_qualification_configs_tenant_unique").on(table.tenantId)],
+);
+
+/** One active qualification state per lead; the JSON payload contains only answers, never secrets. */
+export const aiQualificationSessions = pgTable(
+  "ai_qualification_sessions",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    leadId: text("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+    status: text("status").notNull().default("waiting_customer"),
+    currentQuestionKey: text("current_question_key").notNull().default("city"),
+    collectedData: jsonb("collected_data").notNull().default({}),
+    missingFields: jsonb("missing_fields").notNull().default([]),
+    score: integer("score"),
+    summary: text("summary"),
+    retryCount: integer("retry_count").notNull().default(0),
+    lastInteractionAt: timestamp("last_interaction_at", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    failureReason: text("failure_reason"),
+    version: integer("version").notNull().default(0),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    uniqueIndex("ai_qualification_sessions_tenant_lead_unique").on(table.tenantId, table.leadId),
+    index("ai_qualification_sessions_tenant_status_idx").on(table.tenantId, table.status),
+  ],
+);
+
 export const leadBeneficiaries = pgTable(
   "lead_beneficiaries",
   {

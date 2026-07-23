@@ -10,6 +10,7 @@ import {
   MagnifyingGlass,
   TrendUp,
 } from "@/components/huge-icons";
+import { EmptyState } from "@/components/empty-state";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { StatCard } from "@/components/dashboard/metric-card";
+import { ScheduleStatusBadge } from "@/components/status-badges";
 import {
   Table,
   TableBody,
@@ -73,27 +75,7 @@ function normalize(value: string) {
 
 // ─── Status Badge ─────────────────────────────────────────────────────────
 
-function ScheduleStatusBadge({ status }: { status: string }) {
-  if (status === "paid")
-    return (
-      <Badge
-        variant="success"
-        className="border-emerald-500/40 bg-emerald-500/5 text-emerald-700 dark:text-emerald-400"
-      >
-        Pago
-      </Badge>
-    );
-  if (status === "pending")
-    return (
-      <Badge
-        variant="warning"
-        className="border-amber-500/40 bg-amber-500/5 text-amber-700 dark:text-amber-400"
-      >
-        Pendente
-      </Badge>
-    );
-  return <Badge variant="outline">Cancelado</Badge>;
-}
+// ScheduleStatusBadge compartilhado de @/components/status-badges
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
@@ -137,18 +119,10 @@ export function CommissionDetails({ data }: Props) {
     <div className="space-y-6">
       {/* Summary Cards */}
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18, ease: [0, 0, 0.2, 1] }}>
-          <StatCard label="Total de comissões" value={formatCurrencyCompact(summary.totalCommission)} icon={TrendUp} />
-        </motion.div>
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18, ease: [0, 0, 0.2, 1] }}>
-          <StatCard label="Comissões pendentes" value={formatCurrencyCompact(summary.pendingCommission)} icon={ArrowsDownUp} />
-        </motion.div>
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18, ease: [0, 0, 0.2, 1] }}>
-          <StatCard label="Comissões pagas" value={formatCurrencyCompact(summary.paidCommission)} icon={Calculator} />
-        </motion.div>
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18, ease: [0, 0, 0.2, 1] }}>
-          <StatCard label="Vendas / Regras ativas" value={`${summary.totalSales} / ${summary.activeRules}`} icon={Calculator} />
-        </motion.div>
+        <StatCard label="Total de comissões" value={formatCurrencyCompact(summary.totalCommission)} icon={TrendUp} animated />
+        <StatCard label="Comissões pendentes" value={formatCurrencyCompact(summary.pendingCommission)} icon={ArrowsDownUp} animated animationDelay={0.06} />
+        <StatCard label="Comissões pagas" value={formatCurrencyCompact(summary.paidCommission)} icon={Calculator} animated animationDelay={0.12} />
+        <StatCard label="Vendas / Regras ativas" value={`${summary.totalSales} / ${summary.activeRules}`} icon={Calculator} animated animationDelay={0.18} />
       </section>
 
       {/* Tabs: Brokers / Sales */}
@@ -209,12 +183,10 @@ export function CommissionDetails({ data }: Props) {
       {view === "brokers" && (
         <>
           {visibleBrokers.length === 0 ? (
-            <div className="flex flex-col items-center rounded-xl border border-dashed px-6 py-14 text-center">
-              <p className="font-medium">Nenhum corretor encontrado</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Ajuste a busca para ver outros resultados.
-              </p>
-            </div>
+            <EmptyState
+              title="Nenhum corretor encontrado"
+              description="Ajuste a busca para ver outros resultados."
+            />
           ) : (
             <Card className="border-border bg-card shadow-none">
               <CardHeader>
@@ -274,29 +246,26 @@ export function CommissionDetails({ data }: Props) {
       {view === "sales" && (
         <>
           {bySale.length === 0 ? (
-            <div className="flex flex-col items-center rounded-xl border border-dashed px-6 py-14 text-center">
-              <p className="font-medium">Nenhuma venda registrada</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                As vendas aparecerão aqui quando leads forem convertidos.
-              </p>
-            </div>
+            <EmptyState
+              title="Nenhuma venda registrada"
+              description="As vendas aparecerão aqui quando leads forem convertidos."
+            />
           ) : visibleSales.length === 0 ? (
-            <div className="flex flex-col items-center px-6 py-12 text-center">
-              <p className="text-sm font-medium">Nenhum resultado</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Ajuste a busca ou o filtro.
-              </p>
-              <Button
-                variant="outline"
-                className="mt-4"
-                onClick={() => {
-                  setSearch("");
-                  setScheduleFilter("all");
-                }}
-              >
-                Limpar filtros
-              </Button>
-            </div>
+            <EmptyState
+              title="Nenhum resultado"
+              description="Ajuste a busca ou o filtro."
+              action={
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSearch("");
+                    setScheduleFilter("all");
+                  }}
+                >
+                  Limpar filtros
+                </Button>
+              }
+            />
           ) : (
             <div className="space-y-4">
               {visibleSales.map((sale, i) => (

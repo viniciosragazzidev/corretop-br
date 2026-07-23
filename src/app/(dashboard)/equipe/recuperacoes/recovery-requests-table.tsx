@@ -2,11 +2,11 @@
 
 import { useActionState, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Check, X, Loader2, Clock, CheckCircle, XCircle, Ban, Eye } from "lucide-react";
+import { Check, X, Loader2, Eye, Ban } from "lucide-react";
+import { RecoveryStatusBadge } from "@/components/status-badges";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { DataTable, DataTableColumnHeader } from "@/components/ui/data-table";
 import {
   Dialog,
@@ -42,40 +42,7 @@ function formatDate(date: Date) {
   }).format(new Date(date));
 }
 
-function StatusBadge({ status }: { status: string }) {
-  switch (status) {
-    case "requested":
-      return (
-        <Badge variant="warning" className="gap-1">
-          <Clock className="size-3" />
-          Pendente
-        </Badge>
-      );
-    case "approved":
-      return (
-        <Badge variant="success" className="gap-1">
-          <CheckCircle className="size-3" />
-          Aprovada
-        </Badge>
-      );
-    case "rejected":
-      return (
-        <Badge variant="destructive" className="gap-1">
-          <XCircle className="size-3" />
-          Rejeitada
-        </Badge>
-      );
-    case "completed":
-      return (
-        <Badge variant="secondary" className="gap-1">
-          <Check className="size-3" />
-          Concluída
-        </Badge>
-      );
-    default:
-      return <Badge variant="outline">{status}</Badge>;
-  }
-}
+// RecoveryStatusBadge compartilhado de @/components/status-badges
 
 export function RecoveryRequestsTable({ requests }: { requests: ResetRequest[] }) {
   const [rejectDialog, setRejectDialog] = useState<{ id: string; email: string } | null>(null);
@@ -118,7 +85,7 @@ export function RecoveryRequestsTable({ requests }: { requests: ResetRequest[] }
     {
       accessorKey: "status",
       header: "Status",
-      cell: ({ row }) => <StatusBadge status={row.original.status} />,
+      cell: ({ row }) => <RecoveryStatusBadge status={row.original.status} />,
     },
     {
       accessorKey: "createdAt",

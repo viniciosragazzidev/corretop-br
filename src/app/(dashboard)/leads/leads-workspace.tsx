@@ -148,7 +148,7 @@ export function LeadsWorkspace({
                         {shouldMask(lead) ? "••••-••••" : (contextRole === "broker" && lead.status === "distributed" ? maskPhone(lead.telefone) : lead.telefone)}
                       </span>
                       <span className="mt-2 flex items-center gap-2">
-                        <StatusBadge status={lead.status} />
+                        <LeadStatusBadge status={lead.status} />
                         <LeadHealthBadge health={computeLeadHealth(lead, slaFirstContactMinutes, slaStagnantDays)} />
                       </span>
                       <span className="mt-1 flex items-center gap-2">
@@ -186,7 +186,7 @@ export function LeadsWorkspace({
                         </p>
                       </TableCell>
                       <TableCell>
-                        <StatusBadge status={lead.status} />
+                        <LeadStatusBadge status={lead.status} />
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
                         <LeadHealthBadge
@@ -264,7 +264,7 @@ export function LeadsWorkspace({
                         </p>
                       </div>
                       <div className="flex shrink-0 flex-col items-end gap-1.5">
-                        <StatusBadge status={selectedLead.status} />
+                        <LeadStatusBadge status={selectedLead.status} />
                         <LeadHealthBadge
                           health={computeLeadHealth(selectedLead, slaFirstContactMinutes, slaStagnantDays)}
                         />
@@ -446,7 +446,7 @@ function KanbanLeadCard({
         <ArrowUpRight className="mt-0.5 size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
       </div>                    <div className="mt-4 flex items-center justify-between gap-3 border-t border-border/60 pt-3">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <StatusBadge status={lead.status} />
+                          <LeadStatusBadge status={lead.status} />
                           <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold ring-1 ring-inset ${lead.tipo === "PME" ? "bg-indigo-400/10 text-indigo-400 ring-indigo-400/20" : "bg-sky-400/10 text-sky-400 ring-sky-400/20"}`}>
                             {lead.tipo}
                           </span>
@@ -469,9 +469,7 @@ function DetailRow({ label, value }: { label: string; value: string | ReactNode 
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
-  return <LeadStatusBadge status={status} />;
-}
+// StatusBadge removido — usar LeadStatusBadge diretamente
 
 function statusLabel(status: string) {
   return (LEAD_STATUS_LABELS as Record<string, string>)[status] ?? status;

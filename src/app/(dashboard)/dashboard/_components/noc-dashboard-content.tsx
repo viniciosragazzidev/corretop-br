@@ -39,7 +39,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { StatCard } from "@/components/dashboard/metric-card";
-import { cardItemVariants } from "@/shared/animations";
 import type {
   DirectorDashboardData,
   ManagerDashboardData,
@@ -374,21 +373,11 @@ function DirectorNocContent({ data }: { data: DirectorDashboardData }) {
 
       {/* Metric Cards */}
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        <motion.div variants={cardItemVariants} initial="hidden" animate="visible" transition={{ delay: 0 }}>
-          <StatCard label="Leads" value={data.totals.leads} change={`${data.totals.activeLeads} ativos`} sublabel="Total de leads no tenant" />
-        </motion.div>
-        <motion.div variants={cardItemVariants} initial="hidden" animate="visible" transition={{ delay: 0.08 }}>
-          <StatCard label="Ativos" value={data.totals.activeLeads} change={`${((data.totals.activeLeads / Math.max(1, data.totals.leads)) * 100).toFixed(0)}%`} sublabel="Leads em atendimento" />
-        </motion.div>
-        <motion.div variants={cardItemVariants} initial="hidden" animate="visible" transition={{ delay: 0.16 }}>
-          <StatCard label="Conversões" value={data.totals.converted} change={data.totals.leads > 0 ? `${conversionRate}%` : "0%"} sublabel="Leads convertidos" />
-        </motion.div>
-        <motion.div variants={cardItemVariants} initial="hidden" animate="visible" transition={{ delay: 0.24 }}>
-          <StatCard label="Corretores" value={data.totals.activeBrokers} change={`${data.totals.members} cadastrados`} sublabel="Membros ativos na operação" />
-        </motion.div>
-        <motion.div variants={cardItemVariants} initial="hidden" animate="visible" transition={{ delay: 0.32 }}>
-          <StatCard label="Filial" value={data.totals.branches} change={`${data.totals.unworked} não trab.`} sublabel="Unidades cadastradas" />
-        </motion.div>
+        <StatCard label="Leads" value={data.totals.leads} change={`${data.totals.activeLeads} ativos`} sublabel="Total de leads no tenant" animated />
+        <StatCard label="Ativos" value={data.totals.activeLeads} change={`${((data.totals.activeLeads / Math.max(1, data.totals.leads)) * 100).toFixed(0)}%`} sublabel="Leads em atendimento" animated animationDelay={0.08} />
+        <StatCard label="Conversões" value={data.totals.converted} change={data.totals.leads > 0 ? `${conversionRate}%` : "0%"} sublabel="Leads convertidos" animated animationDelay={0.16} />
+        <StatCard label="Corretores" value={data.totals.activeBrokers} change={`${data.totals.members} cadastrados`} sublabel="Membros ativos na operação" animated animationDelay={0.24} />
+        <StatCard label="Filial" value={data.totals.branches} change={`${data.totals.unworked} não trab.`} sublabel="Unidades cadastradas" animated animationDelay={0.32} />
       </section>        {/* Charts Row */}
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-7">
         {/* Funnel Flow */}
@@ -802,21 +791,11 @@ function ManagerNocContent({ data }: { data: ManagerDashboardData }) {
 
       {/* Metric Cards */}
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        <motion.div variants={cardItemVariants} initial="hidden" animate="visible" transition={{ delay: 0 }}>
-          <StatCard label="Corretores Ativos" value={data.activeMembers} change={`${teamPercent}%`} sublabel={`${data.teamSize} membros cadastrados`} />
-        </motion.div>
-        <motion.div variants={cardItemVariants} initial="hidden" animate="visible" transition={{ delay: 0.08 }}>
-          <StatCard label="Leads Novos" value={data.newLeads} change={`${newPercent}% do total`} sublabel={`${data.unassigned} sem responsável`} />
-        </motion.div>
-        <motion.div variants={cardItemVariants} initial="hidden" animate="visible" transition={{ delay: 0.16 }}>
-          <StatCard label="Em Atendimento" value={data.inContact} change={`${contactPercent}%`} sublabel={`de ${data.leadsTotal} leads totais`} />
-        </motion.div>
-        <motion.div variants={cardItemVariants} initial="hidden" animate="visible" transition={{ delay: 0.24 }}>
-          <StatCard label="Não Trabalhados" value={data.unworked} change={data.unworked > 0 ? "urgente" : "ok"} sublabel="Distribuídos há +15min" />
-        </motion.div>
-        <motion.div variants={cardItemVariants} initial="hidden" animate="visible" transition={{ delay: 0.32 }}>
-          <StatCard label="Estagnados" value={data.stalled} change={data.stalled > 0 ? "atenção" : "ok"} sublabel="Sem avanço há +3 dias" />
-        </motion.div>
+        <StatCard label="Corretores Ativos" value={data.activeMembers} change={`${teamPercent}%`} sublabel={`${data.teamSize} membros cadastrados`} animated />
+        <StatCard label="Leads Novos" value={data.newLeads} change={`${newPercent}% do total`} sublabel={`${data.unassigned} sem responsável`} animated animationDelay={0.08} />
+        <StatCard label="Em Atendimento" value={data.inContact} change={`${contactPercent}%`} sublabel={`de ${data.leadsTotal} leads totais`} animated animationDelay={0.16} />
+        <StatCard label="Não Trabalhados" value={data.unworked} change={data.unworked > 0 ? "urgente" : "ok"} sublabel="Distribuídos há +15min" animated animationDelay={0.24} />
+        <StatCard label="Estagnados" value={data.stalled} change={data.stalled > 0 ? "atenção" : "ok"} sublabel="Sem avanço há +3 dias" animated animationDelay={0.32} />
       </section>
 
       {/* Team Overview + Bottlenecks */}
@@ -1125,21 +1104,11 @@ function BrokerNocContent({ data }: { data: BrokerDashboardData }) {
 
       {/* Metric Cards */}
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        <motion.div variants={cardItemVariants} initial="hidden" animate="visible" transition={{ delay: 0 }}>
-          <StatCard label="Leads na Carteira" value={data.totals.all} change={`${data.totals.active} ativos`} sublabel="Total de leads atribuídos" />
-        </motion.div>
-        <motion.div variants={cardItemVariants} initial="hidden" animate="visible" transition={{ delay: 0.08 }}>
-          <StatCard label="Ativos" value={data.totals.active} change={`${activePercent}%`} sublabel="Leads em atendimento" />
-        </motion.div>
-        <motion.div variants={cardItemVariants} initial="hidden" animate="visible" transition={{ delay: 0.16 }}>
-          <StatCard label="Pendentes" value={data.totals.distributed} change="sem primeiro contato" sublabel="Aguardando contato inicial" />
-        </motion.div>
-        <motion.div variants={cardItemVariants} initial="hidden" animate="visible" transition={{ delay: 0.24 }}>
-          <StatCard label="Em Contato" value={data.totals.inContact} change="status atual" sublabel="Atendimentos em andamento" />
-        </motion.div>
-        <motion.div variants={cardItemVariants} initial="hidden" animate="visible" transition={{ delay: 0.32 }}>
-          <StatCard label="Convertidos" value={data.totals.converted} change={`${convPercent}%`} sublabel="Leads fechados" />
-        </motion.div>
+        <StatCard label="Leads na Carteira" value={data.totals.all} change={`${data.totals.active} ativos`} sublabel="Total de leads atribuídos" animated />
+        <StatCard label="Ativos" value={data.totals.active} change={`${activePercent}%`} sublabel="Leads em atendimento" animated animationDelay={0.08} />
+        <StatCard label="Pendentes" value={data.totals.distributed} change="sem primeiro contato" sublabel="Aguardando contato inicial" animated animationDelay={0.16} />
+        <StatCard label="Em Contato" value={data.totals.inContact} change="status atual" sublabel="Atendimentos em andamento" animated animationDelay={0.24} />
+        <StatCard label="Convertidos" value={data.totals.converted} change={`${convPercent}%`} sublabel="Leads fechados" animated animationDelay={0.32} />
       </section>
 
       {/* Active Leads + Chart */}

@@ -40,6 +40,7 @@ import {
   UserList,
   WhatsappLogo,
 } from "@/components/huge-icons";
+import { EmptyState } from "@/components/empty-state";
 import { LEAD_STATUS_LABELS } from "@/features/leads/lead-status-constants";
 import { cn } from "@/lib/utils";
 
@@ -430,20 +431,18 @@ function MessageBubble({ message }: { message: ConversationMessage }) {
 function HistoryEmptyState({ phone }: { phone: string }) {
   return (
     <div className="flex min-h-0 flex-1 items-center justify-center p-5 sm:p-8">
-      <div className="max-w-md text-center">
-        <div className="mx-auto grid size-11 place-items-center rounded-xl border border-border bg-card text-muted-foreground">
-          <ChatCircleText className="size-5" />
-        </div>
-        <h3 className="mt-4 text-base font-semibold tracking-tight">Nenhuma mensagem sincronizada</h3>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          Este atendimento ainda não possui histórico no CorreTop. Continue o contato pelo WhatsApp e o histórico aparecerá quando a sincronização estiver disponível.
-        </p>
-        <Button className="mt-5" render={<a href={getWhatsAppUrl(phone)} rel="noreferrer" target="_blank" />} size="sm">
-          <WhatsappLogo />
-          Abrir WhatsApp
-          <ArrowSquareOut />
-        </Button>
-      </div>
+      <EmptyState
+        icon={ChatCircleText}
+        title="Nenhuma mensagem sincronizada"
+        description="Este atendimento ainda não possui histórico no CorreTop. Continue o contato pelo WhatsApp e o histórico aparecerá quando a sincronização estiver disponível."
+        action={
+          <Button render={<a href={getWhatsAppUrl(phone)} rel="noreferrer" target="_blank" />} size="sm">
+            <WhatsappLogo />
+            Abrir WhatsApp
+            <ArrowSquareOut />
+          </Button>
+        }
+      />
     </div>
   );
 }
@@ -464,28 +463,24 @@ function ConversationChannelNotice({ phone }: { phone: string }) {
 
 function EmptyConversationList({ hasQuery }: { hasQuery: boolean }) {
   return (
-    <div className="px-5 py-12 text-center">
-      <div className="mx-auto grid size-10 place-items-center rounded-xl bg-muted text-muted-foreground">
-        <MagnifyingGlass className="size-4" />
-      </div>
-      <p className="mt-3 text-sm font-medium">Nenhum atendimento encontrado</p>
-      <p className="mt-1 text-xs leading-5 text-muted-foreground">
-        {hasQuery ? "Ajuste a busca ou os filtros para encontrar outro atendimento." : "Os atendimentos disponíveis no seu escopo aparecerão aqui."}
-      </p>
-    </div>
+    <EmptyState
+      icon={MagnifyingGlass}
+      title="Nenhum atendimento encontrado"
+      description={hasQuery ? "Ajuste a busca ou os filtros para encontrar outro atendimento." : "Os atendimentos disponíveis no seu escopo aparecerão aqui."}
+      className="px-5 py-12"
+    />
   );
 }
 
 function EmptyConversation() {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center p-6 text-center">
-      <div className="grid size-12 place-items-center rounded-xl border border-border bg-card text-muted-foreground">
-        <ChatCircleText className="size-5" />
-      </div>
-      <h2 className="mt-4 text-base font-semibold tracking-tight">Selecione um atendimento</h2>
-      <p className="mt-1 max-w-sm text-sm leading-6 text-muted-foreground">
-        Escolha um contato na lista para consultar o histórico, o contexto do lead e as próximas ações.
-      </p>
+    <div className="flex flex-1 flex-col items-center justify-center p-6">
+      <EmptyState
+        variant="ghost"
+        icon={ChatCircleText}
+        title="Selecione um atendimento"
+        description="Escolha um contato na lista para consultar o histórico, o contexto do lead e as próximas ações."
+      />
     </div>
   );
 }
@@ -559,7 +554,7 @@ function ClientProfile({ client }: { client: ConversationItem }) {
                   </a>
                 ))}
               </div>
-            ) : <EmptyProfileState icon={<FileText className="size-3.5" />} text="Nenhum documento importado." />}
+            ) : <EmptyState variant="inline" icon={FileText} title="Nenhum documento importado." />}
           </ProfileSection>
 
           <ProfileSection action={<span className="text-xs tabular-nums text-muted-foreground">{sharedMedia.length}</span>} title="Links compartilhados">
@@ -573,7 +568,7 @@ function ClientProfile({ client }: { client: ConversationItem }) {
                   </a>
                 ))}
               </div>
-            ) : <EmptyProfileState icon={<LinkSimple className="size-3.5" />} text="Nenhum link identificado." />}
+            ) : <EmptyState variant="inline" icon={LinkSimple} title="Nenhum link identificado." />}
           </ProfileSection>
 
           <ProfileSection title="Resumo do atendimento">
@@ -600,10 +595,6 @@ function ProfileAction({ children, label, render }: { children: ReactNode; label
 
 function ProfileMetric({ label, tone, value }: { label: string; tone?: "warning"; value: number }) {
   return <div className={cn("rounded-lg border border-border px-2.5 py-2", tone === "warning" && "border-warning/25 bg-accent/[0.06]")}><p className="text-[11px] text-muted-foreground">{label}</p><p className={cn("mt-1 text-lg font-semibold tabular-nums", tone === "warning" && "text-warning")}>{value}</p></div>;
-}
-
-function EmptyProfileState({ icon, text }: { icon: ReactNode; text: string }) {
-  return <p className="mt-3 flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2.5 text-xs text-muted-foreground">{icon}{text}</p>;
 }
 
 function ProfileTag({ label, tone, value }: { label: string; tone?: "success" | "warning"; value: string }) {

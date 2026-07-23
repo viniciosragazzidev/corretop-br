@@ -12,6 +12,7 @@ import {
   Power,
   Trash,
 } from "@/components/huge-icons";
+import { EmptyState } from "@/components/empty-state";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -606,23 +607,17 @@ export function CarrierSheet({ carrier: initialCarrier }: { carrier: CarrierReco
                   Carregando planos...
                 </div>
               ) : plans.length === 0 && !showCreatePlan ? (
-                <div className="flex flex-col items-center rounded-xl border border-dashed px-6 py-10 text-center">
-                  <div className="flex size-10 items-center justify-center rounded-xl bg-muted">
-                    <FileText className="size-5 text-muted-foreground" />
-                  </div>
-                  <p className="mt-3 font-medium">Nenhum plano cadastrado</p>
-                  <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-                    Adicione o primeiro plano para disponibilizá-lo ao time comercial.
-                  </p>
-                  <Button
-                    className="mt-4"
-                    variant="outline"
-                    onClick={() => setShowCreatePlan(true)}
-                  >
-                    <Plus className="size-4" />
-                    Adicionar plano
-                  </Button>
-                </div>
+                <EmptyState
+                  icon={FileText}
+                  title="Nenhum plano cadastrado"
+                  description="Adicione o primeiro plano para disponibilizá-lo ao time comercial."
+                  action={
+                    <Button variant="outline" onClick={() => setShowCreatePlan(true)}>
+                      <Plus className="size-4" />
+                      Adicionar plano
+                    </Button>
+                  }
+                />
               ) : plans.length > 0 ? (
                 <div className="overflow-hidden rounded-xl border">
                   <Table>
@@ -685,15 +680,12 @@ export function CarriersGrid({ carriers }: { carriers: CarrierRecord[] }) {
 
   if (carriers.length === 0) {
     return (
-      <div className="flex flex-col items-center rounded-xl border border-dashed px-6 py-14 text-center">
-        <div className="flex size-11 items-center justify-center rounded-xl bg-muted">
-          <Buildings className="size-5 text-muted-foreground" />
-        </div>
-        <p className="mt-3 font-medium">Nenhuma operadora cadastrada</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          As operadoras disponíveis aparecerão aqui quando forem cadastradas.
-        </p>
-      </div>
+      <EmptyState
+        icon={Buildings}
+        variant="card"
+        title="Nenhuma operadora cadastrada"
+        description="As operadoras disponíveis aparecerão aqui quando forem cadastradas."
+      />
     );
   }
 
@@ -749,22 +741,17 @@ export function CarriersGrid({ carriers }: { carriers: CarrierRecord[] }) {
       </div>
 
       {visibleCarriers.length === 0 && (
-        <div className="flex flex-col items-center px-6 py-12 text-center">
-          <MagnifyingGlass className="size-5 text-muted-foreground" />
-          <p className="mt-3 font-medium">Nenhuma operadora encontrada</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Ajuste a busca ou o filtro de status para ver outros resultados.
-          </p>
-          <Button
-            variant="outline"
-            className="mt-4"
-            onClick={() => {
-              setQuery("");
-              setStatus("all");
-            }}
-          >
-            Limpar filtros
-          </Button>
+        <div className="px-6 py-12">
+          <EmptyState
+            icon={MagnifyingGlass}
+            title="Nenhuma operadora encontrada"
+            description="Ajuste a busca ou o filtro de status para ver outros resultados."
+            action={
+              <Button variant="outline" onClick={() => { setQuery(""); setStatus("all"); }}>
+                Limpar filtros
+              </Button>
+            }
+          />
         </div>
       )}
     </section>

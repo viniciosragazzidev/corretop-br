@@ -130,7 +130,7 @@ export function RouteOnboardingDialog({ definition, initialOpen }: RouteOnboardi
           } />
 
           {/* Slide Content */}
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-1">
+          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden no-scrollbar overscroll-contain py-1">
             <AnimatePresence custom={direction} mode="wait">
               {step === 1 && (
                 <motion.div

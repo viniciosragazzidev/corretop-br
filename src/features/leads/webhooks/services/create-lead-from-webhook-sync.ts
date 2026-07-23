@@ -8,6 +8,7 @@ import { getDatabase, schema } from "@/shared/db";
 import { chooseAvailableBroker } from "@/features/leads/assignment";
 import { notifyNewLead, notifyLeadArrived } from "@/features/notifications/send-push-helper";
 import { enqueueLeadDistributionJob } from "@/features/lead-distribution/jobs";
+import { startAiQualificationForLead } from "@/features/ai-qualification/service";
 import { lpFormPayloadSchema } from "../schemas/lp-form-payload.schema";
 import {
   hashNormalizedWebhookPayload,
@@ -196,6 +197,12 @@ export async function createLeadFromWebhookSync(
     notifyLeadArrived(leadId, tenantId, branchId, normalizedName),
     notifyNewLead(leadId, tenantId, branchId, corretorId, normalizedName),
   ]);
+
+  // The assistant is deliberately best-effort: a disabled/misconfigured AI or
+  // WhatsApp channel must never make the lead webhook fail.
+  await startAiQualificationForLead({ tenantId, leadId, actorUserId: createdByUserId }).catch((error) => {
+    console.error("[ai-qualification] start deferred", { tenantId, leadId, error: error instanceof Error ? error.message : "unknown" });
+  });
 
   return { success: true, leadId, duplicate: false };
 }

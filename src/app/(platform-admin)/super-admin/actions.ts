@@ -372,6 +372,18 @@ export async function updateAiSettingsAction(formData: FormData) {
   revalidatePath("/super-admin/settings");
 }
 
+export async function updateAiWhatsAppQualificationSettingsAction(formData: FormData) {
+  const admin = await getRequiredPlatformAdmin();
+  const enabled = formData.get("aiWhatsAppQualificationEnabled") === "true" ? "true" : "false";
+  const now = new Date();
+  await setSystemSetting("feature_ai_whatsapp_qualification_enabled", enabled, now);
+  await getDatabase().insert(schema.platformAuditLogs).values({
+    id: crypto.randomUUID(), actorUserId: admin.userId, action: "update_ai_whatsapp_qualification_settings",
+    targetType: "system_settings", targetId: "ai_whatsapp_qualification", metadata: { enabled }, createdAt: now,
+  });
+  revalidatePath("/super-admin/settings");
+}
+
 export async function updateLeadManagementActionsSettingsAction(formData: FormData) {
   const admin = await getRequiredPlatformAdmin();
   const db = getDatabase();

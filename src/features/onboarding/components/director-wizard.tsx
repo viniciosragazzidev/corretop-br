@@ -195,7 +195,7 @@ export function DirectorWizard({
         </div>
 
         {/* Step content */}
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6">
+        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden no-scrollbar overscroll-contain px-5 py-5 sm:px-6">
           <AnimatePresence mode="wait">
             {step === 0 && (
               <motion.div

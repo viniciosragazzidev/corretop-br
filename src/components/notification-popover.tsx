@@ -17,6 +17,7 @@ import {
   WarningCircle as Warning,
   XCircle,
 } from "@/components/huge-icons";
+import { EmptyState } from "@/components/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -272,26 +273,6 @@ function NotificationRow({
         </div>
       </div>
     </motion.div>
-  );
-}
-
-/* ─── Empty State ─── */
-
-function PopoverEmptyState() {
-  return (
-    <div className="flex flex-col items-center justify-center gap-2 px-4 py-10 text-center">
-      <div className="flex size-10 items-center justify-center rounded-full bg-muted/50">
-        <Bell className="size-5 text-muted-foreground/50" />
-      </div>
-      <div>
-        <p className="text-sm font-medium text-foreground">
-          Nenhuma notificação
-        </p>
-        <p className="mt-0.5 text-xs text-muted-foreground">
-          Você verá aqui alertas de leads e tarefas.
-        </p>
-      </div>
-    </div>
   );
 }
 
@@ -716,7 +697,7 @@ export function NotificationPopover() {
                 ) : loading && !data ? (
                   <PopoverSkeleton />
                 ) : (
-                  <PopoverEmptyState />
+                  <EmptyState variant="ghost" icon={Bell} title="Nenhuma notificação" description="Você verá aqui alertas de leads e tarefas." />
                 )}
               </ScrollArea>
 

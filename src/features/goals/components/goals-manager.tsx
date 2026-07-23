@@ -10,6 +10,7 @@ import {
   Target,
   Trash,
 } from "@/components/huge-icons";
+import { EmptyState } from "@/components/empty-state";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -342,32 +343,29 @@ export function GoalsManager({ goals, teamMembers, branches }: GoalsManagerProps
 
       {/* Goals list / empty states */}
       {goals.length === 0 && !showCreate ? (
-        <div className="flex flex-col items-center rounded-xl border border-dashed px-6 py-14 text-center">
-          <div className="flex size-11 items-center justify-center rounded-xl bg-muted">
-            <Target className="size-5 text-muted-foreground" />
-          </div>
-          <p className="mt-3 font-medium">Nenhuma meta cadastrada</p>
-          <p className="mt-1 text-sm text-muted-foreground max-w-sm">
-            Crie a primeira meta para acompanhar o desempenho comercial da sua equipe.
-          </p>
-          <Button className="mt-4" onClick={() => setShowCreate(true)} variant="outline">
-            <Plus className="size-4" /> Criar primeira meta
-          </Button>
-        </div>
+        <EmptyState
+          icon={Target}
+          title="Nenhuma meta cadastrada"
+          description="Crie a primeira meta para acompanhar o desempenho comercial da sua equipe."
+          action={
+            <Button onClick={() => setShowCreate(true)} variant="outline">
+              <Plus className="size-4" /> Criar primeira meta
+            </Button>
+          }
+        />
       ) : visibleGoals.length === 0 && !showCreate ? (
-        <div className="flex flex-col items-center px-6 py-12 text-center">
-          <p className="text-sm font-medium">Nenhuma meta encontrada</p>
-          <p className="text-sm text-muted-foreground mt-1">
-            Ajuste a busca ou os filtros para ver outros resultados.
-          </p>
-          <Button
-            variant="outline"
-            className="mt-4"
-            onClick={() => { setSearch(""); setFilterActive("all"); setFilterScope("all"); }}
-          >
-            Limpar filtros
-          </Button>
-        </div>
+        <EmptyState
+          title="Nenhuma meta encontrada"
+          description="Ajuste a busca ou os filtros para ver outros resultados."
+          action={
+            <Button
+              variant="outline"
+              onClick={() => { setSearch(""); setFilterActive("all"); setFilterScope("all"); }}
+            >
+              Limpar filtros
+            </Button>
+          }
+        />
       ) : (
         <div className="space-y-4">
           {visibleGoals.map((goal) => (

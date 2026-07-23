@@ -796,3 +796,12 @@ html:not([data-magicui-theme-vt="active"])::view-transition-new(ct-shell-header)
     animation: none;
   }
 }
+
+/* Hide scrollbars during transitions */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

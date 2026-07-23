@@ -92,7 +92,7 @@ export function AppShell({
       ) : (
         <CorreTopSidebar logoUrl={branding?.logoUrl ?? null} />
       )}
-      <SidebarInset className="min-h-0 h-dvh bg-background overflow-y-auto overflow-x-hidden overscroll-contain max-[559px]:pb-[calc(4.5rem+env(safe-area-inset-bottom))]" style={{ scrollPaddingTop: "var(--header-height)" }}>
+      <SidebarInset className="min-h-0 h-dvh bg-background overflow-y-auto overflow-x-hidden overscroll-contain max-[559px]:pb-[calc(6rem+env(safe-area-inset-bottom))]" style={{ scrollPaddingTop: "var(--header-height)" }}>
         <div className="flex min-h-0 flex-1 flex-col">{children}</div>
       </SidebarInset>
       <MobileBottomNav />

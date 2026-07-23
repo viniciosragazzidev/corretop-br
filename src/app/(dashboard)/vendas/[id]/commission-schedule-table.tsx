@@ -6,7 +6,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { CheckCircle, XCircle } from "lucide-react";
 import { CalendarBlank } from "@/components/huge-icons";
 
-import { Badge } from "@/components/ui/badge";
+import { ScheduleStatusBadge } from "@/components/status-badges";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DataTable, DataTableColumnHeader } from "@/components/ui/data-table";
@@ -43,30 +43,7 @@ function formatDate(dateStr: string | null): string {
   return new Intl.DateTimeFormat("pt-BR").format(new Date(dateStr));
 }
 
-function ScheduleStatusBadge({ status }: { status: string }) {
-  if (status === "paid") {
-    return (
-      <Badge variant="success" className="gap-1 border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-medium px-2 py-0.5">
-        <span className="size-1.5 rounded-full bg-emerald-500" />
-        Pago
-      </Badge>
-    );
-  }
-  if (status === "cancelled") {
-    return (
-      <Badge variant="outline" className="gap-1 text-muted-foreground px-2 py-0.5">
-        <span className="size-1.5 rounded-full bg-muted-foreground" />
-        Cancelado
-      </Badge>
-    );
-  }
-  return (
-    <Badge variant="outline" className="gap-1 border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 font-medium px-2 py-0.5">
-      <span className="size-1.5 rounded-full bg-amber-500" />
-      A pagar
-    </Badge>
-  );
-}
+// ScheduleStatusBadge compartilhado de @/components/status-badges
 
 function ActionCell({ item, canManage }: { item: ScheduleItem; canManage: boolean }) {
   const [payState, payAction, payPending] = useActionState<SaleActionState, FormData>(

@@ -11,13 +11,15 @@ export function CatalogStats({
 }) {
   return (
     <div className="grid gap-3 sm:grid-cols-3">
-      <StatCard label="Operadoras" value={totalCarriers} />
+      <StatCard label="Operadoras" value={totalCarriers} animated />
       <StatCard
         label="Operadoras ativas"
         value={activeCarriers}
         valueClassName="text-emerald-500"
+        animated
+        animationDelay={0.06}
       />
-      <StatCard label="Planos cadastrados" value={totalPlans} />
+      <StatCard label="Planos cadastrados" value={totalPlans} animated animationDelay={0.12} />
     </div>
   );
 }

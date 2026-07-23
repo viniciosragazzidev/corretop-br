@@ -7,7 +7,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowRight } from "lucide-react";
 import { FileArrowDown } from "@/components/huge-icons";
 
-import { Badge } from "@/components/ui/badge";
+import { SaleStatusBadge } from "@/components/status-badges";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { DataTable, DataTableColumnHeader } from "@/components/ui/data-table";
@@ -39,20 +39,7 @@ function formatDate(dateStr: string): string {
   return new Intl.DateTimeFormat("pt-BR").format(new Date(dateStr));
 }
 
-function SaleStatusBadge({ status }: { status: string }) {
-  return (
-    <Badge
-      variant={status === "active" ? "success" : "outline"}
-      className={
-        status === "active"
-          ? "border-emerald-500/40 bg-emerald-500/5 text-emerald-700 dark:text-emerald-400"
-          : "text-muted-foreground"
-      }
-    >
-      {status === "active" ? "Ativa" : "Cancelada"}
-    </Badge>
-  );
-}
+// SaleStatusBadge compartilhado de @/components/status-badges
 
 export const columns: ColumnDef<SaleRow>[] = [
   {

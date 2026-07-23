@@ -23,6 +23,15 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { SidebarCollapsibleGroup } from "@/components/sidebar-collapsible-group";
 import { useSession, signOut } from "@/shared/auth/client";
 import { toast } from "sonner";
@@ -140,16 +149,41 @@ export function SuperDevSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" render={<button type="button" onClick={handleLogout} />} tooltip={userName}>
-              <span className="grid size-7 place-items-center rounded-full bg-sidebar-warning text-xs font-semibold">
-                {initials}
-              </span>
-              <span className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{userName}</span>
-                <span className="truncate text-xs text-sidebar-foreground/55">Super Administrador</span>
-              </span>
-              <SignOut className="ml-auto size-4 shrink-0 text-sidebar-foreground/55 group-data-[collapsible=icon]:hidden" />
-            </SidebarMenuButton>
+            <DropdownMenu>
+              <DropdownMenuTrigger>
+                <SidebarMenuButton size="lg" tooltip={userName}>
+                  <span className="grid size-7 place-items-center rounded-full bg-sidebar-warning text-xs font-semibold">
+                    {initials}
+                  </span>
+                  <span className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-medium">{userName}</span>
+                    <span className="truncate text-xs text-sidebar-foreground/55">Super Administrador</span>
+                  </span>
+                  <SignOut className="ml-auto size-4 shrink-0 text-sidebar-foreground/55 group-data-[collapsible=icon]:hidden" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-[var(--sidebar-width)]">
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel>
+                    <div className="flex items-center gap-2">
+                      <span className="grid size-8 place-items-center rounded-full bg-sidebar-warning text-xs font-semibold">{initials}</span>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium leading-none">{userName}</span>
+                        <span className="text-xs text-muted-foreground">Super Administrador</span>
+                      </div>
+                    </div>
+                  </DropdownMenuLabel>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem render={<Link href="/super-dev/settings" prefetch />}>
+                  <SlidersHorizontal className="size-4" />Configurações
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem variant="destructive" onClick={handleLogout}>
+                  <SignOut className="size-4" />Sair
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

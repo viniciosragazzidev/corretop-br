@@ -308,26 +308,15 @@ export function NocClient({ data }: NocClientProps) {
       {/* Metric Cards */}
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
         {metrics.map((metric, i) => (
-          <motion.div
+          <StatCard
             key={metric.label}
-            className="h-full"
-            variants={{
-              hidden: { opacity: 0, y: 12, scale: 0.98 },
-              visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.18, ease: [0, 0, 0.2, 1] } },
-            }}
-            initial="hidden"
-            animate="visible"
-            transition={{ delay: i * 0.08 }}
-            whileHover={{ y: -2, transition: { duration: 0.2, ease: [0, 0, 0.2, 1] } }}
-            whileTap={{ scale: 0.995, transition: { duration: 0.1 } }}
-          >
-            <StatCard
-              label={metric.label}
-              value={metric.value}
-              change={metric.change}
-              sublabel={metric.description}
-            />
-          </motion.div>
+            label={metric.label}
+            value={metric.value}
+            change={metric.change}
+            sublabel={metric.description}
+            animated
+            animationDelay={i * 0.08}
+          />
         ))}
       </section>
 

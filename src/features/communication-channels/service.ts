@@ -10,6 +10,7 @@ import { sendMetaCloudText } from "./meta-cloud-client";
 import { getMetaCloudServerConfig } from "./meta-cloud-config";
 import { META_CLOUD_PROVIDER } from "./types";
 import type { MetaWebhookPayload } from "./types";
+import { processAiQualificationMessage } from "@/features/ai-qualification/service";
 
 export async function isMetaCloudWhatsAppEnabled() {
   const [row] = await getDatabase()
@@ -146,6 +147,11 @@ export async function ingestMetaCloudWebhook(payload: MetaWebhookPayload, rawPay
           id: randomUUID(), tenantId: channel.tenantId, leadId: lead?.id ?? null, clientId: client?.id ?? null, communicationChannelId: channel.id, provider: META_CLOUD_PROVIDER, providerStatus: "received", messageId: message.id, phone, direction: "incoming", body: text,
           sentAt: message.timestamp ? new Date(Number(message.timestamp) * 1000) : new Date(),
         }).onConflictDoNothing({ target: [schema.whatsappMessages.tenantId, schema.whatsappMessages.messageId] });
+        if (lead && channel.createdBy && text) {
+          await processAiQualificationMessage({ tenantId: channel.tenantId, leadId: lead.id, phone: message.from, text, actorUserId: channel.createdBy }).catch((error) => {
+            console.error("[ai-qualification] incoming message failed", { tenantId: channel.tenantId, leadId: lead.id, error: error instanceof Error ? error.message : "unknown" });
+          });
+        }
         await setWebhookEventResult(eventId, "processed");
         processed += 1;
       }

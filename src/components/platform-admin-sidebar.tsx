@@ -1,6 +1,6 @@
 "use client";
 
-import { Buildings, Gear, House, RoadHorizon, ShieldStar, SignOut, Clock, ShieldWarning, RocketLaunch, FileText, Megaphone, LockKey, ChatCircleText, ChartLineUp, WhatsappLogo } from "@/components/huge-icons";
+import { Buildings, Gear, House, RoadHorizon, ShieldStar, SignOut, Clock, ShieldWarning, RocketLaunch, FileText, Megaphone, LockKey, ChatCircleText, ChartLineUp, WhatsappLogo, SlidersHorizontal } from "@/components/huge-icons";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -13,6 +13,15 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { SidebarCollapsibleGroup } from "@/components/sidebar-collapsible-group";
 import { useSession, signOut } from "@/shared/auth/client";
 import { toast } from "sonner";
@@ -191,21 +200,45 @@ export function PlatformAdminSidebar() {
       <SidebarFooter className="border-t border-sidebar-border/50 p-3">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton
-              size="lg"
-              render={<button type="button" onClick={handleLogout} />}
-              tooltip={userName}
-              className="w-full justify-start rounded-lg hover:bg-sidebar-warning px-3 py-2"
-            >
-              <span className="grid size-7 place-items-center rounded-full bg-sidebar-warning/50 text-foreground/80">
-                <ShieldStar weight="fill" className="size-3.5" />
-              </span>
-              <div className="flex flex-col text-left flex-1 pl-2">
-                <span className="truncate text-xs font-medium text-foreground">{userName}</span>
-                <span className="truncate text-[10px] text-muted-foreground">Equipe CorreTop</span>
-              </div>
-              <SignOut className="ml-auto size-4 shrink-0 text-muted-foreground/60" />
-            </SidebarMenuButton>
+            <DropdownMenu>
+              <DropdownMenuTrigger>
+                <SidebarMenuButton
+                  size="lg"
+                  tooltip={userName}
+                  className="w-full justify-start rounded-lg hover:bg-sidebar-warning px-3 py-2"
+                >
+                  <span className="grid size-7 place-items-center rounded-full bg-sidebar-warning/50 text-foreground/80">
+                    <ShieldStar weight="fill" className="size-3.5" />
+                  </span>
+                  <div className="flex flex-col text-left flex-1 pl-2">
+                    <span className="truncate text-xs font-medium text-foreground">{userName}</span>
+                    <span className="truncate text-[10px] text-muted-foreground">Equipe CorreTop</span>
+                  </div>
+                  <SignOut className="ml-auto size-4 shrink-0 text-muted-foreground/60 group-data-[collapsible=icon]:hidden" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-[var(--sidebar-width)]">
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel>
+                    <div className="flex items-center gap-2">
+                      <span className="grid size-8 place-items-center rounded-full bg-sidebar-warning text-xs font-semibold">{userInitial}</span>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium leading-none">{userName}</span>
+                        <span className="text-xs text-muted-foreground">Super Admin</span>
+                      </div>
+                    </div>
+                  </DropdownMenuLabel>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem render={<Link href="/super-admin/settings" prefetch />}>
+                  <SlidersHorizontal className="size-4" />Parâmetros
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem variant="destructive" onClick={handleLogout}>
+                  <SignOut className="size-4" />Sair
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

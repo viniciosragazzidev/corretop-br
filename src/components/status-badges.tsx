@@ -1,15 +1,16 @@
 import {
-  Lightning,
-  UserPlus,
-  Phone,
-  PaperPlaneTilt,
-  Handshake,
-  FileText,
-  MagnifyingGlass,
   CheckCircle,
-  XCircle,
+  CheckIcon,
   Clock,
+  FileText,
+  Handshake,
+  Lightning,
+  MagnifyingGlass,
+  PaperPlaneTilt,
+  Phone,
   ShieldCheck,
+  UserPlus,
+  XCircle,
 } from "@/components/huge-icons";
 import { Badge } from "@/components/ui/badge";
 import { normalizeTeamMemberStatus, teamMemberStatusLabels } from "@/features/team/status";
@@ -77,6 +78,115 @@ export function LeadStatusBadge({ status }: { status: string }) {
         <Badge variant="destructive" className="gap-1 px-2 py-0.5">
           <XCircle className="size-3 text-destructive" />
           Perdido
+        </Badge>
+      );
+    default:
+      return <Badge variant="outline" className="px-2 py-0.5">{status}</Badge>;
+  }
+}
+
+/** Venda: Ativa / Cancelada */
+export function SaleStatusBadge({ status }: { status: string }) {
+  if (status === "active") {
+    return (
+      <Badge variant="success" className="gap-1 px-2 py-0.5 border-emerald-500/30">
+        <span className="size-1.5 rounded-full bg-emerald-500" />
+        Ativa
+      </Badge>
+    );
+  }
+  return (
+    <Badge variant="outline" className="gap-1 px-2 py-0.5 text-muted-foreground">
+      <span className="size-1.5 rounded-full bg-muted-foreground" />
+      Cancelada
+    </Badge>
+  );
+}
+
+/** Parcela de comissão: Pago / A pagar / Cancelado */
+export function ScheduleStatusBadge({ status }: { status: string }) {
+  if (status === "paid") {
+    return (
+      <Badge variant="success" className="gap-1 px-2 py-0.5 border-emerald-500/30">
+        <span className="size-1.5 rounded-full bg-emerald-500" />
+        Pago
+      </Badge>
+    );
+  }
+  if (status === "cancelled") {
+    return (
+      <Badge variant="outline" className="gap-1 px-2 py-0.5 text-muted-foreground">
+        <span className="size-1.5 rounded-full bg-muted-foreground" />
+        Cancelado
+      </Badge>
+    );
+  }
+  return (
+    <Badge variant="warning" className="gap-1 px-2 py-0.5 border-amber-500/30">
+      <span className="size-1.5 rounded-full bg-amber-500" />
+      A pagar
+    </Badge>
+  );
+}
+
+/** Documento: Aprovado / Aguardando revisão / Rejeitado */
+export function DocumentStatusBadge({ status }: { status: string }) {
+  switch (status) {
+    case "approved":
+      return (
+        <Badge variant="success" className="gap-1 px-2 py-0.5">
+          <CheckCircle className="size-3" />
+          Aprovado
+        </Badge>
+      );
+    case "rejected":
+      return (
+        <Badge variant="destructive" className="gap-1 px-2 py-0.5">
+          <XCircle className="size-3" />
+          Rejeitado
+        </Badge>
+      );
+    case "pending":
+      return (
+        <Badge variant="warning" className="gap-1 px-2 py-0.5">
+          <Clock className="size-3" />
+          Aguardando revisão
+        </Badge>
+      );
+    default:
+      return <Badge variant="outline" className="px-2 py-0.5">{status}</Badge>;
+  }
+}
+
+/** Recuperação de senha: Pendente / Aprovada / Rejeitada / Concluída */
+export function RecoveryStatusBadge({ status }: { status: string }) {
+  switch (status) {
+    case "requested":
+      return (
+        <Badge variant="warning" className="gap-1 px-2 py-0.5">
+          <Clock className="size-3" />
+          Pendente
+        </Badge>
+      );
+    case "approved":
+      return (
+        <Badge variant="success" className="gap-1 px-2 py-0.5">
+          <CheckCircle className="size-3" />
+          Aprovada
+        </Badge>
+      );
+    case "rejected":
+      return (
+        <Badge variant="destructive" className="gap-1 px-2 py-0.5">
+          <XCircle className="size-3" />
+          Rejeitada
+        </Badge>
+      );
+    case "completed":
+      return (
+        <Badge variant="secondary" className="gap-1 px-2 py-0.5">
+          <CheckIcon className="size-3" />
+          Concluída
         </Badge>
       );
     default:

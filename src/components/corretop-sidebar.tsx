@@ -43,7 +43,6 @@ const operationItems: SidebarItem[] = [
 const systemItems: SidebarItem[] = [
   { label: "Importações Meta", icon: FileArrowDown, url: "/marketing/importacoes", permission: "ver_importacoes_meta" },
   { label: "Catálogo", icon: FolderSimple, url: "/catalogo", permission: "acessar_catalogo" },
-  { label: "Comissões", icon: CurrencyCircleDollar, url: "/configuracoes/comissoes", permission: "gerenciar_comissoes" },
   { label: "Configurações", icon: SlidersHorizontal, url: "/settings", permission: "acessar_configuracoes_pessoais" },
 ];
 const supportItems: SidebarItem[] = [{ label: "Guia do sistema", icon: BookOpen, url: "/guia", permission: "acessar_guia" }];
@@ -58,7 +57,28 @@ function NavigationGroup({ label, items, roleKey, jobTitle, groupIndex }: { labe
     return hasCapability(roleKey, item.permission, jobTitle);
   }) : [];
   if (visibleItems.length === 0) return null;
-  return <motion.div initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.18, ease: [0, 0, 0.2, 1], delay: groupIndex * 0.06 }}><SidebarCollapsibleGroup label={label}><SidebarMenu>{visibleItems.map((item, index) => { const Icon = item.icon; const isActive = pathname === item.url || pathname.startsWith(item.url + "/"); return <motion.div key={item.label} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.15, ease: [0, 0, 0.2, 1], delay: groupIndex * 0.06 + index * 0.04 }}><SidebarMenuItem><SidebarMenuButton isActive={isActive} render={<Link href={item.url} onClick={() => isMobile && setOpenMobile(false)} prefetch />} tooltip={item.label}><Icon weight={isActive ? "fill" : "regular"} /><span>{item.label}</span></SidebarMenuButton></SidebarMenuItem></motion.div>; })}</SidebarMenu></SidebarCollapsibleGroup></motion.div>;
+  return (
+    <motion.div initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.18, ease: [0, 0, 0.2, 1], delay: groupIndex * 0.06 }}>
+      <SidebarCollapsibleGroup label={label}>
+        <SidebarMenu>
+          {visibleItems.map((item, index) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.url || pathname.startsWith(item.url + "/");
+            return (
+              <motion.div key={item.label} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.15, ease: [0, 0, 0.2, 1], delay: groupIndex * 0.06 + index * 0.04 }}>
+                <SidebarMenuItem>
+                  <SidebarMenuButton isActive={isActive} render={<Link href={item.url} onClick={() => isMobile && setOpenMobile(false)} prefetch />} tooltip={item.label}>
+                    <Icon weight={isActive ? "fill" : "regular"} />
+                    <span>{item.label}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </motion.div>
+            );
+          })}
+        </SidebarMenu>
+      </SidebarCollapsibleGroup>
+    </motion.div>
+  );
 }
 
 export function CorreTopSidebar({ logoUrl }: { logoUrl?: string | null }) {
@@ -72,9 +92,74 @@ export function CorreTopSidebar({ logoUrl }: { logoUrl?: string | null }) {
 
   async function handleLogout() {
     toast.info("Encerrando sua sessão...");
-    try { await signOut(); toast.success("Sessão encerrada."); window.setTimeout(() => { router.replace("/login"); router.refresh(); }, 250); }
-    catch (error) { toast.error(error instanceof Error ? error.message : "Não foi possível sair agora."); }
+    try {
+      await signOut();
+      toast.success("Sessão encerrada.");
+      window.setTimeout(() => { router.replace("/login"); router.refresh(); }, 250);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível sair agora.");
+    }
   }
 
-  return <Sidebar collapsible="icon" variant="sidebar" rail><SidebarHeader><Link href="/dashboard" prefetch className="block px-2 pt-2"><CorreTopLogo src={logoUrl} className="h-8 w-full rounded-md object-contain object-left" /></Link></SidebarHeader><SidebarContent><NavigationGroup items={primaryItems} label="Operação" roleKey={roleKey} jobTitle={user?.jobTitle ?? null} groupIndex={0} /><NavigationGroup items={managementItems} label="Gestão" roleKey={roleKey} jobTitle={user?.jobTitle ?? null} groupIndex={1} /><NavigationGroup items={operationItems} label="Operação" roleKey={roleKey} jobTitle={user?.jobTitle ?? null} groupIndex={2} /><NavigationGroup items={systemItems} label="Administração" roleKey={roleKey} jobTitle={user?.jobTitle ?? null} groupIndex={3} /><NavigationGroup items={supportItems} label="Ajuda" roleKey={roleKey} jobTitle={user?.jobTitle ?? null} groupIndex={4} /></SidebarContent><SidebarFooter><SidebarMenu><SidebarMenuItem><DropdownMenu><DropdownMenuTrigger render={<SidebarMenuButton size="lg" tooltip={userName}><span className="grid size-7 place-items-center rounded-full bg-sidebar-warning text-xs font-semibold">{initials}</span><span className="grid flex-1 text-left text-sm leading-tight"><span className="truncate font-medium">{userName}</span><span className="truncate text-xs text-sidebar-foreground/55">{userRole}</span></span><SignOut className="ml-auto size-4 shrink-0 text-sidebar-foreground/55 group-data-[collapsible=icon]:hidden" /></SidebarMenuButton>} /><DropdownMenuContent side="top" align="start" sideOffset={8} className="w-[var(--sidebar-width)]"><DropdownMenuGroup><DropdownMenuLabel><div className="flex items-center gap-2"><span className="grid size-8 place-items-center rounded-full bg-sidebar-warning text-xs font-semibold">{initials}</span><div className="flex flex-col"><span className="text-sm font-medium leading-none">{userName}</span><span className="text-xs text-muted-foreground">{userRole}</span></div></div></DropdownMenuLabel></DropdownMenuGroup><DropdownMenuSeparator />{roleKey && hasCapability(roleKey, "acessar_configuracoes", user?.jobTitle ?? null) ? <DropdownMenuItem render={<Link href="/settings" prefetch />}><SlidersHorizontal className="size-4" />Configurações</DropdownMenuItem> : null}<DropdownMenuSeparator /><DropdownMenuItem variant="destructive" onClick={handleLogout}><SignOut className="size-4" />Sair</DropdownMenuItem></DropdownMenuContent></DropdownMenu></SidebarMenuItem></SidebarMenu></SidebarFooter></Sidebar>;
+  return (
+    <Sidebar collapsible="icon" variant="sidebar" rail>
+      <SidebarHeader>
+        <Link href="/dashboard" prefetch className="block px-2 pt-2">
+          <CorreTopLogo src={logoUrl} className="h-8 w-full rounded-md object-contain object-left" />
+        </Link>
+        <div className="mx-2 mt-1 rounded-md border border-sidebar-border bg-sidebar-warning/40 px-3 py-2 group-data-[collapsible=icon]:hidden">
+          <p className="text-[10px] uppercase font-bold text-sidebar-foreground/60 tracking-wider">Workspace</p>
+          <p className="truncate text-xs font-semibold">{userRole || "Plataforma Comercial"}</p>
+        </div>
+      </SidebarHeader>
+      <SidebarContent>
+        <NavigationGroup items={primaryItems} label="Operação" roleKey={roleKey} jobTitle={user?.jobTitle ?? null} groupIndex={0} />
+        <NavigationGroup items={managementItems} label="Gestão" roleKey={roleKey} jobTitle={user?.jobTitle ?? null} groupIndex={1} />
+        <NavigationGroup items={operationItems} label="NOC & Alertas" roleKey={roleKey} jobTitle={user?.jobTitle ?? null} groupIndex={2} />
+        <NavigationGroup items={systemItems} label="Administração" roleKey={roleKey} jobTitle={user?.jobTitle ?? null} groupIndex={3} />
+        <NavigationGroup items={supportItems} label="Ajuda" roleKey={roleKey} jobTitle={user?.jobTitle ?? null} groupIndex={4} />
+      </SidebarContent>
+      <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger>
+                <SidebarMenuButton size="lg" tooltip={userName}>
+                  <span className="grid size-7 place-items-center rounded-full bg-sidebar-warning text-xs font-semibold">{initials}</span>
+                  <span className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-medium">{userName}</span>
+                    <span className="truncate text-xs text-sidebar-foreground/55">{userRole}</span>
+                  </span>
+                  <SignOut className="ml-auto size-4 shrink-0 text-sidebar-foreground/55 group-data-[collapsible=icon]:hidden" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-[var(--sidebar-width)]">
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel>
+                    <div className="flex items-center gap-2">
+                      <span className="grid size-8 place-items-center rounded-full bg-sidebar-warning text-xs font-semibold">{initials}</span>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium leading-none">{userName}</span>
+                        <span className="text-xs text-muted-foreground">{userRole}</span>
+                      </div>
+                    </div>
+                  </DropdownMenuLabel>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                {roleKey && hasCapability(roleKey, "acessar_configuracoes", user?.jobTitle ?? null) ? (
+                  <DropdownMenuItem render={<Link href="/settings" prefetch />}>
+                    <SlidersHorizontal className="size-4" />Configurações
+                  </DropdownMenuItem>
+                ) : null}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem variant="destructive" onClick={handleLogout}>
+                  <SignOut className="size-4" />Sair
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+    </Sidebar>
+  );
 }

@@ -10,6 +10,7 @@ import {
   Trash,
 } from "@/components/huge-icons";
 import { Badge } from "@/components/ui/badge";
+import { DocumentStatusBadge } from "@/components/status-badges";
 import { confirmDocumentUploadAction, deleteDocumentAction } from "@/features/documents/actions";
 
 type Requirement = {
@@ -141,16 +142,7 @@ export function LeadDocumentsSection({
   };
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "pending":
-        return <Badge variant="outline" className="border-amber-300/30 bg-amber-300/10 text-amber-200">Aguardando revisão</Badge>;
-      case "approved":
-        return <Badge variant="outline" className="border-emerald-300/30 bg-emerald-300/10 text-emerald-200">Aprovado</Badge>;
-      case "rejected":
-        return <Badge variant="destructive">Rejeitado</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
+    return <DocumentStatusBadge status={status} />;
   };
 
   const handleDelete = async (documentId: string) => {

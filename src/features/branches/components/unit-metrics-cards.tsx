@@ -1,4 +1,4 @@
-import { ChartLineUp, CheckIcon, TrendDown, Users, XCircle } from "@/components/huge-icons";
+import { ChartLineUp, CheckIcon, Users, XCircle } from "@/components/huge-icons";
 
 import { StatCard } from "@/components/dashboard/metric-card";
 import type { BranchMetrics } from "@/features/branches/queries";
@@ -25,6 +25,7 @@ export function UnitMetricsCards({ metrics }: UnitMetricsCardsProps) {
         value={metrics.totalLeads}
         sublabel={`Mês: ${metrics.period}`}
         icon={Users}
+        animated
       />
       <StatCard
         label="Taxa de conversão"
@@ -38,12 +39,16 @@ export function UnitMetricsCards({ metrics }: UnitMetricsCardsProps) {
               ? "text-amber-500"
               : ""
         }
+        animated
+        animationDelay={0.06}
       />
       <StatCard
         label="Em atendimento"
         value={metrics.leadsAtivos}
         sublabel="Leads em andamento"
         icon={ChartLineUp}
+        animated
+        animationDelay={0.12}
       />
       <StatCard
         label="Aguardando contato"
@@ -51,6 +56,8 @@ export function UnitMetricsCards({ metrics }: UnitMetricsCardsProps) {
         sublabel={lossLabel}
         icon={XCircle}
         valueClassName={metrics.leadsDistribuidos > 0 ? "text-amber-500" : ""}
+        animated
+        animationDelay={0.18}
       />
     </div>
   );

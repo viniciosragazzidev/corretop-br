@@ -1,11 +1,13 @@
 "use client";
 
+import { motion } from "motion/react";
 import { ArrowDownRight, ArrowUpRight } from "@/components/huge-icons";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { MiniDonut } from "./mini-donut";
+import { cardItemVariants } from "@/shared/animations";
 
 export type StatCardProps = {
   /** Rótulo exibido no topo do card */
@@ -30,6 +32,10 @@ export type StatCardProps = {
   valueClassName?: string;
   /** Classes adicionais no card */
   className?: string;
+  /** Ativa animação de entrada fade-in + slide-up (cardItemVariants) */
+  animated?: boolean;
+  /** Atraso da animação em segundos (ex: 0.08 para efeito cascata) */
+  animationDelay?: number;
 };
 
 /**
@@ -41,6 +47,7 @@ export type StatCardProps = {
  * - Gráfico MiniDonut opcional
  * - Valor com cor personalizada
  * - Label + sublabel opcional
+ * - Animação de entrada fade-in + slide-up (animated + animationDelay)
  */
 export function StatCard({
   label,
@@ -54,6 +61,8 @@ export function StatCard({
   chartSegments,
   valueClassName,
   className,
+  animated,
+  animationDelay = 0,
 }: StatCardProps) {
   const resolvedVariant =
     changeVariant ??
@@ -66,7 +75,7 @@ export function StatCard({
         ? ArrowDownRight
         : null;
 
-  return (
+  const card = (
     <Card
       className={cn(
         "group/card h-full min-w-0 rounded-xl border-border bg-card shadow-none transition-all duration-200 hover:border-primary/25 hover:shadow-sm",
@@ -124,6 +133,20 @@ export function StatCard({
         )}
       </CardContent>
     </Card>
+  );
+
+  if (!animated) return card;
+
+  return (
+    <motion.div
+      variants={cardItemVariants}
+      initial="hidden"
+      animate="visible"
+      transition={{ delay: animationDelay }}
+      className="h-full"
+    >
+      {card}
+    </motion.div>
   );
 }
 

@@ -73,7 +73,7 @@ function TenantOnboardingDialogInner({ onboarding }: TenantOnboardingDialogProps
           <X className="size-4" weight="bold" />
         </DialogClose>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden no-scrollbar overscroll-contain">
           <div className="grid gap-6 p-5 sm:grid-cols-2 sm:p-6">
             <OnboardingHero
               steps={onboarding.steps}

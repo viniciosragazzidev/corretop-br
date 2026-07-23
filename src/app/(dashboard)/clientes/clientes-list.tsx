@@ -156,6 +156,7 @@ export function ClientesList({
             { name: "recentes", value: metrics.recentConversions, color: "var(--chart-2)" },
             { name: "demais", value: Math.max(0, metrics.totalClients - metrics.recentConversions), color: "var(--primary)" },
           ]}
+          animated
         />
         <StatCard
           icon={TrendUp}
@@ -168,6 +169,8 @@ export function ClientesList({
             { name: "restante", value: Math.max(0, 100 - Number.parseFloat(metrics.conversionRate)), color: "var(--muted)" },
           ]}
           iconClassName="bg-blue-500/10 text-blue-600 dark:text-blue-400"
+          animated
+          animationDelay={0.06}
         />
         <StatCard
           icon={Users}
@@ -178,6 +181,8 @@ export function ClientesList({
             { name: "carteira", value: metrics.avgClientsPerBroker, color: "hsl(270 60% 60%)" },
           ]}
           iconClassName="bg-purple-500/10 text-purple-600 dark:text-purple-400"
+          animated
+          animationDelay={0.12}
         />
         <StatCard
           icon={CalendarCheck}
@@ -192,6 +197,8 @@ export function ClientesList({
               : [{ name: "sem_pendencias", value: 1, color: "var(--muted)" }]
           }
           iconClassName="bg-amber-500/10 text-amber-600 dark:text-amber-400"
+          animated
+          animationDelay={0.18}
         />
       </section>
 
