@@ -60,20 +60,13 @@ export function RealtimeSyncProvider({ children, tenantId, userId, role, branchI
 
   const syncClientState = useCallback((reason: string, broadcast = true) => {
     void queryClient.invalidateQueries({ queryKey: ["local-first", tenantId, userId] });
-    if (!isFormElementFocused()) router.refresh();
     setLastSyncedAt(Date.now());
     if (broadcast) broadcastRef.current?.postMessage({ type: "local-first.invalidate", reason });
-  }, [queryClient, router, tenantId, userId, isFormElementFocused]);
+  }, [queryClient, tenantId, userId]);
 
   useEffect(() => {
-    import("cuelume").then((cuelume) => {
-      playSoundRef.current = cuelume.play;
-      cuelume.bind();
-    }).catch((error) => console.error("Falha ao carregar sons de notificacao:", error));
-  }, []);
-
-  useEffect(() => {
-    const handleOnline = () => { setIsOnline(true); syncClientState("online"); };
+    // Only track online status change without triggering full page refresh
+    const handleOnline = () => { setIsOnline(true); };
     const handleOffline = () => setIsOnline(false);
     setIsOnline(navigator.onLine);
     window.addEventListener("online", handleOnline);
@@ -82,36 +75,7 @@ export function RealtimeSyncProvider({ children, tenantId, userId, role, branchI
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
-  }, [syncClientState]);
-
-  useEffect(() => {
-    if (typeof BroadcastChannel === "undefined") return;
-    const channel = new BroadcastChannel(`corretop:local-first:${tenantId}:${userId}`);
-    broadcastRef.current = channel;
-    channel.onmessage = (event) => {
-      if (event.data?.type === "local-first.invalidate") syncClientState("tab", false);
-    };
-    return () => {
-      channel.close();
-      broadcastRef.current = null;
-    };
-  }, [tenantId, userId, syncClientState]);
-
-  useEffect(() => {
-    const handleVisibility = () => {
-      if (document.visibilityState === "visible" && navigator.onLine) syncClientState("visibility");
-    };
-    document.addEventListener("visibilitychange", handleVisibility);
-    window.addEventListener("focus", handleVisibility);
-    const fallback = window.setInterval(() => {
-      if (document.visibilityState === "visible" && navigator.onLine) syncClientState("fallback");
-    }, 60_000);
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibility);
-      window.removeEventListener("focus", handleVisibility);
-      window.clearInterval(fallback);
-    };
-  }, [syncClientState]);
+  }, []);
 
   const notifyNewLead = useCallback((lead: LeadRow) => {
     const isAssignedToMe = lead.corretor_id === userId;

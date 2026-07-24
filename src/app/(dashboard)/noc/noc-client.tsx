@@ -215,11 +215,7 @@ export type NocClientProps = {
 export function NocClient({ data }: NocClientProps) {
   const router = useRouter();
 
-  // Live polling every 60s
-  useEffect(() => {
-    const poll = setInterval(() => router.refresh(), 60_000);
-    return () => clearInterval(poll);
-  }, [router]);
+
 
   const { kpis, leadFlow, statusDistribution, hourlyActivity, teamPerformance, recentActivity, branchHealth } = data;
 

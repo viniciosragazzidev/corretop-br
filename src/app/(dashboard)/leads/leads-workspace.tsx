@@ -142,39 +142,7 @@ export function LeadsWorkspace({
         </div>
       </div>
 
-      {/* ─── 2. CARD PRIMARY DOMINANTE (Único Card de Destaque Primário) ─── */}
-      <Card className="relative overflow-hidden border-primary/30 bg-gradient-to-r from-primary via-primary/95 to-primary/90 text-primary-foreground shadow-md p-5 sm:p-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between relative z-10">
-          <div className="space-y-1.5 max-w-2xl">
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="border-white/30 bg-white/20 text-white font-mono text-[10px] uppercase tracking-wider">
-                ⚡ Atendimento Prioritário
-              </Badge>
-            </div>
-            <h2 className="text-xl md:text-2xl font-extrabold text-white leading-tight">
-              {unworkedCount > 0
-                ? `${unworkedCount} ${unworkedCount === 1 ? "lead novo precisa" : "leads novos precisam"} de atendimento imediato`
-                : "Todos os leads ativos estão em atendimento comercial!"}
-            </h2>
-            <p className="text-xs md:text-sm text-white/85">
-              {unworkedCount > 0
-                ? "Responda aos novos contatos dentro da janela de 15 minutos para maximizar as chances de conversão."
-                : `${activeCount} contatos em negociação ativa e ${convertedCount} conversões realizadas no tenant.`}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {leads.length > 0 ? (
-              <Button
-                onClick={() => setSelectedLead(leads.find((l) => l.status === "new") ?? leads[0])}
-                size="default"
-                className="h-10 bg-white text-primary hover:bg-white/90 font-bold text-xs gap-2 shadow-sm"
-              >
-                Atender Próximo Lead <ArrowUpRight className="size-4" />
-              </Button>
-            ) : null}
-          </div>
-        </div>
-      </Card>
+
 
       {/* ─── 3. CARDS SECUNDÁRIOS NEUTROS ─── */}
       <div className="grid gap-3 sm:grid-cols-3">

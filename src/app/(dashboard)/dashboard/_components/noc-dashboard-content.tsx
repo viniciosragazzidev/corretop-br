@@ -297,39 +297,7 @@ function DirectorNocContent({ data }: { data: DirectorDashboardData }) {
 
   return (
     <div className="space-y-6">
-      {/* ─── ZONA 1: HERO CARD PRINCIPAL (Apenas 1 Card Primário) ─── */}
-      <Card className="relative overflow-hidden border-primary/30 bg-gradient-to-r from-primary via-primary/95 to-primary/90 text-primary-foreground shadow-md p-5 sm:p-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between relative z-10">
-          <div className="space-y-1.5 max-w-2xl">
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="border-white/30 bg-white/20 text-white font-mono text-[10px] uppercase tracking-wider">
-                🎯 Resumo Executivo da Operação
-              </Badge>
-            </div>
-            <h2 className="text-xl md:text-2xl font-extrabold text-white leading-tight">
-              {data.totals.unworked > 0
-                ? `${data.totals.unworked} Leads aguardando atendimento imediato`
-                : "Operação comercial 100% atualizada em tempo real"}
-            </h2>
-            <p className="text-xs md:text-sm text-white/85">
-              {data.totals.unworked > 0
-                ? "Existem contatos pendentes na fila comercial sem atendimento há mais de 15 minutos."
-                : `${data.totals.activeLeads} leads ativos sob gestão de ${data.totals.activeBrokers} corretores com ${data.totals.converted} conversões.`}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Button
-              render={<Link href="/leads?attention=unworked" />}
-              size="default"
-              className="h-10 bg-white text-primary hover:bg-white/90 font-bold text-xs gap-2 shadow-sm"
-            >
-              Atender ou Redistribuir Fila <ArrowUpRight className="size-4" />
-            </Button>
-          </div>
-        </div>
-      </Card>
-
-      {/* ─── ZONA 2: MINHA FILA & PENDÊNCIAS ─── */}
+      {/* ─── ZONA 1: MINHA FILA & PENDÊNCIAS ─── */}
       <DirectorActionCenter data={data} />
 
       {/* ─── ZONA 3: PLANTÃO ATUAL (Daily Operation Bar) ─── */}
@@ -742,37 +710,6 @@ function ManagerNocContent({ data }: { data: ManagerDashboardData }) {
 
   return (
     <div className="space-y-6">
-      {/* ─── ZONA 1: HERO CARD PRINCIPAL (Apenas 1 Card Primário) ─── */}
-      <Card className="relative overflow-hidden border-primary/30 bg-gradient-to-r from-primary via-primary/95 to-primary/90 text-primary-foreground shadow-md p-5 sm:p-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between relative z-10">
-          <div className="space-y-1.5 max-w-2xl">
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="border-white/30 bg-white/20 text-white font-mono text-[10px] uppercase tracking-wider">
-                🎯 Gestão da Unidade {data.branchName}
-              </Badge>
-            </div>
-            <h2 className="text-xl md:text-2xl font-extrabold text-white leading-tight">
-              {data.newLeads > 0
-                ? `${data.newLeads} Leads novos aguardando atribuição e primeiro contato!`
-                : "Equipe comercial da unidade com atendimento em dia!"}
-            </h2>
-            <p className="text-xs md:text-sm text-white/85">
-              {data.newLeads > 0
-                ? `${data.unassigned} sem responsável e ${data.unworked} com atraso superior a 15 minutos.`
-                : `${data.activeMembers} corretores ativos de ${data.teamSize} cadastrados na unidade.`}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Button
-              render={<Link href="/leads" />}
-              size="default"
-              className="h-10 bg-white text-primary hover:bg-white/90 font-bold text-xs gap-2 shadow-sm"
-            >
-              Ver Fila da Unidade <ArrowUpRight className="size-4" />
-            </Button>
-          </div>
-        </div>
-      </Card>
 
       {/* ─── ZONA 2: PLANTÃO AO VIVO ─── */}
       <Card className="border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent p-4 shadow-xs">
@@ -990,49 +927,6 @@ function BrokerNocContent({ data }: { data: BrokerDashboardData }) {
 
   return (
     <div className="space-y-6">
-      {/* ─── ZONA 1: HERO CARD PRINCIPAL (Apenas 1 Card Primário) ─── */}
-      {nextActionLead ? (
-        <Card className="relative overflow-hidden border-primary/30 bg-gradient-to-r from-primary via-primary/95 to-primary/90 text-primary-foreground shadow-md p-5 sm:p-6">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between relative z-10">
-            <div className="space-y-1.5 max-w-2xl">
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="border-white/30 bg-white/20 text-white font-mono text-[10px] uppercase tracking-wider">
-                  ⚡ Próxima Ação Prioritária do Corretor
-                </Badge>
-              </div>
-              <h2 className="text-xl md:text-2xl font-extrabold text-white leading-tight">
-                Iniciar contato com {nextActionLead.name}
-              </h2>
-              <p className="text-xs md:text-sm text-white/85">
-                {nextActionLead.status === "new"
-                  ? "Lead novo atribuído a você aguardando primeiro atendimento."
-                  : "Lead em negociação ativa. Avance a etapa ou registre o retorno."}
-              </p>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <Button
-                render={<Link href={`/leads/${nextActionLead.id}`} />}
-                size="default"
-                className="h-10 bg-white text-primary hover:bg-white/90 font-bold text-xs gap-2 shadow-sm"
-              >
-                Atender Agora <ArrowUpRight className="size-4" />
-              </Button>
-            </div>
-          </div>
-        </Card>
-      ) : (
-        <Card className="border-primary/20 bg-primary/5 p-5 shadow-xs">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <CheckCircle className="size-6 text-primary" weight="fill" />
-              <div>
-                <p className="text-sm font-bold text-foreground">Sua fila de atendimento está em dia!</p>
-                <p className="text-xs text-muted-foreground">Fique atento às notificações ou consulte sua carteira de leads.</p>
-              </div>
-            </div>
-          </div>
-        </Card>
-      )}
 
       {/* Quick-action cards for pending items */}
       <section className="grid gap-3 sm:grid-cols-3">
