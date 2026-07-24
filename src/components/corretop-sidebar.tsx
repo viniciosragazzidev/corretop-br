@@ -212,7 +212,7 @@ export function CorreTopSidebar({ logoUrl }: { logoUrl?: string | null }) {
   const isPlantaoActive = pathname.startsWith("/leads/distribuicao/plantao");
 
   return (
-    <Sidebar collapsible="icon" variant="sidebar" rail>
+    <Sidebar collapsible="icon" variant="sidebar">
       <SidebarHeader className="border-b border-sidebar-border/50 py-3 pl-4 pr-3 space-y-3">
         <Link href="/dashboard" prefetch className="block">
           <CorreTopLogo src={logoUrl} className="h-8 w-full rounded-md object-contain object-left" />

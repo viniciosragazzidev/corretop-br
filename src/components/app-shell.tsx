@@ -69,8 +69,7 @@ export function AppShell({
       className="overflow-hidden"
       style={
         {
-          "--sidebar-width": "18rem",
-          "--workspace-rail-width": "4rem",
+          "--sidebar-width": "16rem",
           "--header-height": "3.75rem",
           ...(branding?.brandColor
             ? {

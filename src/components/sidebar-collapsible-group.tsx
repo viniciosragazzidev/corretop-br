@@ -28,48 +28,44 @@ export function SidebarCollapsibleGroup({
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
 
-  // When sidebar is collapsed (icon mode), always show items so tooltips work.
   const showContent = isOpen || isCollapsed;
 
   return (
-    <SidebarGroup className={cn("group/collapsible", className)}>
-      {/* Collapsed state: large icon + rotated label — hidden when expanded */}
+    <SidebarGroup className={cn("group/collapsible py-1", className)}>
+      {/* Collapsed state (icon mode) */}
       <div
-        className="hidden group-data-[collapsible=icon]:flex flex-col items-center gap-1.5 py-2 px-1"
+        className="hidden group-data-[collapsible=icon]:flex flex-col items-center gap-1 py-1.5 px-1"
         aria-hidden="true"
       >
         {Icon && (
-          <div className="flex size-8 items-center justify-center rounded-md bg-sidebar-accent/50 text-sidebar-foreground/60">
-            <Icon className="size-[1.125rem] shrink-0" />
+          <div className="flex size-7 items-center justify-center rounded-md bg-sidebar-accent/40 text-sidebar-foreground/70">
+            <Icon className="size-4 shrink-0" />
           </div>
         )}
-        <span
-          className="text-[9px] items-start justify-start flex-nowrap w-full text-ellipsis truncate  font-bold uppercase tracking-widest text-sidebar-foreground/40 leading-none"
-          style={{ writingMode: "vertical-rl", textOrientation: "mixed", transform: "rotate(180deg)" }}
-        >
-          {label}
-        </span>
       </div>
 
-      {/* Expanded state: normal collapsible header — hidden when collapsed */}
+      {/* Expanded state: Real interactive header item */}
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
         className={cn(
-          "flex h-8 w-full items-center gap-1.5 rounded-md px-2 text-xs font-medium text-sidebar-foreground/70 ring-sidebar-ring outline-hidden transition-[margin,opacity] duration-200 ease-linear hover:text-sidebar-foreground focus-visible:ring-2 group-data-[collapsible=icon]:hidden",
+          "flex h-9 w-full items-center justify-between rounded-lg px-2.5 text-sm font-semibold text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring group-data-[collapsible=icon]:hidden",
           headerClassName,
         )}
       >
+        <div className="flex items-center gap-2 min-w-0">
+          {Icon && <Icon className="size-4 shrink-0 text-sidebar-foreground/65" />}
+          <span className="truncate tracking-tight">{label}</span>
+        </div>
         <ChevronDownIcon
           className={cn(
-            "size-3 shrink-0 transition-transform duration-200 ease-linear",
+            "size-4 shrink-0 text-sidebar-foreground/50 transition-transform duration-200 ease-out",
             isOpen ? "rotate-0" : "-rotate-90",
           )}
         />
-        <span>{label}</span>
       </button>
 
-      {/* Content: animated when expanded, always rendered when collapsed (for tooltips) */}
+      {/* Content */}
       {isCollapsed ? (
         <SidebarGroupContent>{children}</SidebarGroupContent>
       ) : (
@@ -81,7 +77,7 @@ export function SidebarCollapsibleGroup({
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-              className="overflow-hidden"
+              className="overflow-hidden pt-1"
             >
               <SidebarGroupContent>{children}</SidebarGroupContent>
             </motion.div>

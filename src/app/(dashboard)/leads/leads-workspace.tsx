@@ -116,22 +116,102 @@ export function LeadsWorkspace({
   const canCall =
     selectedLead && !(contextRole === "broker" && selectedLead.status === "distributed");
 
+  const unworkedCount = useMemo(() => leads.filter((l) => l.status === "new").length, [leads]);
+  const unassignedCount = useMemo(() => leads.filter((l) => !l.corretorId).length, [leads]);
+  const activeCount = useMemo(() => leads.filter((l) => l.status === "in_contact" || l.status === "negotiation").length, [leads]);
+  const convertedCount = useMemo(() => leads.filter((l) => l.status === "converted").length, [leads]);
+
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col gap-6 p-4 lg:p-6 max-w-7xl mx-auto w-full">
+      {/* ─── 1. HEADER PADRÃO DA ROTA ─── */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-border/50 pb-4">
+        <div>
+          <p className="text-xs font-medium text-muted-foreground">Operação / Leads</p>
+          <h1 className="text-xl font-bold tracking-tight sm:text-2xl text-foreground">Leads Comerciais</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Priorize, distribua e acompanhe contatos desde a entrada até o fechamento.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button render={<Link href="/marketing/importacoes" />} size="sm" variant="outline" className="h-9 text-xs">
+            Importar Leads
+          </Button>
+          <Button render={<Link href="/leads/distribuicao" />} size="sm" className="h-9 text-xs font-semibold gap-1.5">
+            + Adicionar Lead
+          </Button>
+        </div>
+      </div>
+
+      {/* ─── 2. CARD PRIMARY DOMINANTE (Único Card de Destaque Primário) ─── */}
+      <Card className="relative overflow-hidden border-primary/30 bg-gradient-to-r from-primary via-primary/95 to-primary/90 text-primary-foreground shadow-md p-5 sm:p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between relative z-10">
+          <div className="space-y-1.5 max-w-2xl">
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="border-white/30 bg-white/20 text-white font-mono text-[10px] uppercase tracking-wider">
+                ⚡ Atendimento Prioritário
+              </Badge>
+            </div>
+            <h2 className="text-xl md:text-2xl font-extrabold text-white leading-tight">
+              {unworkedCount > 0
+                ? `${unworkedCount} ${unworkedCount === 1 ? "lead novo precisa" : "leads novos precisam"} de atendimento imediato`
+                : "Todos os leads ativos estão em atendimento comercial!"}
+            </h2>
+            <p className="text-xs md:text-sm text-white/85">
+              {unworkedCount > 0
+                ? "Responda aos novos contatos dentro da janela de 15 minutos para maximizar as chances de conversão."
+                : `${activeCount} contatos em negociação ativa e ${convertedCount} conversões realizadas no tenant.`}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {leads.length > 0 ? (
+              <Button
+                onClick={() => setSelectedLead(leads.find((l) => l.status === "new") ?? leads[0])}
+                size="default"
+                className="h-10 bg-white text-primary hover:bg-white/90 font-bold text-xs gap-2 shadow-sm"
+              >
+                Atender Próximo Lead <ArrowUpRight className="size-4" />
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      </Card>
+
+      {/* ─── 3. CARDS SECUNDÁRIOS NEUTROS ─── */}
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Card className="border-border/70 bg-card p-4 shadow-xs">
+          <p className="text-xs font-medium text-muted-foreground">Sem Responsável</p>
+          <p className="mt-1 text-2xl font-bold tracking-tight text-foreground">{unassignedCount}</p>
+          <p className="mt-1 text-[11px] text-muted-foreground">Aguardando fila de distribuição</p>
+        </Card>
+        <Card className="border-border/70 bg-card p-4 shadow-xs">
+          <p className="text-xs font-medium text-muted-foreground">Em Atendimento</p>
+          <p className="mt-1 text-2xl font-bold tracking-tight text-foreground">{activeCount}</p>
+          <p className="mt-1 text-[11px] text-muted-foreground">Contatos em negociação</p>
+        </Card>
+        <Card className="border-border/70 bg-card p-4 shadow-xs">
+          <p className="text-xs font-medium text-muted-foreground">Finalizados</p>
+          <p className="mt-1 text-2xl font-bold tracking-tight text-foreground">{convertedCount}</p>
+          <p className="mt-1 text-[11px] text-muted-foreground">Vendas convertidas</p>
+        </Card>
+      </div>
+
+      {/* ─── 4. TABS E CONTEÚDO PRINCIPAL ─── */}
       <Tabs defaultValue="list" className="flex min-h-0 flex-1 flex-col">
-        <TabsList aria-label="Visualização de leads">
-          <TabsTrigger value="list">
-            <UserList />
-            Lista
-          </TabsTrigger>
-          <TabsTrigger value="kanban">
-            <SquaresFour />
-            Kanban
-          </TabsTrigger>
-        </TabsList>
+        <div className="flex items-center justify-between border-b border-border/50 pb-2">
+          <TabsList aria-label="Visualização de leads">
+            <TabsTrigger value="list" className="text-xs gap-1.5">
+              <UserList className="size-4" />
+              Lista de Atendimento
+            </TabsTrigger>
+            <TabsTrigger value="kanban" className="text-xs gap-1.5">
+              <SquaresFour className="size-4" />
+              Kanban do Funil
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="list" className="mt-4">
-          <Card className="border-border bg-card shadow-none">
+          <Card className="border-border bg-card shadow-xs">
             <CardContent className="p-0">
               <div className="hidden divide-y divide-border max-[559px]:block">
                 {leads.map((lead) => (

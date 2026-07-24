@@ -98,5 +98,109 @@ export function DutyRosterCalendar({ branches, brokers, schedules, initialAssign
     startTransition(async () => { const result = await removeRosterAssignmentAction({}, form); if (!result.success) { setAssignments((items) => [...items, assignment]); toast.error(result.error); return; } toast.success("Corretor removido da escala."); router.refresh(); });
   }
 
-  return <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}><Card className="overflow-hidden border-border/70 shadow-sm"><CardHeader className="gap-4 border-b border-border/60 bg-card/80 pb-4"><div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"><div><div className="flex items-center gap-2"><CalendarCheck className="size-5 text-primary" /><CardTitle className="text-base">Escala visual</CardTitle>{isPending && <Badge variant="outline" className="text-[10px]">Salvando…</Badge>}</div><p className="mt-1 text-sm text-muted-foreground">Arraste corretores para os plantões da unidade. A distribuição continua respeitando disponibilidade e capacidade.</p></div><select aria-label="Filial da escala" value={selectedBranch} onChange={(event) => setSelectedBranch(event.target.value)} className="h-9 rounded-lg border border-input bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15">{branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></div></CardHeader><CardContent className="grid gap-5 p-4 xl:grid-cols-[230px_minmax(0,1fr)]"><aside className="grid content-start gap-3"><div><p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Corretores da unidade</p><p className="mt-1 text-xs text-muted-foreground">Arraste um nome para um plantão.</p></div><div className="relative"><MagnifyingGlass className="pointer-events-none absolute left-2.5 top-2.5 size-4 text-muted-foreground" /><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar corretor" className="pl-8" /></div><div className="grid max-h-[520px] gap-2 overflow-y-auto pr-1">{branchBrokers.map((broker) => <DraggableBroker key={broker.id} broker={broker} />)}{branchBrokers.length === 0 && <div className="rounded-lg border border-dashed border-border p-4 text-center text-xs text-muted-foreground"><Users className="mx-auto mb-2 size-5" />Nenhum corretor elegível encontrado.</div>}</div></aside><div className="grid gap-3 overflow-x-auto"><div className="grid min-w-[900px] grid-cols-7 gap-2">{DAYS.map((day, index) => <div key={day} className="rounded-lg bg-muted/50 px-3 py-2 text-center text-xs font-semibold text-foreground">{day}<span className="ml-1 text-[10px] font-normal text-muted-foreground">{branchSchedules.filter((schedule) => schedule.dayOfWeek === index).length}</span></div>)}</div><div className="grid min-w-[900px] grid-cols-7 gap-2">{DAYS.map((day, index) => <div key={day} className="grid content-start gap-2">{branchSchedules.filter((schedule) => schedule.dayOfWeek === index).map((schedule) => <ScheduleDropZone key={schedule.id} schedule={schedule} assignments={branchAssignments.filter((assignment) => assignment.scheduleId === schedule.id)} onRemove={removeAssignment} />)}{branchSchedules.every((schedule) => schedule.dayOfWeek !== index) && <div className="rounded-lg border border-dashed border-border/60 px-3 py-8 text-center text-xs text-muted-foreground">Sem plantão</div>}</div>)}</div></div></CardContent></Card><DragOverlay>{activeLabel ? <div className="rounded-lg border border-primary/40 bg-card px-3 py-2 text-sm font-medium shadow-lg">{activeLabel}</div> : null}</DragOverlay></DndContext>;
+  const availableBrokers = useMemo(() => branchBrokers.filter((b) => b.availabilityStatus === "available"), [branchBrokers]);
+  const pausedBrokers = useMemo(() => branchBrokers.filter((b) => b.availabilityStatus !== "available"), [branchBrokers]);
+
+  return (
+    <div className="space-y-6">
+      {/* ─── 1. HERO CARD PRIMARY DOMINANTE ─── */}
+      <Card className="relative overflow-hidden border-primary/30 bg-gradient-to-r from-primary via-primary/95 to-primary/90 text-primary-foreground shadow-md p-5 sm:p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between relative z-10">
+          <div className="space-y-1.5 max-w-2xl">
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="border-white/30 bg-white/20 text-white font-mono text-[10px] uppercase tracking-wider">
+                🟠 OPERAÇÃO DE PLANTÃO AO VIVO
+              </Badge>
+            </div>
+            <h2 className="text-xl md:text-2xl font-extrabold text-white leading-tight">
+              Escala de Plantão Comercial da Unidade
+            </h2>
+            <p className="text-xs md:text-sm text-white/85">
+              Gerencie a escala visual em tempo real. Os corretores escalados recebem atribuição automática da fila de entrada.
+            </p>
+          </div>
+        </div>
+      </Card>
+
+      {/* ─── 2. DAILY OPERATION STATUS BAR ─── */}
+      <div className="grid gap-3 sm:grid-cols-4">
+        <Card className="border-emerald-500/30 bg-emerald-500/10 p-3.5 shadow-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Disponíveis</span>
+            <Badge variant="outline" className="border-emerald-500/30 text-emerald-700 dark:text-emerald-300 font-mono text-xs">{availableBrokers.length}</Badge>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">Prontos para novo atendimento</p>
+        </Card>
+        <Card className="border-blue-500/30 bg-blue-500/10 p-3.5 shadow-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400">Em Atendimento</span>
+            <Badge variant="outline" className="border-blue-500/30 text-blue-700 dark:text-blue-300 font-mono text-xs">{branchAssignments.length}</Badge>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">Em negociação comercial</p>
+        </Card>
+        <Card className="border-amber-500/30 bg-amber-500/10 p-3.5 shadow-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">Em Pausa</span>
+            <Badge variant="outline" className="border-amber-500/30 text-amber-700 dark:text-amber-300 font-mono text-xs">{pausedBrokers.length}</Badge>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">Status temporário ausente</p>
+        </Card>
+        <Card className="border-border/70 bg-card p-3.5 shadow-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Total Elegíveis</span>
+            <Badge variant="outline" className="font-mono text-xs">{branchBrokers.length}</Badge>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">Corretores da unidade</p>
+        </Card>
+      </div>
+
+      {/* ─── 3. CALENDÁRIO VISUAL E DND ─── */}
+      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        <Card className="overflow-hidden border-border/70 shadow-xs">
+          <CardHeader className="gap-4 border-b border-border/60 bg-card/80 p-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <CalendarCheck className="size-5 text-primary" />
+                  <CardTitle className="text-base font-bold">Grade Semanal da Escala</CardTitle>
+                  {isPending && <Badge variant="outline" className="text-[10px]">Salvando…</Badge>}
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">Arraste corretores para os plantões da unidade.</p>
+              </div>
+              <select aria-label="Filial da escala" value={selectedBranch} onChange={(event) => setSelectedBranch(event.target.value)} className="h-9 rounded-lg border border-input bg-background px-3 text-xs font-semibold outline-none focus:border-primary focus:ring-2 focus:ring-primary/15">
+                {branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
+              </select>
+            </div>
+          </CardHeader>
+          <CardContent className="grid gap-5 p-4 xl:grid-cols-[230px_minmax(0,1fr)]">
+            <aside className="grid content-start gap-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Corretores da Unidade</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">Arraste um nome para o plantão desejado.</p>
+              </div>
+              <div className="relative">
+                <MagnifyingGlass className="pointer-events-none absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
+                <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar corretor..." className="pl-8 text-xs h-9" />
+              </div>
+              <div className="grid max-h-[520px] gap-2 overflow-y-auto pr-1">
+                {branchBrokers.map((broker) => <DraggableBroker key={broker.id} broker={broker} />)}
+                {branchBrokers.length === 0 && <div className="rounded-lg border border-dashed border-border p-4 text-center text-xs text-muted-foreground"><Users className="mx-auto mb-2 size-5" />Nenhum corretor encontrado.</div>}
+              </div>
+            </aside>
+            <div className="grid gap-3 overflow-x-auto">
+              <div className="grid min-w-[900px] grid-cols-7 gap-2">
+                {DAYS.map((day, index) => <div key={day} className="rounded-lg bg-muted/50 px-3 py-2 text-center text-xs font-bold text-foreground">{day}<span className="ml-1 text-[10px] font-normal text-muted-foreground">({branchSchedules.filter((schedule) => schedule.dayOfWeek === index).length})</span></div>)}
+              </div>
+              <div className="grid min-w-[900px] grid-cols-7 gap-2">
+                {DAYS.map((day, index) => <div key={day} className="grid content-start gap-2">{branchSchedules.filter((schedule) => schedule.dayOfWeek === index).map((schedule) => <ScheduleDropZone key={schedule.id} schedule={schedule} assignments={branchAssignments.filter((assignment) => assignment.scheduleId === schedule.id)} onRemove={removeAssignment} />)}{branchSchedules.every((schedule) => schedule.dayOfWeek !== index) && <div className="rounded-lg border border-dashed border-border/60 px-3 py-8 text-center text-xs text-muted-foreground">Sem plantão</div>}</div>)}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <DragOverlay>
+          {activeLabel ? <div className="rounded-lg border border-primary/40 bg-card px-3 py-2 text-sm font-medium shadow-lg">{activeLabel}</div> : null}
+        </DragOverlay>
+      </DndContext>
+    </div>
+  );
 }

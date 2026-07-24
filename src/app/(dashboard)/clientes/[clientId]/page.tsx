@@ -193,6 +193,32 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ c
           </div>
         </div>
 
+        {/* ─── HERO CARD PRIMARY DOMINANTE (Único Card de Destaque Primário) ─── */}
+        <Card className="relative overflow-hidden border-primary/30 bg-gradient-to-r from-primary via-primary/95 to-primary/90 text-primary-foreground shadow-md p-5 sm:p-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between relative z-10">
+            <div className="space-y-1.5 max-w-2xl">
+              <Badge variant="outline" className="border-white/30 bg-white/20 text-white font-mono text-[10px] uppercase tracking-wider">
+                ⚡ Próxima Ação Pós-Venda
+              </Badge>
+              <h2 className="text-xl md:text-2xl font-extrabold text-white leading-tight">
+                {anniversaryIsUpcoming
+                  ? `Iniciar renovação de apólice (faltam ${anniversarySoon} dias)`
+                  : "Cliente ativo com suporte pós-venda em dia"}
+              </h2>
+              <p className="text-xs md:text-sm text-white/85">
+                {anniversaryIsUpcoming
+                  ? "Envie uma proposta de renovação antecipada para garantir retenção de carteira."
+                  : "Acompanhe as apólices, tarefas de relacionamento e histórico comercial deste cliente."}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button size="default" className="h-10 bg-white text-primary hover:bg-white/90 font-bold text-xs gap-2 shadow-sm" render={<Link href={`/conversas?leadId=${client.leadId}`} />}>
+                Enviar Mensagem Pós-Venda <ArrowRight className="size-4" />
+              </Button>
+            </div>
+          </div>
+        </Card>
+
         {/* 2-Column Layout */}
         <div className="grid gap-6 lg:grid-cols-[24rem_1fr] items-start">
           {/* Left Column: About, Sales Summary, Renewal */}

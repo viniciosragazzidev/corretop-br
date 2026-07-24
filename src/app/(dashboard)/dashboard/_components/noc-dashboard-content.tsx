@@ -31,6 +31,7 @@ import {
 
 import { DashboardHeader } from "@/components/dashboard-header";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -89,55 +90,67 @@ function DirectorActionCenter({ data }: { data: DirectorDashboardData }) {
     {
       label: "Leads sem contato",
       value: data.totals.unworked,
-      description: "Distribuídos há mais de 15 minutos",
+      description: "Distribuídos há mais de 15 min",
       href: "/leads?attention=unworked",
-      tone: data.totals.unworked > 0 ? "border-warning/30 bg-accent/[0.06]" : "border-border/60 bg-muted/20",
+      badge: data.totals.unworked > 0 ? "Crítico" : "Ok",
+      badgeTone: data.totals.unworked > 0 ? "bg-amber-500/10 text-amber-600 border-amber-500/20" : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
       icon: Warning,
     },
     {
       label: "Leads estagnados",
       value: data.totals.stalled,
-      description: "Sem avanço há mais de 3 dias",
+      description: "Sem avanço há 3+ dias",
       href: "/leads?attention=stalled",
-      tone: data.totals.stalled > 0 ? "border-destructive/30 bg-destructive/[0.05]" : "border-border/60 bg-muted/20",
+      badge: data.totals.stalled > 0 ? "Atenção" : "Ok",
+      badgeTone: data.totals.stalled > 0 ? "bg-red-500/10 text-red-600 border-red-500/20" : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
       icon: XCircle,
     },
     {
       label: "Equipe ativa",
       value: `${data.totals.activeBrokers}/${data.totals.members}`,
-      description: "Membros ativos no tenant",
+      description: "Corretores na operação",
       href: "/equipe",
-      tone: "border-border/60 bg-muted/20",
+      badge: "Equipe",
+      badgeTone: "bg-blue-500/10 text-blue-600 border-blue-500/20",
       icon: Users,
     },
     {
-      label: "Configuração",
-      value: "Revisar",
-      description: "Marca, integrações e segurança",
+      label: "Parâmetros do Tenant",
+      value: "OK",
+      description: "Integrações & Segurança",
       href: "/settings",
-      tone: "border-border/60 bg-muted/20",
+      badge: "Sistema",
+      badgeTone: "bg-muted text-muted-foreground border-border",
       icon: Globe,
     },
   ] as const;
 
   return (
     <section aria-labelledby="director-action-center" className="space-y-3">
-      <div>
-        <h2 id="director-action-center" className="text-base font-semibold tracking-tight">Atenção agora</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Comece pelo que pode afetar atendimento, equipe ou configuração.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 id="director-action-center" className="text-sm font-bold tracking-tight">Minha Operação & Pendências</h2>
+          <p className="text-xs text-muted-foreground">Monitore pontos que exigem ação rápida do gestor.</p>
+        </div>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {actions.map((action) => {
           const Icon = action.icon;
           return (
-            <Link key={action.label} href={action.href} className={`group rounded-xl border p-4 outline-none transition-colors hover:border-primary/30 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring ${action.tone}`}>
-              <div className="flex items-start justify-between gap-3">
-                <Icon className="size-4 text-muted-foreground" weight="fill" />
-                <ArrowUpRight className="size-4 text-muted-foreground transition-transform duration-[var(--duration-quick)] group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+            <Link
+              key={action.label}
+              href={action.href}
+              className="group rounded-xl border border-border/70 bg-card p-4 transition-all hover:border-primary/40 hover:shadow-xs focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <Badge variant="outline" className={`text-[10px] font-mono uppercase ${action.badgeTone}`}>
+                  {action.badge}
+                </Badge>
+                <ArrowUpRight className="size-4 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
               </div>
-              <p className="mt-4 text-sm font-medium">{action.label}</p>
-              <p className="mt-1 text-2xl font-semibold tabular-nums">{action.value}</p>
-              <p className="mt-1 text-xs leading-5 text-muted-foreground">{action.description}</p>
+              <p className="mt-3 text-xs font-semibold text-muted-foreground">{action.label}</p>
+              <p className="mt-1 text-2xl font-bold tracking-tight tabular-nums text-foreground">{action.value}</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">{action.description}</p>
             </Link>
           );
         })}
@@ -145,8 +158,6 @@ function DirectorActionCenter({ data }: { data: DirectorDashboardData }) {
     </section>
   );
 }
-
-// NocMetricCard substituído por StatCard + motion wrapper
 
 // ─── Chart Tooltip ───────────────────────────────────────────────────────────
 
@@ -263,123 +274,100 @@ function DirectorNocContent({ data }: { data: DirectorDashboardData }) {
       : "0,0";
 
   const statusDistribution = [
-    {
-      name: "Novos",
-      value: data.funnel.find((f) => f.stage === "Novo")?.volume ?? 0,
-      color: "var(--chart-1)",
-    },
-    {
-      name: "Contato",
-      value: data.funnel.find((f) => f.stage === "Contato")?.volume ?? 0,
-      color: "var(--chart-2)",
-    },
-    {
-      name: "Cotação",
-      value: data.funnel.find((f) => f.stage === "Cotação")?.volume ?? 0,
-      color: "var(--chart-3)",
-    },
-    {
-      name: "Negociação",
-      value:
-        data.funnel.find((f) => f.stage === "Negociação")?.volume ?? 0,
-      color: "var(--chart-4)",
-    },
-    {
-      name: "Conversão",
-      value:
-        data.funnel.find((f) => f.stage === "Conversão")?.volume ?? 0,
-      color: "var(--chart-5)",
-    },
+    { name: "Novos", value: data.funnel.find((f) => f.stage === "Novo")?.volume ?? 0, color: "var(--chart-1)" },
+    { name: "Contato", value: data.funnel.find((f) => f.stage === "Contato")?.volume ?? 0, color: "var(--chart-2)" },
+    { name: "Cotação", value: data.funnel.find((f) => f.stage === "Cotação")?.volume ?? 0, color: "var(--chart-3)" },
+    { name: "Negociação", value: data.funnel.find((f) => f.stage === "Negociação")?.volume ?? 0, color: "var(--chart-4)" },
+    { name: "Conversão", value: data.funnel.find((f) => f.stage === "Conversão")?.volume ?? 0, color: "var(--chart-5)" },
   ];
 
-  const activities: Array<{
-    id: number;
-    type: string;
-    message: string;
-    time: string;
-    user: string;
-  }> = [
-      {
-        id: 1,
-        type: "alert",
-        message: `${data.totals.unworked} leads não trabalhados há mais de 15 min`,
-        time: "agora",
-        user: "Alerta",
-      },
-      {
-        id: 2,
-        type: "alert",
-        message: `${data.totals.stalled} leads estagnados sem avanço`,
-        time: "agora",
-        user: "Alerta",
-      },
-      {
-        id: 3,
-        type: "conversion",
-        message: `${totalConverted} leads convertidos no total`,
-        time: "hoje",
-        user: "Sistema",
-      },
-      ...data.branches.map((b, i) => ({
-        id: 10 + i,
-        type: "new_lead" as const,
-        message: `Filial "${b.name}" — ${b.leads} leads, ${b.conversion} conversão`,
-        time: "hoje",
-        user: "Sistema",
-        branchName: b.name,
-      })),
-    ];
+  const activities = [
+    { id: 1, type: "alert", message: `${data.totals.unworked} leads não trabalhados há mais de 15 min`, time: "agora", user: "Alerta" },
+    { id: 2, type: "alert", message: `${data.totals.stalled} leads estagnados sem avanço`, time: "agora", user: "Alerta" },
+    { id: 3, type: "conversion", message: `${totalConverted} leads convertidos no total`, time: "hoje", user: "Sistema" },
+    ...data.branches.map((b, i) => ({
+      id: 10 + i,
+      type: "new_lead" as const,
+      message: `Filial "${b.name}" — ${b.leads} leads, ${b.conversion} conversão`,
+      time: "hoje",
+      user: "Sistema",
+      branchName: b.name,
+    })),
+  ];
 
   return (
-    <>
-      {/* Status Header */}
-      <section className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card p-4 shadow-none lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex size-9 items-center justify-center rounded-lg bg-success/10">
-            <SealCheck className="size-5 text-success" weight="fill" />
-          </div>
-          <div>
-            <h2 className="text-sm font-semibold">
-              {data.tenant.name} — Operacional
+    <div className="space-y-6">
+      {/* ─── ZONA 1: HERO CARD PRINCIPAL (Apenas 1 Card Primário) ─── */}
+      <Card className="relative overflow-hidden border-primary/30 bg-gradient-to-r from-primary via-primary/95 to-primary/90 text-primary-foreground shadow-md p-5 sm:p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between relative z-10">
+          <div className="space-y-1.5 max-w-2xl">
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="border-white/30 bg-white/20 text-white font-mono text-[10px] uppercase tracking-wider">
+                🎯 Resumo Executivo da Operação
+              </Badge>
+            </div>
+            <h2 className="text-xl md:text-2xl font-extrabold text-white leading-tight">
+              {data.totals.unworked > 0
+                ? `${data.totals.unworked} Leads aguardando atendimento imediato`
+                : "Operação comercial 100% atualizada em tempo real"}
             </h2>
-            <p className="text-xs text-muted-foreground">
-              {data.totals.activeBrokers} de {data.totals.members}
-              {data.totals.members === 1 ? " membro ativo" : " membros ativos"}{" "}
-              · {data.totals.branches}{" "}
-              {data.totals.branches === 1 ? "filial" : "filiais"}
+            <p className="text-xs md:text-sm text-white/85">
+              {data.totals.unworked > 0
+                ? "Existem contatos pendentes na fila comercial sem atendimento há mais de 15 minutos."
+                : `${data.totals.activeLeads} leads ativos sob gestão de ${data.totals.activeBrokers} corretores com ${data.totals.converted} conversões.`}
             </p>
           </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              render={<Link href="/leads?attention=unworked" />}
+              size="default"
+              className="h-10 bg-white text-primary hover:bg-white/90 font-bold text-xs gap-2 shadow-sm"
+            >
+              Atender ou Redistribuir Fila <ArrowUpRight className="size-4" />
+            </Button>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Badge
-            variant="outline"
-            className="gap-1.5 rounded-md text-xs font-normal"
-          >
-            <StatusIndicator status="operational" />
-            {totalLeads} leads
-          </Badge>
-          <Badge
-            variant="outline"
-            className="gap-1.5 rounded-md text-xs font-normal"
-          >
-            <StatusIndicator
-              status={totalConverted > 0 ? "operational" : "degraded"}
-            />
-            {totalConverted} conversões
-          </Badge>
+      </Card>
+
+      {/* ─── ZONA 2: MINHA FILA & PENDÊNCIAS ─── */}
+      <DirectorActionCenter data={data} />
+
+      {/* ─── ZONA 3: PLANTÃO ATUAL (Daily Operation Bar) ─── */}
+      <Card className="border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent p-4 shadow-xs">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="relative flex size-3">
+              <span className="absolute inline-flex size-full animate-ping rounded-full bg-amber-400 opacity-75" />
+              <span className="relative inline-flex size-3 rounded-full bg-amber-500" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">PLANTÃO AO VIVO</p>
+              <p className="text-sm font-semibold text-foreground">
+                {data.totals.activeBrokers} de {data.totals.members} corretores online na escala de distribuição
+              </p>
+            </div>
+          </div>
+          <Button render={<Link href="/leads/distribuicao/plantao" />} size="sm" variant="outline" className="border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 h-8 text-xs font-semibold gap-1.5">
+            <WifiHigh className="size-4" /> Abrir Módulo de Plantão
+          </Button>
+        </div>
+      </Card>
+
+      {/* ─── ZONA 4: INDICADORES (Gráficos Isolados no Final) ─── */}
+      <section className="space-y-4 pt-2">
+        <div className="border-b border-border/50 pb-2">
+          <h2 className="text-sm font-bold tracking-tight">Indicadores & Analytics</h2>
+          <p className="text-xs text-muted-foreground">Desempenho do funil e distribuição de conversões.</p>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard label="Leads Totais" value={data.totals.leads} change={`${data.totals.activeLeads} ativos`} sublabel="Carteira do tenant" animated />
+          <StatCard label="Em Atendimento" value={data.totals.activeLeads} change={`${((data.totals.activeLeads / Math.max(1, data.totals.leads)) * 100).toFixed(0)}%`} sublabel="Leads negociando" animated animationDelay={0.08} />
+          <StatCard label="Conversões" value={data.totals.converted} change={data.totals.leads > 0 ? `${conversionRate}%` : "0%"} sublabel="Leads finalizados" animated animationDelay={0.16} />
+          <StatCard label="Corretores" value={data.totals.activeBrokers} change={`${data.totals.members} cadastrados`} sublabel="Equipe comercial" animated animationDelay={0.24} />
         </div>
       </section>
 
-      <DirectorActionCenter data={data} />
-
-      {/* Metric Cards */}
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        <StatCard label="Leads" value={data.totals.leads} change={`${data.totals.activeLeads} ativos`} sublabel="Total de leads no tenant" animated />
-        <StatCard label="Ativos" value={data.totals.activeLeads} change={`${((data.totals.activeLeads / Math.max(1, data.totals.leads)) * 100).toFixed(0)}%`} sublabel="Leads em atendimento" animated animationDelay={0.08} />
-        <StatCard label="Conversões" value={data.totals.converted} change={data.totals.leads > 0 ? `${conversionRate}%` : "0%"} sublabel="Leads convertidos" animated animationDelay={0.16} />
-        <StatCard label="Corretores" value={data.totals.activeBrokers} change={`${data.totals.members} cadastrados`} sublabel="Membros ativos na operação" animated animationDelay={0.24} />
-        <StatCard label="Filial" value={data.totals.branches} change={`${data.totals.unworked} não trab.`} sublabel="Unidades cadastradas" animated animationDelay={0.32} />
-      </section>        {/* Charts Row */}
+      {/* Charts Row */}
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-7">
         {/* Funnel Flow */}
         <motion.div
@@ -701,7 +689,7 @@ function DirectorNocContent({ data }: { data: DirectorDashboardData }) {
           </motion.div>
         ))}
       </div>
-    </>
+    </div>
   );
 }
 
@@ -746,61 +734,80 @@ function ManagerNocContent({ data }: { data: ManagerDashboardData }) {
     {
       id: 4,
       type: "conversion",
-      message: `${data.teamSize - data.activeMembers
-        } corretores offline na filial`,
+      message: `${data.teamSize - data.activeMembers} corretores offline na filial`,
       time: "hoje",
       user: "Sistema",
     },
   ];
 
   return (
-    <>
-      {/* Status Header */}
-      <section className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card p-4 shadow-none lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex size-9 items-center justify-center rounded-lg bg-success/10">
-            <SealCheck className="size-5 text-success" weight="fill" />
-          </div>
-          <div>
-            <h2 className="text-sm font-semibold">
-              {data.branchName} — Operacional
+    <div className="space-y-6">
+      {/* ─── ZONA 1: HERO CARD PRINCIPAL (Apenas 1 Card Primário) ─── */}
+      <Card className="relative overflow-hidden border-primary/30 bg-gradient-to-r from-primary via-primary/95 to-primary/90 text-primary-foreground shadow-md p-5 sm:p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between relative z-10">
+          <div className="space-y-1.5 max-w-2xl">
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="border-white/30 bg-white/20 text-white font-mono text-[10px] uppercase tracking-wider">
+                🎯 Gestão da Unidade {data.branchName}
+              </Badge>
+            </div>
+            <h2 className="text-xl md:text-2xl font-extrabold text-white leading-tight">
+              {data.newLeads > 0
+                ? `${data.newLeads} Leads novos aguardando atribuição e primeiro contato!`
+                : "Equipe comercial da unidade com atendimento em dia!"}
             </h2>
-            <p className="text-xs text-muted-foreground">
-              {data.activeMembers} de {data.teamSize}{" "}
-              {data.teamSize === 1 ? "corretor ativo" : "corretores ativos"}{" "}
-              · {data.leadsTotal} leads na filial
+            <p className="text-xs md:text-sm text-white/85">
+              {data.newLeads > 0
+                ? `${data.unassigned} sem responsável e ${data.unworked} com atraso superior a 15 minutos.`
+                : `${data.activeMembers} corretores ativos de ${data.teamSize} cadastrados na unidade.`}
             </p>
           </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              render={<Link href="/leads" />}
+              size="default"
+              className="h-10 bg-white text-primary hover:bg-white/90 font-bold text-xs gap-2 shadow-sm"
+            >
+              Ver Fila da Unidade <ArrowUpRight className="size-4" />
+            </Button>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Badge
-            variant="outline"
-            className="gap-1.5 rounded-md text-xs font-normal"
-          >
-            <StatusIndicator
-              status={data.newLeads === 0 ? "operational" : "degraded"}
-            />
-            {data.newLeads} novos
-          </Badge>
-          <Badge
-            variant="outline"
-            className="gap-1.5 rounded-md text-xs font-normal"
-          >
-            <StatusIndicator
-              status={data.unworked > 5 ? "degraded" : "operational"}
-            />
-            {data.unworked} não trab.
-          </Badge>
-        </div>
-      </section>
+      </Card>
 
-      {/* Metric Cards */}
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        <StatCard label="Corretores Ativos" value={data.activeMembers} change={`${teamPercent}%`} sublabel={`${data.teamSize} membros cadastrados`} animated />
-        <StatCard label="Leads Novos" value={data.newLeads} change={`${newPercent}% do total`} sublabel={`${data.unassigned} sem responsável`} animated animationDelay={0.08} />
-        <StatCard label="Em Atendimento" value={data.inContact} change={`${contactPercent}%`} sublabel={`de ${data.leadsTotal} leads totais`} animated animationDelay={0.16} />
-        <StatCard label="Não Trabalhados" value={data.unworked} change={data.unworked > 0 ? "urgente" : "ok"} sublabel="Distribuídos há +15min" animated animationDelay={0.24} />
-        <StatCard label="Estagnados" value={data.stalled} change={data.stalled > 0 ? "atenção" : "ok"} sublabel="Sem avanço há +3 dias" animated animationDelay={0.32} />
+      {/* ─── ZONA 2: PLANTÃO AO VIVO ─── */}
+      <Card className="border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent p-4 shadow-xs">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="relative flex size-3">
+              <span className="absolute inline-flex size-full animate-ping rounded-full bg-amber-400 opacity-75" />
+              <span className="relative inline-flex size-3 rounded-full bg-amber-500" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">PLANTÃO AO VIVO DA FILIAL</p>
+              <p className="text-sm font-semibold text-foreground">
+                {data.activeMembers} de {data.teamSize} corretores online no plantão de atendimento
+              </p>
+            </div>
+          </div>
+          <Button render={<Link href="/leads/distribuicao/plantao" />} size="sm" variant="outline" className="border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 h-8 text-xs font-semibold gap-1.5">
+            <WifiHigh className="size-4" /> Escala do Plantão
+          </Button>
+        </div>
+      </Card>
+
+      {/* ─── ZONA 3: INDICADORES NEUTROS ─── */}
+      <section className="space-y-4 pt-2">
+        <div className="border-b border-border/50 pb-2">
+          <h2 className="text-sm font-bold tracking-tight">Indicadores de Desempenho</h2>
+          <p className="text-xs text-muted-foreground">Métricas operacionais da unidade.</p>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <StatCard label="Corretores Ativos" value={data.activeMembers} change={`${teamPercent}%`} sublabel={`${data.teamSize} cadastrados`} animated />
+          <StatCard label="Leads Novos" value={data.newLeads} change={`${newPercent}% do total`} sublabel={`${data.unassigned} sem resp.`} animated animationDelay={0.08} />
+          <StatCard label="Em Atendimento" value={data.inContact} change={`${contactPercent}%`} sublabel={`de ${data.leadsTotal} totais`} animated animationDelay={0.16} />
+          <StatCard label="Não Trabalhados" value={data.unworked} change={data.unworked > 0 ? "urgente" : "ok"} sublabel="Há +15min sem contato" animated animationDelay={0.24} />
+          <StatCard label="Estagnados" value={data.stalled} change={data.stalled > 0 ? "atenção" : "ok"} sublabel="Há +3 dias sem avanço" animated animationDelay={0.32} />
+        </div>
       </section>
 
       {/* Team Overview + Bottlenecks */}
@@ -944,7 +951,7 @@ function ManagerNocContent({ data }: { data: ManagerDashboardData }) {
           </motion.div>
         ))}
       </div>
-    </>
+    </div>
   );
 }
 
@@ -960,92 +967,72 @@ function BrokerNocContent({ data }: { data: BrokerDashboardData }) {
       ? Math.round((data.totals.converted / data.totals.all) * 100)
       : 0;
 
+  const nextActionLead = data.activeLeads[0] ?? data.leads.find((l) => l.status === "new" || l.status === "in_contact") ?? null;
+
   const distributionData = [
-    {
-      name: "Novos",
-      value: data.totals.new,
-      color: "var(--chart-1)",
-    },
-    {
-      name: "Contato",
-      value: data.totals.inContact,
-      color: "var(--chart-3)",
-    },
-    {
-      name: "Ativos",
-      value: Math.max(
-        0,
-        data.totals.active - data.totals.new - data.totals.inContact
-      ),
-      color: "var(--chart-4)",
-    },
-    {
-      name: "Convertidos",
-      value: data.totals.converted,
-      color: "var(--chart-5)",
-    },
+    { name: "Novos", value: data.totals.new, color: "var(--chart-1)" },
+    { name: "Contato", value: data.totals.inContact, color: "var(--chart-3)" },
+    { name: "Ativos", value: Math.max(0, data.totals.active - data.totals.new - data.totals.inContact), color: "var(--chart-4)" },
+    { name: "Convertidos", value: data.totals.converted, color: "var(--chart-5)" },
   ].filter((d) => d.value > 0);
 
-  const activities: Array<{
-    id: number;
-    type: string;
-    message: string;
-    time: string;
-    user: string;
-  }> =
-    data.activeLeads.length > 0
-      ? data.activeLeads.slice(0, 8).map((lead, i) => ({
+  const activities = data.activeLeads.length > 0
+    ? data.activeLeads.slice(0, 8).map((lead, i) => ({
         id: i + 1,
         type: "new_lead",
         message: `Atendimento ativo — ${lead.name} (${lead.status})`,
         time: "hoje",
         user: lead.serviceStartedAt
-          ? new Intl.DateTimeFormat("pt-BR", {
-            hour: "2-digit",
-            minute: "2-digit",
-          }).format(lead.serviceStartedAt)
+          ? new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" }).format(lead.serviceStartedAt)
           : "Sistema",
       }))
-      : [
-        {
-          id: 99,
-          type: "conversion",
-          message: "Nenhum atendimento ativo no momento",
-          time: "agora",
-          user: "Sistema",
-        },
-      ];
+    : [{ id: 99, type: "conversion", message: "Nenhum atendimento ativo no momento", time: "agora", user: "Sistema" }];
 
   return (
-    <>
-      {/* Status Header */}
-      <section className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card p-4 shadow-none lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex size-9 items-center justify-center rounded-lg bg-chart-2/10">
-            <Users className="size-5 text-chart-2" weight="fill" />
+    <div className="space-y-6">
+      {/* ─── ZONA 1: HERO CARD PRINCIPAL (Apenas 1 Card Primário) ─── */}
+      {nextActionLead ? (
+        <Card className="relative overflow-hidden border-primary/30 bg-gradient-to-r from-primary via-primary/95 to-primary/90 text-primary-foreground shadow-md p-5 sm:p-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between relative z-10">
+            <div className="space-y-1.5 max-w-2xl">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="border-white/30 bg-white/20 text-white font-mono text-[10px] uppercase tracking-wider">
+                  ⚡ Próxima Ação Prioritária do Corretor
+                </Badge>
+              </div>
+              <h2 className="text-xl md:text-2xl font-extrabold text-white leading-tight">
+                Iniciar contato com {nextActionLead.name}
+              </h2>
+              <p className="text-xs md:text-sm text-white/85">
+                {nextActionLead.status === "new"
+                  ? "Lead novo atribuído a você aguardando primeiro atendimento."
+                  : "Lead em negociação ativa. Avance a etapa ou registre o retorno."}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                render={<Link href={`/leads/${nextActionLead.id}`} />}
+                size="default"
+                className="h-10 bg-white text-primary hover:bg-white/90 font-bold text-xs gap-2 shadow-sm"
+              >
+                Atender Agora <ArrowUpRight className="size-4" />
+              </Button>
+            </div>
           </div>
-          <div>
-            <h2 className="text-sm font-semibold">
-              Minha Carteira · {data.branchName}
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              {data.totals.all} leads · {data.totals.active} ativos ·{" "}
-              {data.totals.converted} convertidos
-            </p>
+        </Card>
+      ) : (
+        <Card className="border-primary/20 bg-primary/5 p-5 shadow-xs">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <CheckCircle className="size-6 text-primary" weight="fill" />
+              <div>
+                <p className="text-sm font-bold text-foreground">Sua fila de atendimento está em dia!</p>
+                <p className="text-xs text-muted-foreground">Fique atento às notificações ou consulte sua carteira de leads.</p>
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Badge
-            variant="outline"
-            className="gap-1.5 rounded-md text-xs font-normal"
-          >
-            <Globe className="size-3.5 text-chart-3" weight="fill" />
-            {data.availabilityStatus === "available"
-              ? "Disponível"
-              : "Pausado"}
-          </Badge>
-        </div>
-      </section>
+        </Card>
+      )}
 
       {/* Quick-action cards for pending items */}
       <section className="grid gap-3 sm:grid-cols-3">
@@ -1259,7 +1246,7 @@ function BrokerNocContent({ data }: { data: BrokerDashboardData }) {
           </motion.div>
         ))}
       </div>
-    </>
+    </div>
   );
 }
 
