@@ -38,6 +38,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { StatCard } from "@/components/dashboard/metric-card";
 import type {
   DirectorDashboardData,
@@ -560,55 +561,59 @@ function DirectorNocContent({ data }: { data: DirectorDashboardData }) {
 
       {/* Branches Performance */}
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-7">
-        <Card className="rounded-xl border-border/70 bg-card shadow-none lg:col-span-4">
+        <Card className="rounded-xl border-border/70 bg-card shadow-none lg:col-span-4 flex flex-col">
           <CardHeader>
             <CardTitle>Desempenho por Filial</CardTitle>
             <CardDescription>
               Leads, ativos e conversão por unidade
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {data.branches.map((branch, i) => (
-              <motion.div
-                key={branch.name}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2, ease: [0, 0, 0.2, 1], delay: Math.min(i * 0.06, 0.3) }}
-                className="rounded-lg border border-border/40 bg-muted/20 p-3"
-              >
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="text-sm font-medium">
-                    {branch.name}
-                  </span>
-                  <Badge variant="outline" className="rounded-md text-xs">
-                    {branch.conversion}
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  <span>{branch.leads} leads</span>
-                  <span>·</span>
-                  <span>{branch.activeLeads} ativos</span>
-                  <span>·</span>
-                  <span>{branch.conversion} conversão</span>
-                </div>
-                <div className="mt-2 relative h-2 overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="h-full rounded-full bg-chart-5 transition-all duration-700"
-                    style={{
-                      width: `${branch.leads > 0
-                        ? (branch.activeLeads / branch.leads) * 100
-                        : 0
-                        }%`,
-                    }}
-                  />
-                </div>
-              </motion.div>
-            ))}
-            {data.branches.length === 0 && (
-              <p className="py-6 text-center text-sm text-muted-foreground">
-                Nenhuma filial cadastrada.
-              </p>
-            )}
+          <CardContent className="min-h-0 flex-1 p-0">
+            <ScrollArea className="h-full max-h-[340px] px-6 pb-6">
+              <div className="space-y-4">
+                {data.branches.map((branch, i) => (
+                  <motion.div
+                    key={branch.name}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2, ease: [0, 0, 0.2, 1], delay: Math.min(i * 0.06, 0.3) }}
+                    className="rounded-lg border border-border/40 bg-muted/20 p-3"
+                  >
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-sm font-medium">
+                        {branch.name}
+                      </span>
+                      <Badge variant="outline" className="rounded-md text-xs">
+                        {branch.conversion}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <span>{branch.leads} leads</span>
+                      <span>·</span>
+                      <span>{branch.activeLeads} ativos</span>
+                      <span>·</span>
+                      <span>{branch.conversion} conversão</span>
+                    </div>
+                    <div className="mt-2 relative h-2 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full bg-chart-5 transition-all duration-700"
+                        style={{
+                          width: `${branch.leads > 0
+                            ? (branch.activeLeads / branch.leads) * 100
+                            : 0
+                            }%`,
+                        }}
+                      />
+                    </div>
+                  </motion.div>
+                ))}
+                {data.branches.length === 0 && (
+                  <p className="py-6 text-center text-sm text-muted-foreground">
+                    Nenhuma filial cadastrada.
+                  </p>
+                )}
+              </div>
+            </ScrollArea>
           </CardContent>
         </Card>
 

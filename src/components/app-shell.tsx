@@ -6,7 +6,6 @@ import { useEffect } from "react";
 import { CorreTopSidebar } from "@/components/corretop-sidebar";
 import { CorreTopFinanceiroSidebar } from "@/components/corretop-financeiro-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { WorkspaceRail } from "@/components/workspace-rail";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 
 type Branding = {
@@ -86,7 +85,6 @@ export function AppShell({
         } as CSSProperties
       }
     >
-      <WorkspaceRail />
       {isFinanceiro ? (
         <CorreTopFinanceiroSidebar />
       ) : (
