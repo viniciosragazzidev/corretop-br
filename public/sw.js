@@ -127,46 +127,67 @@ self.addEventListener("fetch", (event) => {
 self.addEventListener("push", (event) => {
   if (!event.data) return;
 
-  try {
-    const data = event.data.json();
-    const title = data.title || "CorreTop CRM";
-    const options = {
-      body: data.body || "",
-      icon: data.icon || "/logo_icon.jpg",
-      badge: "/logo_icon.jpg",
-      vibrate: data.vibrate || [100, 50, 100],
-      data: {
-        dateOfArrival: Date.now(),
-        primaryKey: "corretop-push",
-        url: data.url || "/",
-        ...data.data,
-      },
-      tag: data.tag || "corretop-default",
-      renotify: data.renotify || false,
-      requireInteraction: data.requireInteraction || false,
-      actions: data.actions || [
-        {
-          action: "open",
-          title: "Abrir",
-        },
-        {
-          action: "close",
-          title: "Fechar",
-        },
-      ],
-    };
+  event.waitUntil(
+    (async () => {
+      let data = {};
+      try {
+        data = event.data.json();
+      } catch {
+        data = { body: event.data.text() };
+      }
 
-    event.waitUntil(self.registration.showNotification(title, options));
-  } catch {
-    // Se não for JSON válido, mostra o texto puro
-    const title = "CorreTop CRM";
-    const options = {
-      body: event.data.text(),
-      icon: "/logo_icon.jpg",
-      badge: "/logo_icon.jpg",
-    };
-    event.waitUntil(self.registration.showNotification(title, options));
-  }
+      // Check existing active notifications on the device
+      const existing = await self.registration.getNotifications();
+
+      // If device already has 3 or more active notifications, collapse into a single summary card
+      if (existing.length >= 3) {
+        // Close individual notifications to avoid cluttering the screen
+        for (const n of existing) {
+          if (n.tag !== "corretop-device-summary") {
+            n.close();
+          }
+        }
+
+        const totalCount = existing.length + 1;
+        return self.registration.showNotification(`Você tem ${totalCount} notificações no CorreTop`, {
+          body: "Existem várias novidades acumuladas no seu painel. Clique para abrir.",
+          icon: "/logo_icon.jpg",
+          badge: "/logo_icon.jpg",
+          tag: "corretop-device-summary",
+          renotify: false,
+          requireInteraction: false,
+          data: { url: "/", dateOfArrival: Date.now() },
+          actions: [
+            { action: "open", title: "Abrir Painel" },
+            { action: "close", title: "Fechar" },
+          ],
+        });
+      }
+
+      const title = data.title || "CorreTop CRM";
+      const options = {
+        body: data.body || "",
+        icon: data.icon || "/logo_icon.jpg",
+        badge: "/logo_icon.jpg",
+        vibrate: data.vibrate || [100, 50, 100],
+        data: {
+          dateOfArrival: Date.now(),
+          primaryKey: "corretop-push",
+          url: data.url || "/",
+          ...data.data,
+        },
+        tag: data.tag || "corretop-default",
+        renotify: data.renotify || false,
+        requireInteraction: data.requireInteraction || false,
+        actions: data.actions || [
+          { action: "open", title: "Abrir" },
+          { action: "close", title: "Fechar" },
+        ],
+      };
+
+      return self.registration.showNotification(title, options);
+    })()
+  );
 });
 
 // ─── Clique em Notificação ────────────────────────────────────────────────────

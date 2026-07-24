@@ -1,7 +1,7 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
-import { and, eq, or } from "drizzle-orm";
+import { and, count, eq, gte, isNull, or } from "drizzle-orm";
 import webpush from "web-push";
 
 import { createLeadOffersForBrokers } from "@/features/lead-distribution/offers";
@@ -17,26 +17,103 @@ if (vapidPublicKey && vapidPrivateKey) {
   webpush.setVapidDetails("mailto:suporte@corretop.com.br", vapidPublicKey, vapidPrivateKey);
 }
 
-export async function sendNotificationToUser(userId: string, payload: { title: string; body: string; url?: string; tag?: string }) {
+// ─── Coalescing & Aggregation Tracker ──────────────────────────────────────────
+
+export const PUSH_COALESCE_WINDOW_MS = 60 * 1000; // 60 seconds window
+export const MAX_INDIVIDUAL_PUSHES_IN_WINDOW = 2;
+
+type UserPushHistory = {
+  lastSentAt: number;
+  countInWindow: number;
+};
+
+const userPushTracker = new Map<string, UserPushHistory>();
+
+export function clearPushTrackerForTest() {
+  userPushTracker.clear();
+}
+
+/**
+ * Sends WebPush notification to all registered subscriptions of a user.
+ * Implements server-side debouncing, coalescing and summary aggregation to avoid PWA device freezes.
+ */
+export async function sendNotificationToUser(
+  userId: string,
+  payload: { title: string; body: string; url?: string; tag?: string }
+) {
   const db = getDatabase();
-  const subscriptions = await db.select().from(schema.pushSubscriptions).where(eq(schema.pushSubscriptions.userId, userId));
+  const now = Date.now();
+  const history = userPushTracker.get(userId);
+
+  let shouldAggregate = false;
+  let currentWindowCount = 1;
+
+  if (history && now - history.lastSentAt < PUSH_COALESCE_WINDOW_MS) {
+    currentWindowCount = history.countInWindow + 1;
+    if (currentWindowCount > MAX_INDIVIDUAL_PUSHES_IN_WINDOW) {
+      shouldAggregate = true;
+    }
+  }
+
+  userPushTracker.set(userId, {
+    lastSentAt: now,
+    countInWindow: currentWindowCount,
+  });
+
+  const subscriptions = await db
+    .select()
+    .from(schema.pushSubscriptions)
+    .where(eq(schema.pushSubscriptions.userId, userId));
+
+  if (!subscriptions.length) return;
+
+  let finalTitle = payload.title;
+  let finalBody = payload.body;
+  let finalTag = payload.tag ?? "corretop-notification";
+  let renotify = false;
+  let requireInteraction = false;
+
+  if (shouldAggregate) {
+    // Query unread count for user
+    const [unreadResult] = await db
+      .select({ value: count() })
+      .from(schema.notifications)
+      .where(and(eq(schema.notifications.recipientUserId, userId), isNull(schema.notifications.readAt)));
+
+    const unreadTotal = unreadResult?.value ?? currentWindowCount;
+
+    finalTitle = `Você possui ${unreadTotal} novas notificações`;
+    finalBody = `Você tem ${currentWindowCount} novas atualizações acumuladas no CorreTop. Clique para visualizar.`;
+    finalTag = `corretop-summary-${userId}`;
+    renotify = false;
+    requireInteraction = false;
+  }
+
   await runWithConcurrency(subscriptions, 5, async (sub) => {
     try {
-      await webpush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, JSON.stringify({
-        title: payload.title,
-        body: payload.body,
-        icon: "/logo_icon.jpg",
-        badge: "/logo_icon.jpg",
-        vibrate: [100, 50, 100],
-        data: { url: payload.url ?? "/", dateOfArrival: Date.now() },
-        tag: payload.tag ?? "corretop-notification",
-        renotify: true,
-        requireInteraction: true,
-        actions: [{ action: "open", title: "Abrir" }, { action: "close", title: "Fechar" }],
-      }));
+      await webpush.sendNotification(
+        { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+        JSON.stringify({
+          title: finalTitle,
+          body: finalBody,
+          icon: "/logo_icon.jpg",
+          badge: "/logo_icon.jpg",
+          vibrate: [100, 50, 100],
+          data: { url: payload.url ?? "/", dateOfArrival: Date.now() },
+          tag: finalTag,
+          renotify,
+          requireInteraction,
+          actions: [{ action: "open", title: "Abrir" }, { action: "close", title: "Fechar" }],
+        })
+      );
     } catch (error) {
-      const statusCode = typeof error === "object" && error !== null && "statusCode" in error ? error.statusCode : undefined;
-      if (statusCode === 410) await db.delete(schema.pushSubscriptions).where(eq(schema.pushSubscriptions.id, sub.id));
+      const statusCode =
+        typeof error === "object" && error !== null && "statusCode" in error
+          ? (error as { statusCode?: number }).statusCode
+          : undefined;
+      if (statusCode === 410) {
+        await db.delete(schema.pushSubscriptions).where(eq(schema.pushSubscriptions.id, sub.id));
+      }
     }
   });
 }
@@ -56,14 +133,31 @@ export async function publishNotification(input: {
 }) {
   if (!(await isNotificationCapabilityEnabled(input.capability))) return false;
   await getDatabase().insert(schema.notifications).values({
-    id: randomUUID(), tenantId: input.tenantId, recipientUserId: input.recipientUserId,
-    leadId: input.leadId ?? null, type: input.type, title: input.title, message: input.message, createdAt: new Date(),
+    id: randomUUID(),
+    tenantId: input.tenantId,
+    recipientUserId: input.recipientUserId,
+    leadId: input.leadId ?? null,
+    type: input.type,
+    title: input.title,
+    message: input.message,
+    createdAt: new Date(),
   });
-  await sendNotificationToUser(input.recipientUserId, { title: input.pushTitle ?? input.title, body: input.pushBody ?? input.message, url: input.url, tag: input.tag });
+  await sendNotificationToUser(input.recipientUserId, {
+    title: input.pushTitle ?? input.title,
+    body: input.pushBody ?? input.message,
+    url: input.url,
+    tag: input.tag,
+  });
   return true;
 }
 
-export async function notifyNewLead(leadId: string, tenantId: string, branchId: string | null, corretorId: string | null, leadName: string) {
+export async function notifyNewLead(
+  leadId: string,
+  tenantId: string,
+  branchId: string | null,
+  corretorId: string | null,
+  leadName: string
+) {
   if (corretorId) {
     await createLeadOffersForBrokers({
       tenantId,
@@ -78,42 +172,55 @@ export async function notifyNewLead(leadId: string, tenantId: string, branchId: 
   const recipients = await getDatabase()
     .select({ userId: schema.tenantMemberships.userId, role: schema.tenantMemberships.role })
     .from(schema.tenantMemberships)
-    .where(and(
-      eq(schema.tenantMemberships.tenantId, tenantId),
-      eq(schema.tenantMemberships.status, "active"),
-      or(
-        eq(schema.tenantMemberships.role, "director"),
-        branchId ? and(eq(schema.tenantMemberships.role, "manager"), eq(schema.tenantMemberships.branchId, branchId)) : eq(schema.tenantMemberships.role, "manager"),
-      ),
-    ));
+    .where(
+      and(
+        eq(schema.tenantMemberships.tenantId, tenantId),
+        eq(schema.tenantMemberships.status, "active"),
+        or(
+          eq(schema.tenantMemberships.role, "director"),
+          branchId
+            ? and(eq(schema.tenantMemberships.role, "manager"), eq(schema.tenantMemberships.branchId, branchId))
+            : eq(schema.tenantMemberships.role, "manager")
+        )
+      )
+    );
 
   const targets = [
     ...(corretorId ? [{ userId: corretorId, role: "broker" as const }] : []),
     ...recipients.filter((recipient) => recipient.userId !== corretorId),
   ];
 
-  await Promise.all(targets.map((target) => {
-    const isDirector = target.role === "director";
-    const isBroker = target.role === "broker";
-    return publishNotification({
-      capability: "lead_assignment",
-      tenantId,
-      recipientUserId: target.userId,
-      leadId,
-      type: "agent.lead_assigned",
-      title: isBroker ? "Novo lead atribuído" : isDirector ? "Novo lead na corretora" : "Novo lead na unidade",
-      message: isBroker ? `Você recebeu o lead ${leadName} para atender.` : corretorId ? `"${leadName}" chegou e foi distribuído.` : `"${leadName}" chegou e está aguardando distribuição.`,
-      pushTitle: isBroker ? "Novo Lead Atribuído! ⚡" : isDirector ? "Novo Lead na Corretora! 🏢" : "Novo Lead na Unidade! 📍",
-      pushBody: isBroker ? `O lead "${leadName}" foi distribuído para você.` : corretorId ? `"${leadName}" chegou e foi distribuído.` : `"${leadName}" está aguardando distribuição.`,
-      url: `/leads/${leadId}`,
-      tag: `lead-${leadId}`,
-    });
-  }));
+  await Promise.all(
+    targets.map((target) => {
+      const isDirector = target.role === "director";
+      const isBroker = target.role === "broker";
+      return publishNotification({
+        capability: "lead_assignment",
+        tenantId,
+        recipientUserId: target.userId,
+        leadId,
+        type: "agent.lead_assigned",
+        title: isBroker ? "Novo lead atribuído" : isDirector ? "Novo lead na corretora" : "Novo lead na unidade",
+        message: isBroker
+          ? `Você recebeu o lead ${leadName} para atender.`
+          : corretorId
+          ? `"${leadName}" chegou e foi distribuído.`
+          : `"${leadName}" chegou e está aguardando distribuição.`,
+        pushTitle: isBroker ? "Novo Lead Atribuído! ⚡" : isDirector ? "Novo Lead na Corretora! 🏢" : "Novo Lead na Unidade! 📍",
+        pushBody: isBroker
+          ? `O lead "${leadName}" foi distribuído para você.`
+          : corretorId
+          ? `"${leadName}" chegou e foi distribuído.`
+          : `"${leadName}" está aguardando distribuição.`,
+        url: `/leads/${leadId}`,
+        tag: "corretop-leads",
+      });
+    })
+  );
 }
 
 /**
  * Notify managers and directors about a new lead arrival (pre-distribution).
- * Separate from lead_assignment — focuses on the arrival event itself.
  */
 export async function notifyLeadArrived(leadId: string, tenantId: string, branchId: string | null, leadName: string) {
   if (!(await isNotificationCapabilityEnabled("lead_arrived"))) return;
@@ -121,30 +228,38 @@ export async function notifyLeadArrived(leadId: string, tenantId: string, branch
   const recipients = await getDatabase()
     .select({ userId: schema.tenantMemberships.userId, role: schema.tenantMemberships.role })
     .from(schema.tenantMemberships)
-    .where(and(
-      eq(schema.tenantMemberships.tenantId, tenantId),
-      eq(schema.tenantMemberships.status, "active"),
-      or(
-        eq(schema.tenantMemberships.role, "director"),
-        branchId ? and(eq(schema.tenantMemberships.role, "manager"), eq(schema.tenantMemberships.branchId, branchId)) : eq(schema.tenantMemberships.role, "manager"),
-      ),
-    ));
+    .where(
+      and(
+        eq(schema.tenantMemberships.tenantId, tenantId),
+        eq(schema.tenantMemberships.status, "active"),
+        or(
+          eq(schema.tenantMemberships.role, "director"),
+          branchId
+            ? and(eq(schema.tenantMemberships.role, "manager"), eq(schema.tenantMemberships.branchId, branchId))
+            : eq(schema.tenantMemberships.role, "manager")
+        )
+      )
+    );
 
-  await Promise.all(recipients.map((recipient) =>
-    publishNotification({
-      capability: "lead_arrived",
-      tenantId,
-      recipientUserId: recipient.userId,
-      leadId,
-      type: "lead_arrived",
-      title: recipient.role === "director" ? "Novo lead na corretora" : "Novo lead na unidade",
-      message: `"${leadName}" chegou e ${recipient.role === "director" ? "está disponível na corretora" : "está disponível na unidade"}.`,
-      pushTitle: "Novo Lead Chegou! 📥",
-      pushBody: `"${leadName}" acabou de chegar no sistema.`,
-      url: `/leads/${leadId}`,
-      tag: `lead-${leadId}`,
-    })
-  ));
+  await Promise.all(
+    recipients.map((recipient) =>
+      publishNotification({
+        capability: "lead_arrived",
+        tenantId,
+        recipientUserId: recipient.userId,
+        leadId,
+        type: "lead_arrived",
+        title: recipient.role === "director" ? "Novo lead na corretora" : "Novo lead na unidade",
+        message: `"${leadName}" chegou e ${
+          recipient.role === "director" ? "está disponível na corretora" : "está disponível na unidade"
+        }.`,
+        pushTitle: "Novo Lead Chegou! 📥",
+        pushBody: `"${leadName}" acabou de chegar no sistema.`,
+        url: `/leads/${leadId}`,
+        tag: "corretop-leads",
+      })
+    )
+  );
 }
 
 /**
@@ -164,6 +279,6 @@ export async function notifyLeadReassigned(leadId: string, tenantId: string, pre
     pushTitle: "Lead Reatribuído 🔄",
     pushBody: `${leadName} foi reatribuído para outro profissional.`,
     url: `/leads/${leadId}`,
-    tag: `lead-${leadId}`,
+    tag: "corretop-leads",
   });
 }
